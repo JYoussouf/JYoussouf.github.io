@@ -130,7 +130,6 @@ a {
     transition: all 0.3s;
 }
 .nav-link.selected {color: #E16BBD;}
-.nav-link.btn.btn-primary.selected {color: #fff;}
 
 .navbar-brand img {
     width: 55px;

@@ -21,9 +21,7 @@ sections.forEach(section => {
 let navbar = document.querySelector("#home");
 navbar.addEventListener("click", (e) => {
   if (e.target.classList.length === 1 && e.target.classList.contains("nav-link")) {
-    return;
+    navbar.querySelectorAll(".nav-link.selected").forEach((item) => item.classList.remove("selected"));
+    e.target.classList.add("selected");
   }
-  
-  navbar.querySelectorAll(".nav-link.selected").forEach((item) => item.classList.remove("selected"));
-  e.target.classList.add("selected");
 });

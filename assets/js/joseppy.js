@@ -20,7 +20,7 @@ sections.forEach(section => {
 // select active
 let navbar = document.querySelector("#home");
 navbar.addEventListener("click", (e) => {
-  if(!e.target.classList.contains("nav-link")) {
+  if (e.target.classList.length === 1 && e.target.classList.contains("nav-link")) {
     return;
   }
   

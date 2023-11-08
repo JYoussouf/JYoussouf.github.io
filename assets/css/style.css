@@ -25,8 +25,8 @@ h1 {
 .col-md{
     position: relative;
     width: 100%;
-    padding-right: 15px;
-    padding-left: 15px;
+    /* padding-right: 15px; */
+    /* padding-left: 15px; */
   }
 
 a {
@@ -76,8 +76,8 @@ a {
     background-color: #fff;
     border: 1px solid #dee2e6;
     border-radius: 1.25rem;
-    max-width: 100%;
-    height: auto;
+    max-height: 30%;
+    width: 90%;
     margin-bottom: 10px;
     transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -260,6 +260,16 @@ a {
     font-size: 14px;
 }
 
+/* Section Rules */
+.section {
+    margin-top: 50px;
+    margin-bottom: 50px;
+    flex-grow: 1; /* allows content to stretch when zooming out. Footer stays at the bottom. */
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.5s;
+    padding-top:50px;
+}
+
 
 /* Sizing because I couldn't get CSS Grid to auto-fit */
 @media (max-width: 576px) {
@@ -346,7 +356,7 @@ a {
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(100px);
+      transform: translateY(50px);
     }
     to {
       opacity: 1;

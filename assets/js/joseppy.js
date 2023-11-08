@@ -1,5 +1,5 @@
 // Fade-In Animation
-const sections = document.querySelectorAll('.section');
+const sections = document.querySelectorAll('.section, .solid-line');
 
 const observer = new IntersectionObserver(entries => {
   entries.forEach(entry => {

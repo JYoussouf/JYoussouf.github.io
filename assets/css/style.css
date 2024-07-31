@@ -173,18 +173,38 @@ a {
 .grid_profile_picture {
     grid-row: span 2;
     justify-self: center;
+    position: relative; /* Ensure the pseudo-element is positioned correctly */
 }
 
 .grid_profile_picture img {
     width: 450px;
-    border-radius: 50%; 
-    align-self: center;
-    transform: translateX(10px);
+    border-radius: 50%;
+    position: relative;
+    z-index: 1; /* Ensure the image is above the shadow */
 }
 
+.grid_profile_picture::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    bottom: 0;
+    width: 95%;
+    height: 95%;
+    border-radius: 50%;
+    z-index: -1;
+    box-shadow: 
+        0 -20px 30px 10px var(--color-top), /* Top */
+        20px 0 30px 10px var(--color-right), /* Right */
+        -20px 0 30px 10px var(--color-left), /* Left */
+        0 20px 30px 10px var(--color-bottom); /* Bottom */
+    animation: lavaLamp 4s linear infinite;
+    transform: translate(-50%, -50%); /* Center the pseudo-element */
+    transition: transform 0.3s; /* Smooth transition for the transformation effect */
+}
 
 /* Profile Info Grid */
-
 .grid_profile_info {
     grid-column: 2;
     display:flex;
@@ -272,7 +292,7 @@ a {
 
 
 /* Sizing because I couldn't get CSS Grid to auto-fit */
-@media (max-width: 576px) {
+@media (max-width: 400px) {
     h1 {
         font-size: 1.6rem; /* Adjust the font size for smaller screens */
     }
@@ -286,6 +306,37 @@ a {
     }
     .grid_profile_picture img {
         width: 130px;
+    }
+    .grid_profile_picture::before {
+        width: 0%;
+        height: 0%;
+    }
+    .social-item {
+        width: 30px;
+        height: 30px;
+        line-height: 26px;
+        font-size: 20px;
+        border-radius: 50%;
+    }
+}
+@media (min-width: 400px) and (max-width: 576px) {
+    h1 {
+        font-size: 1.6rem; /* Adjust the font size for smaller screens */
+    }
+
+    h5 {
+        font-size: 1rem;
+    }
+    .btn {
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+    .grid_profile_picture img {
+        width: 130px;
+    }
+    .grid_profile_picture::before {
+        width: 75%;
+        height: 75%;
     }
     .social-item {
         width: 30px;
@@ -309,6 +360,10 @@ a {
     .grid_profile_picture img {
         width: 210px;
     }
+    .grid_profile_picture::before {
+        width: 85%;
+        height: 85%;
+    }
     .social-item {
         width: 30px;
         height: 30px;
@@ -328,6 +383,10 @@ a {
     .grid_profile_picture img {
         width: 300px;
     }
+    .grid_profile_picture::before {
+        width: 92%;
+        height: 92%;
+    }
     .social-item {
         width: 40px;
         height: 40px;
@@ -344,8 +403,11 @@ a {
     .grid_profile_picture img {
         width: 400px;
     }
+    .grid_profile_picture::before {
+        width: 95%;
+        height: 95%;
+    }
 }
-
 
 /* Animations */
 
@@ -378,4 +440,58 @@ a {
 
 .navbar-brand img:hover {
     transform: scale(1.05);
+}
+
+/* Lava Lamp Colours */
+:root {
+    --color-top: rgba(137, 0, 175, 0.6);
+    --color-right: rgba(191, 0, 89, 0.6);
+    --color-left: rgba(222, 11, 11, 0.6);
+    --color-bottom: rgba(0, 255, 255, 0.6);
+}
+
+@keyframes lavaLamp {
+    0% {
+        box-shadow: 
+            0 -15px 25px 5px var(--color-top), /* Top */
+            15px 0 25px 5px var(--color-right), /* Right */
+            -15px 0 25px 5px var(--color-left), /* Left */
+            0 15px 25px 5px var(--color-bottom); /* Bottom */
+    }
+
+    25% {
+        box-shadow: 
+            -15px -10px 25px 5px var(--color-top), /* Top Left */
+            10px 10px 25px 5px var(--color-right), /* Bottom Right */
+            -10px -10px 25px 5px var(--color-left), /* Top Right */
+            10px -10px 25px 5px var(--color-bottom); /* Bottom Left */
+    }
+
+    50% {
+        box-shadow: 
+            -15px 0 25px 5px var(--color-top), /* Left */
+            15px 0 25px 5px var(--color-right), /* Right */
+            0 -15px 25px 5px var(--color-left), /* Top */
+            0 15px 25px 5px var(--color-bottom); /* Bottom */
+    }
+
+    75% {
+        box-shadow: 
+            -10px -10px 25px 5px var(--color-top), /* Top Left */
+            10px 10px 25px 5px var(--color-right), /* Bottom Right */
+            -10px 10px 25px 5px var(--color-left), /* Bottom Left */
+            10px -10px 25px 5px var(--color-bottom); /* Top Right */
+    }
+
+    100% {
+        box-shadow: 
+            0 -15px 25px 5px var(--color-top), /* Top */
+            15px 0 25px 5px var(--color-right), /* Right */
+            -15px 0 25px 5px var(--color-left), /* Left */
+            0 15px 25px 5px var(--color-bottom); /* Bottom */
+    }
+}
+
+.lava-lamp {
+    animation: lavaLamp 4s linear infinite;
 }

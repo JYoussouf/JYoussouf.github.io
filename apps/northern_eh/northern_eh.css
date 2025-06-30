@@ -167,6 +167,58 @@ body, html {
   background: #e6f0ff;
 }
 
+/* Modern Mapbox popup style */
+.mapboxgl-popup.northern-eh-popup {
+  max-width: 320px;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  background: none;
+  padding: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.mapboxgl-popup.northern-eh-popup .mapboxgl-popup-content {
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.mapboxgl-popup.northern-eh-popup .mapboxgl-popup-tip {
+  display: none !important;
+}
+
+.northern-eh-popup-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 18px 14px 18px;
+  font-size: 1.08rem;
+  color: #222;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  border: 1.5px solid #e0e0e0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 1.2rem !important;
+  top: 8px !important;
+  right: 10px !important;
+  color: #888 !important;
+  border-radius: 50%;
+  background: #f7f7f7 !important;
+  transition: background 0.2s;
+}
+.mapboxgl-popup-close-button:hover {
+  background: #e3e3e3 !important;
+  color: #d32f2f !important;
+}
+
 @media (max-width: 900px) {
   .hnay-sidebar {
     width: 100vw;

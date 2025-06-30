@@ -177,7 +177,7 @@ a {
 }
 
 .grid_profile_picture img {
-    width: 450px;
+    width: 400px;
     border-radius: 50%;
     position: relative;
     z-index: 1; /* Ensure the image is above the shadow */
@@ -294,7 +294,7 @@ a {
 /* Sizing because I couldn't get CSS Grid to auto-fit */
 @media (max-width: 400px) {
     h1 {
-        font-size: 1.6rem; /* Adjust the font size for smaller screens */
+        font-size: 1.5rem; /* Adjust the font size for smaller screens */
     }
 
     h5 {

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How North Are You?</title>
+    <link rel="stylesheet" href="northern_eh.css">
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <link rel="icon" type="image/x-icon" href="../portfolio/images/favicon.ico">
+    <!-- Add Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Add Font Awesome for maple leaf icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body style="margin:0; padding:0;">
+    <div class="hnay-container">
+        <div id="map" class="hnay-map"></div>
+        <aside class="hnay-sidebar">
+            <h1>How North Are You Compared to the <span style="color:#FF0000;">True North Strong and Free?</span></h1>
+            <p>Enter your city or street to find out how many Canadians live further south than you!<br><br>
+            This tool uses Mapbox and Canadian census data to compare your latitude to the population of Canada.</p>
+            <form id="location-form" autocomplete="off" style="position:relative;">
+                <label for="location-input">Enter your city or street:</label>
+                <input type="text" id="location-input" class="form-control" placeholder="e.g. Toronto or Main Street" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="position:relative; z-index:2;">
+                <div class="dropdown-menu w-100" id="location-suggestions" style="max-height:220px; overflow-y:auto; position:absolute; left:0; top:60%; margin-top:-2px; z-index:3;"></div>
+                <button id="location-submit" type="button" class="btn btn-primary mt-2" style="width:86%; margin-left:7%; margin-right:7%; background-color:#FF0000; border-color:#FF0000;">
+                  <span class="check-text">Check</span>
+                  <i class="fab fa-canadian-maple-leaf maple-leaf"></i>
+                </button>
+            </form>
+            <div id="result"></div>
+        </aside>
+    </div>
+    <script type="module" src="northern_eh.js"></script>
+    <!-- Add Bootstrap JS and dependencies -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

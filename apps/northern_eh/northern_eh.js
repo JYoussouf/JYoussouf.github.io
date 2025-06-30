@@ -319,8 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.style.right = '18px';
         btn.style.bottom = '18px';
         btn.style.zIndex = '9999';
-        btn.style.width = '36px';
-        btn.style.height = '36px';
+        btn.style.width = '44px';
+        btn.style.height = '44px';
         btn.style.borderRadius = '50%';
         btn.style.background = '#fff';
         btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)';
@@ -339,11 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const img = document.createElement('img');
         img.src = '../portfolio/images/favicon.ico';
         img.alt = 'joseppy.ca';
-        img.style.width = '22px';
-        img.style.height = '22px';
+        img.style.width = '24px';
+        img.style.height = '24px';
         img.style.display = 'block';
         img.style.margin = '0 auto';
-        img.style.borderRadius = '50%';
         btn.appendChild(img);
         document.body.appendChild(btn);
     }

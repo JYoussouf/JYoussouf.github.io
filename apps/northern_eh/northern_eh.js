@@ -222,6 +222,10 @@ function handleSuggestionKeydown(e) {
         if (activeIdx >= 0) {
             e.preventDefault();
             items[activeIdx].click();
+        } else if (items.length > 0) {
+            // No active, but suggestions exist: submit top result
+            e.preventDefault();
+            items[0].click();
         }
     } else if (e.key === 'Escape') {
         dropdown.classList.remove('show');

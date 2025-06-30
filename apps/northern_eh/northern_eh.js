@@ -307,4 +307,44 @@ document.addEventListener('DOMContentLoaded', () => {
     if (locationForm) {
         locationForm.setAttribute('autocomplete', 'off');
     }
+
+    // Add floating home button with favicon
+    if (!document.getElementById('joseppy-home-btn')) {
+        const btn = document.createElement('a');
+        btn.id = 'joseppy-home-btn';
+        btn.href = 'https://joseppy.ca';
+        btn.target = '_blank';
+        btn.rel = 'noopener noreferrer';
+        btn.style.position = 'fixed';
+        btn.style.right = '18px';
+        btn.style.bottom = '18px';
+        btn.style.zIndex = '9999';
+        btn.style.width = '36px';
+        btn.style.height = '36px';
+        btn.style.borderRadius = '50%';
+        btn.style.background = '#fff';
+        btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)';
+        btn.style.display = 'flex';
+        btn.style.alignItems = 'center';
+        btn.style.justifyContent = 'center';
+        btn.style.transition = 'box-shadow 0.2s, transform 0.2s';
+        btn.style.cursor = 'pointer';
+        btn.style.border = '1.5px solid #eee';
+        btn.style.padding = '0';
+        btn.style.opacity = '0.92';
+        btn.style.backdropFilter = 'blur(2px)';
+        btn.title = 'Back to joseppy.ca';
+        btn.onmouseenter = () => { btn.style.boxShadow = '0 4px 16px rgba(25,118,210,0.18)'; btn.style.transform = 'scale(1.07)'; };
+        btn.onmouseleave = () => { btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)'; btn.style.transform = 'scale(1)'; };
+        const img = document.createElement('img');
+        img.src = '../portfolio/images/favicon.ico';
+        img.alt = 'joseppy.ca';
+        img.style.width = '22px';
+        img.style.height = '22px';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+        img.style.borderRadius = '50%';
+        btn.appendChild(img);
+        document.body.appendChild(btn);
+    }
 });

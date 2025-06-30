@@ -124,6 +124,25 @@
         </aside>
     </div>
     <script type="module" src="northern_eh.js"></script>
+    <script>
+      // --- Prevent rapid page refreshes (client-side rate limit) ---
+      (function() {
+        const KEY = 'northern_eh_refresh_times';
+        const LIMIT = 10; // max refreshes - STOP MESSIN' WITH MY MAPBOX CALLS!
+        const WINDOW_MS = 30 * 1000; // in 30 seconds
+        let times = [];
+        try {
+          times = JSON.parse(localStorage.getItem(KEY)) || [];
+        } catch {}
+        const now = Date.now();
+        times = times.filter(t => now - t < WINDOW_MS);
+        times.push(now);
+        localStorage.setItem(KEY, JSON.stringify(times));
+        if (times.length > LIMIT) {
+          document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:1.5em;color:#d32f2f;text-align:center;">Too many refreshes detected. Please wait a minute before trying again.</div>';
+        }
+      })();
+    </script>
     <!-- Add Bootstrap JS and dependencies -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>

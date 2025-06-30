@@ -1,6 +1,6 @@
 // --- Cleaned up and modernized Northern Eh main JS ---
 
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam9leW91c3NvdWYiLCJhIjoiY21jam5sY3dlMDVrbTJtcHpmaHNuMzFkdiJ9.-8My1mumvEWKsK4AVWLchA'; // URL Restricted and cuts off after a while within the free tier, don't you dare!
+const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam9leW91c3NvdWYiLCJhIjoiY21jam5sbjV4MDVjOTJscHg2Y2NsMWpobCJ9.YlM6rWOxEYOs6NJ8r6GzRA'; // URL Restricted and cuts off after a while within the free tier, don't you dare!
 import { getCanadianPopulationFurtherSouthFromCSV } from './data/canada_population_csv.js';
 
 async function geocodeLocation(input) {

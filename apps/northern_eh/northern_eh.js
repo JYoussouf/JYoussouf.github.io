@@ -74,7 +74,7 @@ async function handleLocationSubmit() {
         if (lat < 41.676555 || canadiansFurtherSouth <= 0) {
             resultText = 'Sorry! You are not further north than any Canadians.';
         } else if (canadiansFurtherSouth > 3_000_000) {
-            resultText = `You're an honorary Canadian! You are further north than about ${canadiansFurtherSouth.toLocaleString()} Canadians, which is roughly ${percent.toFixed(1)} percent of the country.`;
+            resultText = `You're an honorary Canadian! You are further north than about ${canadiansFurtherSouth.toLocaleString()} Canadians. ${percent.toFixed(1)} percent of the country!`;
         } else {
             resultText = `You are further north than about ${canadiansFurtherSouth.toLocaleString()} Canadians, or about ${percent.toFixed(1)} percent of the country.`;
         }

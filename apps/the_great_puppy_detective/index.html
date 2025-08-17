@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Great Puppy Detective</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container" id="start-screen">
+        <h1 class="shiny-blue-title">The Great Puppy Detective</h1>
+        <div style="max-width: 95%; margin: 0 auto 18px auto; background: rgba(0,198,255,0.10); border-radius: 1em; padding: 12px 18px 10px 18px; color:#00c6ff; font-weight:600; font-size:1.13em; letter-spacing:0.2px; text-align:center;">
+            Help the <span style="font-weight:700;">Great Puppy Detective</span> identify dog breeds from a series of photos!<br><br>
+            <span style="color:#fff; font-weight:500; font-size:0.98em;">How many can you guess correctly in a row?</span>
+        </div>
+        <button id="play-btn" class="big-play-btn">Play</button>
+    </div>
+    <div class="game-container" id="game-screen" style="display:none; position: relative;">
+        <div class="score-sidebar right">
+            <ul class="score-list">
+                <li class="score-step" data-step="1">1</li>
+                <li class="score-step" data-step="2">2</li>
+                <li class="score-step" data-step="3">3</li>
+                <li class="score-step" data-step="4">4</li>
+                <li class="score-step" data-step="5">5</li>
+                <li class="score-step" data-step="6">6</li>
+                <li class="score-step" data-step="7">7</li>
+                <li class="score-step" data-step="8">8</li>
+                <li class="score-step" data-step="9">9</li>
+                <li class="score-step" data-step="10">10</li>
+            </ul>
+        </div>
+        <h1 class="shiny-blue-title">The Great Puppy Detective</h1>
+        <div class="score">Score: <span id="score">0</span> <span style="color:#888;font-weight:400;">|</span> High Score: <span id="high-score">0</span></div>
+        <div class="main-dog-img-container">
+            <img id="breed-img" src="" alt="Dog" class="main-dog-img" />
+        </div>
+        <div class="options" id="options"></div>
+        <div id="result" class="result"></div>
+        <button id="play-again-btn" class="big-play-btn" style="display:none;margin-top:10px;">Play Again?</button>
+    </div>
+    <div class="game-container" id="congrats-screen" style="display:none; text-align:center;">
+        <h1 class="shiny-blue-title">Congratulations!</h1>
+        <div style="color:#b2eaff; font-size:1.25em; font-weight:600; margin:18px 0 24px 0;">You were the Great Puppy Detective all along!</div>
+        <button id="play-again-congrats-btn" class="big-play-btn">Play Again?</button>
+    </div>
+    <script src="game.js"></script>
+    <div class="game-credits">
+      For Peri! API Access from <a href="https://dog.ceo" target="_blank" rel="noopener" style="color:#b2eaff;text-decoration:underline;">dog.ceo</a>. AI-Slop Coded with GPT-4.1
+    </div>
+  </body>
+</html>

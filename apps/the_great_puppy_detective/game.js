@@ -62,7 +62,7 @@ function getAcceptedLabels(breed, sub) {
   ];
 }
 
-function getRandomOptions(correctOption, n = 6) {
+function getRandomOptions(correctOption, n = 4) {
   const options = [correctOption];
   while (options.length < n) {
     const candidate = allBreedOptions[Math.floor(Math.random() * allBreedOptions.length)];
@@ -131,11 +131,11 @@ function renderLifelines() {
 function useFiftyFifty() {
   if (!lifelines.fifty) return;
   lifelines.fifty = false;
-  // Mark 3 incorrect options as selected/disabled
+  // Mark 1 incorrect option as selected/disabled (since 4 options, 50/50 should leave 2)
   const correct = currentOptions.find(opt => getAcceptedLabels(currentBreed.breed, currentBreed.sub).map(x => x.toLowerCase()).includes(opt.label.toLowerCase()));
   const incorrect = currentOptions.filter(opt => opt !== correct);
   shuffle(incorrect);
-  const toMark = incorrect.slice(0, 3);
+  const toMark = incorrect.slice(0, 2); // Mark 2 incorrect (leave 2 options)
   const optionsDiv = document.getElementById('options');
   Array.from(optionsDiv.children).forEach((btn, idx) => {
     const opt = currentOptions[idx];
@@ -231,7 +231,7 @@ async function nextRound() {
     loader.style.display = 'none';
     imgEl.style.opacity = 1;
     // Build options
-    currentOptions = getRandomOptions(currentBreed, 6);
+    currentOptions = getRandomOptions(currentBreed, 4);
     renderOptions();
     // Update the score sidebar
     updateScoreSidebar(currentQuestionNumber);

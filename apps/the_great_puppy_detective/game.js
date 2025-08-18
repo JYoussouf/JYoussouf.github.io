@@ -1,5 +1,5 @@
-// Set to true for development/testing to show the correct answer
-const dev = true;
+// const dev = true; // Set to true for development/testing to show the correct answer
+const dev = false;
 // Guess the Dog Breed: 6 clickable options, using all breeds/sub-breeds from Dog CEO API
 
 let allBreeds = {};

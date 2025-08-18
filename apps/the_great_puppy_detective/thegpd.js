@@ -551,6 +551,26 @@ function checkUserAnswer(selectedOption, btn) {
   }
 }
 
+// Send the highest score of the session to Google Analytics when the user leaves or hides the page
+let sessionHighScoreSent = false;
+function sendSessionHighScore() {
+  if (!sessionHighScoreSent && window.gtag && highScore > 0) {
+    gtag('event', 'session_high_score', {
+      'event_category': 'game',
+      'event_label': 'The Great Puppy Detective',
+      'value': highScore,
+      'mode': endlessMode ? 'endless' : 'standard'
+    });
+    sessionHighScoreSent = true;
+  }
+}
+window.addEventListener('beforeunload', sendSessionHighScore);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') {
+    sendSessionHighScore();
+  }
+});
+
 window.onload = async () => {
   document.getElementById('play-btn').onclick = async () => {
     document.getElementById('start-screen').style.display = 'none';

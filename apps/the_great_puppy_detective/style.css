@@ -49,7 +49,7 @@ h1 {
     color: transparent;
     font-weight: 800;
     letter-spacing: 1.2px;
-    font-size: 2.6em;
+    font-size: clamp(1.3em, 5vw, 2.6em);
 }
 .big-play-btn {
     background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
@@ -91,11 +91,15 @@ h1 {
     box-shadow: 0 4px 24px #00c6ff55;
 }
 .score {
-    font-size: 1.1em;
-    color: #00c6ff;
-    margin-bottom: 18px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+  font-size: 1.1em;
+  color: #00c6ff;
+  margin-bottom: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 #high-score {
     color: #00c6ff;
@@ -206,7 +210,7 @@ h1 {
   border: 1.5px solid #333;
   border-radius: 999px;
   padding: 10px 28px;
-  font-size: 1.05em;
+  font-size: clamp(0.85em, 3.2vw, 1.05em);
   font-family: inherit;
   cursor: pointer;
   box-shadow: 0 2px 8px #23252633;
@@ -219,21 +223,27 @@ h1 {
 }
 .lifeline-badge {
   position: absolute;
-  top: -0.5em;
-  right: -0.4em;
+  top: -0.55em;
+  right: -0.45em;
   background: #e53935;
   color: #fff;
-  font-size: 0.95em;
+  font-size: clamp(0.82em, 2.8vw, 1em);
   font-weight: 700;
   border-radius: 50%;
-  width: 1.7em;
-  height: 1.7em;
+  width: clamp(1.1em, 3vw, 1.7em);
+  height: clamp(1.1em, 3vw, 1.7em);
+  aspect-ratio: 1/1;
+  min-width: 1.1em;
+  min-height: 1.1em;
+  max-width: 1.7em;
+  max-height: 1.7em;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 4px #e5393533;
   pointer-events: none;
   z-index: 2;
+  line-height: 1;
 }
 .lifeline-btn:disabled {
   background: #232526;
@@ -249,13 +259,13 @@ h1 {
   transform: scale(1.06);
 }
 #lifelines {
-  margin-top: 24px;
+    font-size: clamp(0.85em, 3.2vw, 1.05em);
   display: flex;
   justify-content: center;
   gap: 18px;
 }
 .double-dip-active {
-  font-size: 0.98em;
+  font-size: clamp(0.85em, 3vw, 0.98em);
   font-weight: 800;
   color: #fff;
   background: #e53935;
@@ -268,6 +278,9 @@ h1 {
   display: inline-block;
   text-align: center;
   border: none;
+}
+.lifeline-btn.lifeline-5050 {
+  font-size: clamp(0.85em, 3vw, 1.05em);
 }
 
 /* Subtitle hover effect */
@@ -368,6 +381,119 @@ h1 {
     text-decoration: underline;
     opacity: 0.92;
 }
+#joseppy-home-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: rgba(30,32,36,0.92);
+  border: 1.5px solid #111;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+  padding: 0;
+  opacity: 0.92;
+  backdrop-filter: blur(2px);
+  transition: box-shadow 0.22s, transform 0.22s, border 0.22s;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#joseppy-home-btn:hover, #joseppy-home-btn:focus {
+  box-shadow: 0 4px 16px rgba(25,118,210,0.18);
+  transform: scale(1.07);
+  border: 1.5px solid #111;
+}
+#joseppy-home-btn img {
+  width: 24px;
+  height: 24px;
+  display: block;
+  margin: 0 auto;
+}
+#lifeline-info-popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30,32,36,0.82);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+#lifeline-info-popup.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.lifeline-info-content {
+  background: rgba(34,36,40,0.98);
+  border-radius: 1.2em;
+  box-shadow: 0 8px 40px 0 #0008, 0 1.5px 8px #0002;
+  padding: 36px 28px 28px 28px;
+  max-width: 95vw;
+  width: 340px;
+  color: #b2eaff;
+  text-align: left;
+  position: relative;
+  animation: popupIn 0.32s cubic-bezier(0.4,0,0.2,1);
+}
+.lifeline-info-content h2 {
+  color: #00c6ff;
+  font-size: 1.35em;
+  margin-top: 0;
+  margin-bottom: 18px;
+  text-align: center;
+  letter-spacing: 1px;
+}
+.lifeline-info-content ul {
+  padding-left: 1.1em;
+  margin-bottom: 0;
+}
+.lifeline-info-content li {
+  margin-bottom: 12px;
+  font-size: 1.08em;
+  line-height: 1.5;
+}
+#close-lifeline-info {
+  display: block;
+  margin: 0 auto;
+  margin-top: 18px;
+}
+.lifeline-info-btn {
+  background: rgba(30,32,36,0.92);
+  border: none !important;
+  color: #00c6ff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.92em;
+  margin-left: 6px;
+  margin-top: 4px;
+  transition: box-shadow 0.22s, transform 0.22s, border 0.22s;
+  outline: none;
+  position: static;
+  box-shadow: none !important;
+}
+.lifeline-info-btn:hover, .lifeline-info-btn:focus {
+  box-shadow: 0 4px 16px #00c6ff33;
+  transform: scale(1.07);
+  border: none !important;
+}
+.lifeline-info-btn span {
+  font-size: 1em;
+}
+@keyframes popupIn {
+  0% { transform: scale(0.92) translateY(30px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
 @media (max-width: 600px) {
     .game-container { max-width: 98vw; padding: 10px 2vw 20px 2vw; }
     .main-dog-img-container { max-width: 90vw; }
@@ -398,4 +524,38 @@ h1 {
         min-width: 24px;
         margin: 0 2px;
     }
+    .lifelines {
+    gap: 8px;
+    padding: 0 6vw;
+    justify-content: center;
+  }
+  .lifeline-btn {
+    font-size: clamp(0.85em, 3.2vw, 1.05em);
+    padding: 7px 18px;
+    min-width: 0;
+    border-radius: 2em;
+  }
+  .lifeline-badge {
+    top: -4px;
+    right: -4px;
+    font-size: 1em;
+    aspect-ratio: 1/1;
+    min-width: 1.3em;
+    min-height: 1.3em;
+    max-width: 1.9em;
+    max-height: 1.9em;
+    padding: 0;
+  }
+    h1.shiny-blue-title {
+        font-size: 1.5em;
+    }
+  .lifeline-info-content {
+    width: 98vw;
+    padding: 18px 6vw 18px 6vw;
+    font-size: 1em;
+  }
+  .lifeline-info-content h2 {
+    font-size: 1.1em;
+  }
 }
+

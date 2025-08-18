@@ -1,3 +1,5 @@
+// Set to true for development/testing to show the correct answer
+const dev = true;
 // Guess the Dog Breed: 6 clickable options, using all breeds/sub-breeds from Dog CEO API
 
 let allBreeds = {};
@@ -14,6 +16,7 @@ let doubleDipActive = false;
 let doubleDipUsed = false;
 let currentOptions = [];
 let currentQuestionNumber = 0;
+let endlessMode = false;
 
 async function fetchAllBreeds() {
   const resp = await fetch('https://dog.ceo/api/breeds/list/all');
@@ -101,17 +104,23 @@ function renderLifelines() {
   }
   // 50/50
   const fiftyBtn = document.createElement('button');
-  fiftyBtn.className = 'lifeline-btn';
+  fiftyBtn.className = 'lifeline-btn lifeline-5050';
   fiftyBtn.innerHTML = '50/50';
   fiftyBtn.disabled = !lifelines.fifty;
-  fiftyBtn.onclick = useFiftyFifty;
+  fiftyBtn.onclick = function() {
+    useFiftyFifty();
+    this.blur();
+  };
   lifelineDiv.appendChild(fiftyBtn);
   // Reroll
   const rerollBtn = document.createElement('button');
   rerollBtn.className = 'lifeline-btn lifeline-reroll';
   rerollBtn.innerHTML = 'REROLL!';
   rerollBtn.disabled = lifelines.reroll === 0;
-  rerollBtn.onclick = useReroll;
+  rerollBtn.onclick = function() {
+    useReroll();
+    this.blur();
+  };
   if (lifelines.reroll > 0) {
     const badge = document.createElement('span');
     badge.className = 'lifeline-badge';
@@ -124,9 +133,58 @@ function renderLifelines() {
   ddBtn.className = 'lifeline-btn';
   ddBtn.innerHTML = 'DOUBLE-DIP!';
   ddBtn.disabled = !lifelines.doubledip || doubleDipActive;
-  ddBtn.onclick = useDoubleDip;
+  ddBtn.onclick = function() {
+    useDoubleDip();
+    this.blur();
+  };
   lifelineDiv.appendChild(ddBtn);
 }
+
+function createLifelineInfoPopup() {
+  if (document.getElementById('lifeline-info-popup')) return;
+  const popup = document.createElement('div');
+  popup.id = 'lifeline-info-popup';
+  popup.innerHTML = `
+    <div class="lifeline-info-content">
+      <h2>Lifelines</h2>
+      <ul>
+        <li><b>50/50</b>: Removes two incorrect options, leaving one right and one wrong answer.</li>
+        <li><b>REROLL!</b>: Get a new photo for the same dog breed. You have 5 rerolls per run.</li>
+        <li><b>DOUBLE-DIP!</b>: Allows two guesses for one question. If your first guess is wrong, try again!</li>
+      </ul>
+      <button id="close-lifeline-info" class="big-play-btn" style="margin-top:18px;">Close</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+  setTimeout(() => { popup.classList.add('show'); }, 10);
+  document.getElementById('close-lifeline-info').onclick = () => {
+    popup.classList.remove('show');
+    setTimeout(() => popup.remove(), 300);
+  };
+}
+
+
+function addLifelineInfoButton() {
+  if (document.getElementById('lifeline-info-btn')) return;
+  const scoreDiv = document.querySelector('.score');
+  if (!scoreDiv) return;
+  const btn = document.createElement('button');
+  btn.id = 'lifeline-info-btn';
+  btn.title = 'What do lifelines do?';
+  btn.innerHTML = '<span style="font-size:1.3em;">&#9432;</span>';
+  btn.className = 'lifeline-info-btn';
+  btn.onclick = createLifelineInfoPopup;
+  btn.type = 'button';
+  // Remove all inline styles, use only CSS for layout
+  scoreDiv.appendChild(btn);
+}
+
+// Patch renderLifelines to always add the info button (now after score bar)
+const origRenderLifelines = renderLifelines;
+renderLifelines = function() {
+  origRenderLifelines();
+  addLifelineInfoButton();
+};
 
 function useFiftyFifty() {
   if (!lifelines.fifty) return;
@@ -186,20 +244,41 @@ function renderOptions() {
     optionsDiv.appendChild(btn);
   });
   optionsDiv.style.opacity = 1;
+
+  // DEV: Show correct answer below options
+  let devAnswerDiv = document.getElementById('dev-answer');
+  if (dev) {
+    if (!devAnswerDiv) {
+      devAnswerDiv = document.createElement('div');
+      devAnswerDiv.id = 'dev-answer';
+      devAnswerDiv.style.margin = '10px auto 0 auto';
+      devAnswerDiv.style.color = '#ffb300';
+      devAnswerDiv.style.fontSize = '1.05em';
+      devAnswerDiv.style.fontWeight = '600';
+      devAnswerDiv.style.textAlign = 'center';
+      optionsDiv.parentNode.insertBefore(devAnswerDiv, optionsDiv.nextSibling);
+    }
+    const accepted = getAcceptedLabels(currentBreed.breed, currentBreed.sub);
+    devAnswerDiv.textContent = '[DEV] Correct answer: ' + accepted[0];
+  } else if (devAnswerDiv) {
+    devAnswerDiv.textContent = '';
+  }
 }
 
 // Highlight the current question step in the Millionaire-style sidebar
 function updateScoreSidebar(currentStep) {
-    const steps = document.querySelectorAll('.score-step');
-    steps.forEach(step => {
-        step.classList.remove('active', 'achieved');
-        const stepNum = parseInt(step.dataset.step);
-        if (stepNum === currentStep) {
-            step.classList.add('active');
-        } else if (stepNum <= currentStep) {
-            step.classList.add('achieved');
-        }
-    });
+  // Only update sidebar if not in endless mode
+  if (endlessMode) return;
+  const steps = document.querySelectorAll('.score-step');
+  steps.forEach(step => {
+    step.classList.remove('active', 'achieved');
+    const stepNum = parseInt(step.dataset.step);
+    if (stepNum === currentStep) {
+      step.classList.add('active');
+    } else if (stepNum <= currentStep) {
+      step.classList.add('achieved');
+    }
+  });
 }
 
 async function nextRound() {
@@ -224,6 +303,10 @@ async function nextRound() {
   loader.style.display = 'block';
   imgEl.style.opacity = 0;
   optionsDiv.style.opacity = 0;
+  // Hide sidebar if in endless mode, show otherwise
+  const sidebar = document.querySelector('.score-sidebar');
+  if (endlessMode && sidebar) sidebar.style.display = 'none';
+  else if (sidebar) sidebar.style.display = '';
   // Fetch image first
   const imgUrl = await fetchBreedImage(currentBreed.breed, currentBreed.sub);
   imgEl.src = imgUrl;
@@ -245,16 +328,60 @@ function updateScoreDisplay() {
 
 function showCongratsScreen() {
   document.getElementById('game-screen').style.display = 'none';
-  document.getElementById('congrats-screen').style.display = '';
-  const playAgainBtn = document.getElementById('play-again-congrats-btn');
-  playAgainBtn.onclick = () => {
-    document.getElementById('congrats-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = '';
-    score = 0;
-    currentQuestionNumber = 0;
-    updateScoreDisplay();
-    nextRound();
-  };
+  const congratsScreen = document.getElementById('congrats-screen');
+  congratsScreen.style.display = '';
+  // Add success.gif if not already present
+  if (!document.getElementById('success-gif')) {
+    const gif = document.createElement('img');
+    gif.id = 'success-gif';
+    gif.src = 'success.gif';
+    gif.alt = 'Success!';
+    gif.style.display = 'block';
+    gif.style.margin = '18px auto 0 auto';
+    gif.style.maxWidth = '220px';
+    gif.style.width = '80%';
+    gif.style.borderRadius = '1.2em';
+    congratsScreen.insertBefore(gif, congratsScreen.querySelector('#victory-buttons'));
+  }
+  // Endless Mode button
+  const endlessBtn = document.getElementById('endless-mode-btn');
+  if (endlessBtn) {
+    endlessBtn.onclick = () => {
+      endlessMode = true;
+      congratsScreen.style.display = 'none';
+      document.getElementById('game-screen').style.display = '';
+      // Remove the gif for next time
+      const gif = document.getElementById('success-gif');
+      if (gif) gif.remove();
+  // Do not reset score when entering endless mode
+  currentQuestionNumber = 0;
+      // Hide the score sidebar for endless mode
+      const sidebar = document.querySelector('.score-sidebar');
+      if (sidebar) sidebar.style.display = 'none';
+      updateScoreDisplay();
+      nextRound();
+    };
+  }
+  // Home button
+  const homeBtn = document.getElementById('home-btn-victory');
+  if (homeBtn) {
+    homeBtn.onclick = () => {
+      // Reset everything for a fresh start
+      endlessMode = false;
+      score = 0;
+      currentQuestionNumber = 0;
+      lifelines = { fifty: true, reroll: 5, doubledip: true };
+      congratsScreen.style.display = 'none';
+      document.getElementById('start-screen').style.display = '';
+      // Remove the gif for next time
+      const gif = document.getElementById('success-gif');
+      if (gif) gif.remove();
+      // Restore the score sidebar
+      const sidebar = document.querySelector('.score-sidebar');
+      if (sidebar) sidebar.style.display = '';
+      updateScoreDisplay();
+    };
+  }
 }
 
 function checkUserAnswer(selectedOption, btn) {
@@ -281,7 +408,7 @@ function checkUserAnswer(selectedOption, btn) {
         }
       });
     }
-    if (score === 10) {
+    if (!endlessMode && score === 10) {
       setTimeout(showCongratsScreen, 900);
     } else {
       setTimeout(nextRound, 1200);
@@ -291,40 +418,136 @@ function checkUserAnswer(selectedOption, btn) {
     btn.disabled = true;
     btn.classList.add('selected');
     document.getElementById('result').textContent = 'Try again!';
+    // Hide double-dip banner after second guess
+    const ddText = document.getElementById('double-dip-active');
+    if (ddText) ddText.style.display = 'none';
   } else {
     document.getElementById('result').innerHTML = `Oops! The answer was: ${accepted[0]}.<br>Your streak was ${score}.`;
-    score = 0;
-    currentQuestionNumber = 0; // Reset question number on game over
-    updateScoreDisplay();
-    // Disable all answer buttons on loss
-    const optionsDiv = document.getElementById('options');
-    if (optionsDiv) {
-      Array.from(optionsDiv.querySelectorAll('button')).forEach(answerBtn => {
-        answerBtn.disabled = true;
-        const isCorrect = accepted.includes(answerBtn.textContent.toLowerCase());
-        if (answerBtn === btn && !isCorrect) {
-          answerBtn.classList.add('incorrect'); // User's wrong pick: red
-        } else if (isCorrect) {
-          answerBtn.classList.add('correct'); // Correct answer: green
-        } else {
-          answerBtn.classList.add('selected'); // Others: greyed out
+    if (endlessMode) {
+      // In endless mode, show regular play again/home buttons, not congrats screen
+      // Disable all answer buttons on loss
+      const optionsDiv = document.getElementById('options');
+      if (optionsDiv) {
+        Array.from(optionsDiv.querySelectorAll('button')).forEach(answerBtn => {
+          answerBtn.disabled = true;
+          const isCorrect = accepted.includes(answerBtn.textContent.toLowerCase());
+          if (answerBtn === btn && !isCorrect) {
+            answerBtn.classList.add('incorrect'); // User's wrong pick: red
+          } else if (isCorrect) {
+            answerBtn.classList.add('correct'); // Correct answer: green
+          } else {
+            answerBtn.classList.add('selected'); // Others: greyed out
+          }
+        });
+      }
+      // Disable lifelines on loss
+      const lifelineDiv = document.getElementById('lifelines');
+      if (lifelineDiv) {
+        Array.from(lifelineDiv.querySelectorAll('button')).forEach(btn => {
+          btn.disabled = true;
+        });
+      }
+      // Show Play Again and Home buttons
+      let playAgainBtn = document.getElementById('play-again-btn');
+      let homeBtn = document.getElementById('home-btn');
+      if (!homeBtn) {
+        homeBtn = document.createElement('button');
+        homeBtn.id = 'home-btn';
+        homeBtn.className = 'big-play-btn';
+        homeBtn.textContent = 'Home';
+        homeBtn.style.marginRight = '16px';
+        homeBtn.style.marginTop = '10px';
+        homeBtn.onclick = () => {
+          // Reset everything for a fresh start
+          endlessMode = false;
+          score = 0;
+          currentQuestionNumber = 0;
+          lifelines = { fifty: true, reroll: 5, doubledip: true };
+          document.getElementById('game-screen').style.display = 'none';
+          document.getElementById('start-screen').style.display = '';
+          playAgainBtn.style.display = 'none';
+          homeBtn.style.display = 'none';
+          // Restore the score sidebar
+          const sidebar = document.querySelector('.score-sidebar');
+          if (sidebar) sidebar.style.display = '';
+          updateScoreDisplay();
+        };
+        playAgainBtn.parentNode.insertBefore(homeBtn, playAgainBtn);
+      }
+      playAgainBtn.style.display = '';
+      playAgainBtn.style.marginLeft = '16px';
+      playAgainBtn.style.marginTop = '10px';
+      homeBtn.style.display = '';
+      playAgainBtn.onclick = () => {
+        playAgainBtn.style.display = 'none';
+        homeBtn.style.display = 'none';
+        // If in endless mode, reset everything as if starting fresh
+        if (endlessMode) {
+          endlessMode = false;
+          score = 0;
+          currentQuestionNumber = 0;
+          lifelines = { fifty: true, reroll: 5, doubledip: true };
+          // Restore sidebar
+          const sidebar = document.querySelector('.score-sidebar');
+          if (sidebar) sidebar.style.display = '';
+          updateScoreDisplay();
         }
-      });
+        nextRound();
+      };
+    } else {
+      score = 0;
+      currentQuestionNumber = 0; // Reset question number on game over
+      updateScoreDisplay();
+      // Disable all answer buttons on loss
+      const optionsDiv = document.getElementById('options');
+      if (optionsDiv) {
+        Array.from(optionsDiv.querySelectorAll('button')).forEach(answerBtn => {
+          answerBtn.disabled = true;
+          const isCorrect = accepted.includes(answerBtn.textContent.toLowerCase());
+          if (answerBtn === btn && !isCorrect) {
+            answerBtn.classList.add('incorrect'); // User's wrong pick: red
+          } else if (isCorrect) {
+            answerBtn.classList.add('correct'); // Correct answer: green
+          } else {
+            answerBtn.classList.add('selected'); // Others: greyed out
+          }
+        });
+      }
+      // Disable lifelines on loss
+      const lifelineDiv = document.getElementById('lifelines');
+      if (lifelineDiv) {
+        Array.from(lifelineDiv.querySelectorAll('button')).forEach(btn => {
+          btn.disabled = true;
+        });
+      }
+      // Show Play Again and Home buttons
+      let playAgainBtn = document.getElementById('play-again-btn');
+      let homeBtn = document.getElementById('home-btn');
+      if (!homeBtn) {
+        homeBtn = document.createElement('button');
+        homeBtn.id = 'home-btn';
+        homeBtn.className = 'big-play-btn';
+        homeBtn.textContent = 'Home';
+        homeBtn.style.marginRight = '16px';
+        homeBtn.style.marginTop = '10px';
+        homeBtn.onclick = () => {
+          document.getElementById('game-screen').style.display = 'none';
+          document.getElementById('start-screen').style.display = '';
+          playAgainBtn.style.display = 'none';
+          homeBtn.style.display = 'none';
+        };
+        playAgainBtn.parentNode.insertBefore(homeBtn, playAgainBtn);
+      }
+      playAgainBtn.style.display = '';
+      playAgainBtn.style.marginLeft = '16px';
+      playAgainBtn.style.marginTop = '10px';
+      homeBtn.style.display = '';
+      playAgainBtn.onclick = () => {
+        playAgainBtn.style.display = 'none';
+        homeBtn.style.display = 'none';
+        nextRound();
+      };
     }
-    // Disable lifelines on loss
-    const lifelineDiv = document.getElementById('lifelines');
-    if (lifelineDiv) {
-      Array.from(lifelineDiv.querySelectorAll('button')).forEach(btn => {
-        btn.disabled = true;
-      });
-    }
-    // Show Play Again button instead of auto-restarting
-    const playAgainBtn = document.getElementById('play-again-btn');
-    playAgainBtn.style.display = '';
-    playAgainBtn.onclick = () => {
-      playAgainBtn.style.display = 'none';
-      nextRound();
-    };
   }
 }
 
@@ -348,4 +571,57 @@ window.onload = async () => {
     updateScoreDisplay();
     nextRound();
   };
+  // Show high score on home screen
+  const homeHighScoreId = 'home-high-score';
+  let homeHighScore = document.getElementById(homeHighScoreId);
+  if (!homeHighScore) {
+    homeHighScore = document.createElement('div');
+    homeHighScore.id = homeHighScoreId;
+    homeHighScore.style.color = '#00c6ff';
+    homeHighScore.style.fontWeight = '700';
+    homeHighScore.style.fontSize = '1.13em';
+    homeHighScore.style.margin = '18px auto 0 auto';
+    homeHighScore.style.textAlign = 'center';
+    document.getElementById('start-screen').appendChild(homeHighScore);
+  }
+  function updateHomeHighScore() {
+    homeHighScore.textContent = `Highest Score: ${highScore}`;
+  }
+  updateHomeHighScore();
+  // Update home high score whenever highScore changes
+  const origUpdateScoreDisplay = updateScoreDisplay;
+  updateScoreDisplay = function() {
+    origUpdateScoreDisplay();
+    updateHomeHighScore();
+  };
+  // Add floating home button to joseppy.ca if not present
+  if (!document.getElementById('joseppy-home-btn')) {
+    const btn = document.createElement('button');
+    btn.id = 'joseppy-home-btn';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '24px';
+    btn.style.right = '24px';
+    btn.style.zIndex = '9999';
+    btn.style.background = 'rgba(30,32,36,0.92)';
+    btn.style.padding = '0';
+    btn.style.opacity = '0.92';
+    btn.style.backdropFilter = 'blur(2px)';
+    btn.style.borderRadius = '50%';
+    btn.style.width = '48px';
+    btn.style.height = '48px';
+    btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)';
+    btn.title = 'Back to joseppy.ca';
+    btn.onmouseenter = () => { btn.style.boxShadow = '0 4px 16px rgba(25,118,210,0.18)'; btn.style.transform = 'scale(1.07)'; };
+    btn.onmouseleave = () => { btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)'; btn.style.transform = 'scale(1)'; };
+    btn.onclick = () => { window.location.href = 'https://joseppy.ca'; };
+    const img = document.createElement('img');
+    img.src = '../portfolio/images/favicon.ico';
+    img.alt = 'joseppy.ca';
+    img.style.width = '24px';
+    img.style.height = '24px';
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    btn.appendChild(img);
+    document.body.appendChild(btn);
+  }
 };

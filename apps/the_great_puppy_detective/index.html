@@ -31,7 +31,7 @@
             </ul>
         </div>
         <h1 class="shiny-blue-title">The Great Puppy Detective</h1>
-        <div class="score">Score: <span id="score">0</span> <span style="color:#888;font-weight:400;">|</span> High Score: <span id="high-score">0</span></div>
+        <div class="score">Score: <span id="score">0</span> <span style="color:#888;font-weight:400;">|</span> Highest Score: <span id="high-score">0</span></div>
         <div class="main-dog-img-container">
             <img id="breed-img" src="" alt="Dog" class="main-dog-img" />
         </div>
@@ -42,11 +42,14 @@
     <div class="game-container" id="congrats-screen" style="display:none; text-align:center;">
         <h1 class="shiny-blue-title">Congratulations!</h1>
         <div style="color:#b2eaff; font-size:1.25em; font-weight:600; margin:18px 0 24px 0;">You were the Great Puppy Detective all along!</div>
-        <button id="play-again-congrats-btn" class="big-play-btn">Play Again?</button>
+                <div id="victory-buttons" style="display:flex; flex-direction:column; gap:6px; align-items:center; justify-content:center; margin-top:10px;">
+                    <button id="endless-mode-btn" class="big-play-btn" style="width: 80%; max-width: 260px;">Endless Mode</button>
+                    <button id="home-btn-victory" class="big-play-btn" style="width: 80%; max-width: 260px; background:linear-gradient(90deg,#232526 0%,#414345 100%);color:#b2eaff;">Home</button>
+                </div>
     </div>
     <script src="game.js"></script>
     <div class="game-credits">
-      For Peri! API Access from <a href="https://dog.ceo" target="_blank" rel="noopener" style="color:#b2eaff;text-decoration:underline;">dog.ceo</a>. AI-Slop Coded with GPT-4.1
+      For Peri! API Access from <a href="https://dog.ceo" target="_blank" rel="noopener" style="color:#b2eaff;text-decoration:underline;">dog.ceo</a>. AI-Slop Coded with Copilot Agents (GPT-4.1)
     </div>
   </body>
 </html>

@@ -2,6 +2,16 @@
 <html lang="en">
 	
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2P0ML7J3T8"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-2P0ML7J3T8');
+    </script>
+
 	<!-- Meta Data -->
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -124,8 +134,8 @@
                 <a href="apps/northern_eh/northern_eh.html" style="display:inline-block; text-decoration:none;">
                     <img src="apps/northern_eh/northern_eh_logo.png" alt="Northern Eh App Logo" class="img-thumbnail fade-in" style="max-width:520px; max-height:260px; border-radius:1.25rem; margin:0;" />
                 </a>
-                <a href="apps/the_great_puppy_detective" style="display:inline-block; text-decoration:none;">
-                    <img src="apps/the_great_puppy_detective/the_great_puppy_detective_logo.png" alt="The Great Puppy Detective Logo" class="img-thumbnail fade-in" style="max-width:520px; max-height:260px; border-radius:1.25rem; margin:0;" />
+                <a href="apps/the_great_puppy_detective/thegpd.html" style="display:inline-block; text-decoration:none;">
+                    <img src="apps/the_great_puppy_detective/thegpd_logo.png" alt="The Great Puppy Detective Logo" class="img-thumbnail fade-in" style="max-width:520px; max-height:260px; border-radius:1.25rem; margin:0;" />
                 </a>
             </div>
         </div>
@@ -186,6 +196,11 @@
 
     <!-- custom js -->
     <script src="apps/portfolio/portfolio.js"></script>
+    <script>
+        if (window.location.pathname === "/apps/the_great_puppy_detective/thegpd.html") {
+            history.replaceState(null, null, "/apps/the_great_puppy_detective/");
+        }
+    </script>
 
 </body>
 </html>

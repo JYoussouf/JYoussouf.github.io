@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Venn</title>
+  <meta name="spotify-client-id" content="b10f0d8a654145929b02c7ae335c1cb6">
+  <meta name="spotify-redirect-uri" content="https://joseppy.ca/apps/spotify_venn/">
+  <link rel="icon" type="image/x-icon" href="../portfolio/images/favicon.ico">
+  <link rel="stylesheet" href="spotify_venn.css">
+</head>
+<body>
+  <main class="layout">
+    <section class="panel hero" aria-labelledby="app-title">
+      <h1 id="app-title">Spotify Venn</h1>
+      <p class="lede">See how your music taste overlaps with friends. It’s simple: connect, pull your snapshot, open a friend’s invite, and compare.</p>
+
+      <div class="actions">
+  <button id="connect-spotify" class="btn primary" type="button">Connect With Spotify</button>
+      </div>
+
+      <div class="status-row" aria-live="polite">
+        <span id="auth-chip" class="chip chip-neutral">Not connected</span>
+        <span id="auth-status" class="status-text">Sign in to fetch your top artists and tracks.</span>
+      </div>
+      <!-- Simplified: removed troubleshooting fields to keep UI minimal -->
+    </section>
+
+    <section class="panel" aria-labelledby="snapshot-title">
+      <h2 id="snapshot-title">Your Snapshot</h2>
+      <p class="hint">Step 1 · Pull your top artists. We’ll auto‑save it.</p>
+      <div class="actions">
+        <button id="pull-data" class="btn" type="button">Pull Listening Data</button>
+      </div>
+      <p id="snapshot-status" class="status-text" aria-live="polite">No data loaded.</p>
+      <div id="me-summary" class="list" aria-label="Your snapshot preview"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="friends-title">
+      <h2 id="friends-title">Friends</h2>
+      <p class="hint">Step 2 · Open a friend’s invite. They’ll show up here—click to compare.</p>
+      <div id="friends-list" class="friends-list" aria-label="Friends with snapshots"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="compare-title">
+      <h2 id="compare-title">Compare</h2>
+      <p id="compare-status" class="status-text" aria-live="polite">Step 3 · Click a friend to see your overlap. 100% means identical taste; 0% means totally different.</p>
+      <div id="compare-avatars" class="row" style="display:none; gap:2rem; align-items:center;"></div>
+      <div id="viz" class="viz" role="img" aria-label="Music taste visualization"></div>
+      <p id="score-line" class="status-text" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="invite-title">
+      <h2 id="invite-title">Invite A Friend</h2>
+      <p class="hint">Snapshots stored locally. For cross-device sharing, the link may include a compact snapshot.</p>
+      <div class="row">
+        <label for="invite-link">Invite link</label>
+        <input id="invite-link" type="text" readonly placeholder="Save your snapshot to generate a shareable link">
+      </div>
+      <div class="actions">
+        <button id="copy-invite" class="btn" type="button">Copy Invite</button>
+        <button id="share-invite" class="btn ghost" type="button">Share Invite</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
+      <script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#9b3aa6', 'V7V41UB3J1');kofiwidget2.draw();</script>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">Dark mode</button>
+
+  <script src="app.js"></script>
+</body>
+</html>

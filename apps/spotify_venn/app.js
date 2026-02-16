@@ -489,6 +489,51 @@ function decodeSnapshotFromUrl(str) {
   return JSON.parse(json);
 }
 
+// Deflate-based short-code compression/decoding
+function supportsDeflate() {
+  try { return typeof CompressionStream !== "undefined" && new CompressionStream("deflate"); } catch { return false; }
+}
+
+async function deflateCompress(bytes) {
+  const cs = new CompressionStream("deflate");
+  const stream = new Blob([bytes]).stream().pipeThrough(cs);
+  const ab = await new Response(stream).arrayBuffer();
+  return new Uint8Array(ab);
+}
+
+async function deflateDecompress(bytes) {
+  const ds = new DecompressionStream("deflate");
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  const ab = await new Response(stream).arrayBuffer();
+  return new Uint8Array(ab);
+}
+
+async function encodeCompactToShortCode(compact) {
+  const json = JSON.stringify(compact);
+  const raw = new TextEncoder().encode(json);
+  if (supportsDeflate()) {
+    const comp = await deflateCompress(raw);
+    return base64UrlEncode(comp);
+  }
+  // Fallback: base64url JSON
+  return base64UrlEncode(raw);
+}
+
+async function decodeCompactFromCode(code) {
+  // Try deflate first
+  try {
+    if (supportsDeflate()) {
+      const bytes = base64UrlDecode(code);
+      const decomp = await deflateDecompress(bytes);
+      const json = new TextDecoder().decode(decomp);
+      return JSON.parse(json);
+    }
+  } catch {}
+  // Fallback to plain base64url JSON
+  const obj = decodeSnapshotFromUrl(code);
+  return obj;
+}
+
 // Code-based friend sharing
 function snapshotToCompact(s) {
   // Include names to ensure readable labels when decoding on another device
@@ -521,14 +566,14 @@ function compactToSnapshot(c) {
   };
 }
 
-function buildFriendCode() {
+async function buildFriendCode() {
   if (!state.mySnapshot) { showToast("Pull your snapshot first"); return ""; }
   const compact = snapshotToCompact(state.mySnapshot);
-  return encodeSnapshotForUrl(compact);
+  return await encodeCompactToShortCode(compact);
 }
 
-function generateMyCode() {
-  const code = buildFriendCode();
+async function generateMyCode() {
+  const code = await buildFriendCode();
   if (!code) return;
   if (ui.myCode) ui.myCode.value = code;
   showToast("Code generated");
@@ -569,7 +614,7 @@ async function addFriendFromCode() {
   const raw = ui.friendCode?.value?.trim();
   if (!raw) { showToast("Paste a friend’s code first"); return; }
   try {
-    const compact = decodeSnapshotFromUrl(raw);
+    const compact = await decodeCompactFromCode(raw);
     const snapshot = compactToSnapshot(compact);
     // Persist
     const key = normalizeUsername(snapshot.spotifyUserId);

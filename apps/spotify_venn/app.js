@@ -491,16 +491,22 @@ function decodeSnapshotFromUrl(str) {
 
 // Code-based friend sharing
 function snapshotToCompact(s) {
-  // Keep IDs to shorten code; names will be hydrated later if possible
-  const artistIds = Array.from(new Set((s.artists||[]).map(a=>a.id))).slice(0,80);
-  const trackIds = Array.from(new Set((s.tracks||[]).map(t=>t.id))).slice(0,80);
+  // Include names to ensure readable labels when decoding on another device
+  const artists = (s.artists||[])
+    .filter(a=> a && a.id && a.name)
+    .slice(0, 40)
+    .map(a=> ({ id: a.id, name: a.name }));
+  const tracks = (s.tracks||[])
+    .filter(t=> t && t.id && t.name)
+    .slice(0, 40)
+    .map(t=> ({ id: t.id, name: t.name, artists: t.artists || "" }));
   return {
     u: normalizeUsername(s.spotifyUserId),
     d: s.spotifyDisplayName || s.spotifyUserId,
     i: s.spotifyImageUrl || "",
     c: s.capturedAt,
-    a: artistIds,
-    t: trackIds,
+    a: artists,
+    t: tracks,
   };
 }
 
@@ -510,8 +516,8 @@ function compactToSnapshot(c) {
     spotifyDisplayName: c.d || c.u,
     spotifyImageUrl: c.i || "",
     capturedAt: c.c || new Date().toISOString(),
-    artists: (c.a||[]).map(id=>({ id, name: id })),
-    tracks: (c.t||[]).map(id=>({ id, name: id, artists: "" })),
+    artists: (c.a||[]).map(a=>({ id: a.id || a, name: a.name || a })),
+    tracks: (c.t||[]).map(t=>({ id: t.id || t, name: t.name || t, artists: t.artists || "" })),
   };
 }
 

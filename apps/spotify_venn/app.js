@@ -489,49 +489,92 @@ function decodeSnapshotFromUrl(str) {
   return JSON.parse(json);
 }
 
-// Deflate-based short-code compression/decoding
-function supportsDeflate() {
-  try { return typeof CompressionStream !== "undefined" && new CompressionStream("deflate"); } catch { return false; }
+// Base85 + deflate short-code compression/decoding
+async function compressString(str) {
+  const stream = new CompressionStream("deflate");
+  const writer = stream.writable.getWriter();
+  writer.write(new TextEncoder().encode(str));
+  writer.close();
+  const compressed = await new Response(stream.readable).arrayBuffer();
+  return compressed; // ArrayBuffer
 }
 
-async function deflateCompress(bytes) {
-  const cs = new CompressionStream("deflate");
-  const stream = new Blob([bytes]).stream().pipeThrough(cs);
-  const ab = await new Response(stream).arrayBuffer();
-  return new Uint8Array(ab);
-}
-
-async function deflateDecompress(bytes) {
+async function decompressBytes(bytes) {
   const ds = new DecompressionStream("deflate");
   const stream = new Blob([bytes]).stream().pipeThrough(ds);
   const ab = await new Response(stream).arrayBuffer();
   return new Uint8Array(ab);
 }
 
+function base85Encode(bytes) {
+  // Ascii85 (Adobe) without special 'z' handling; pad last block with zeros
+  const out = [];
+  const n = bytes.length;
+  for (let i = 0; i < n; i += 4) {
+    const a = bytes[i] || 0;
+    const b = bytes[i+1] || 0;
+    const c = bytes[i+2] || 0;
+    const d = bytes[i+3] || 0;
+    let v = ((a<<24) >>> 0) + ((b<<16) >>> 0) + ((c<<8) >>> 0) + (d>>>0);
+    const block = new Array(5);
+    for (let j = 4; j >= 0; j--) { block[j] = (v % 85); v = Math.floor(v / 85); }
+    for (let j = 0; j < 5; j++) out.push(String.fromCharCode(33 + block[j]));
+  }
+  return out.join("");
+}
+
+function base85Decode(str) {
+  const len = str.length;
+  if (len % 5 !== 0) throw new Error("Invalid Base85 length");
+  const out = new Uint8Array((len / 5) * 4);
+  let oi = 0;
+  for (let i = 0; i < len; i += 5) {
+    let v = 0;
+    for (let j = 0; j < 5; j++) {
+      const c = str.charCodeAt(i + j) - 33;
+      if (c < 0 || c >= 85) throw new Error("Invalid Base85 char");
+      v = v * 85 + c;
+    }
+    out[oi++] = (v >>> 24) & 0xFF;
+    out[oi++] = (v >>> 16) & 0xFF;
+    out[oi++] = (v >>> 8) & 0xFF;
+    out[oi++] = v & 0xFF;
+  }
+  return out;
+}
+
+function appendLengthHeader(bytes) {
+  const len = bytes.length;
+  const out = new Uint8Array(4 + len);
+  out[0] = (len >>> 24) & 0xFF;
+  out[1] = (len >>> 16) & 0xFF;
+  out[2] = (len >>> 8) & 0xFF;
+  out[3] = len & 0xFF;
+  out.set(bytes, 4);
+  return out;
+}
+
+function splitLengthHeader(bytes) {
+  if (bytes.length < 4) throw new Error("Invalid code");
+  const len = (bytes[0]<<24) | (bytes[1]<<16) | (bytes[2]<<8) | bytes[3];
+  if (len < 0 || 4 + len > bytes.length) throw new Error("Invalid code length");
+  return bytes.slice(4, 4 + len);
+}
+
 async function encodeCompactToShortCode(compact) {
   const json = JSON.stringify(compact);
-  const raw = new TextEncoder().encode(json);
-  if (supportsDeflate()) {
-    const comp = await deflateCompress(raw);
-    return base64UrlEncode(comp);
-  }
-  // Fallback: base64url JSON
-  return base64UrlEncode(raw);
+  const ab = await compressString(json);
+  const comp = new Uint8Array(ab);
+  const withLen = appendLengthHeader(comp);
+  return base85Encode(withLen);
 }
 
 async function decodeCompactFromCode(code) {
-  // Try deflate first
-  try {
-    if (supportsDeflate()) {
-      const bytes = base64UrlDecode(code);
-      const decomp = await deflateDecompress(bytes);
-      const json = new TextDecoder().decode(decomp);
-      return JSON.parse(json);
-    }
-  } catch {}
-  // Fallback to plain base64url JSON
-  const obj = decodeSnapshotFromUrl(code);
-  return obj;
+  const bytes = base85Decode(code);
+  const comp = splitLengthHeader(bytes);
+  const decomp = await decompressBytes(comp);
+  const json = new TextDecoder().decode(decomp);
+  return JSON.parse(json);
 }
 
 // Code-based friend sharing

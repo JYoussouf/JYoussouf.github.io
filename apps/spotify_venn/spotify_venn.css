@@ -383,7 +383,7 @@ input:focus {
 
 .friend-item {
   display: grid;
-  grid-template-columns: 40px 1fr;
+  grid-template-columns: 40px 1fr auto;
   align-items: center;
   gap: 0.6rem;
   border: 1px solid var(--line);
@@ -410,6 +410,25 @@ input:focus {
 
 .friend-sub {
   font-size: 0.85rem; color: var(--muted);
+}
+
+.friend-remove {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.friend-remove:hover {
+  color: var(--danger);
 }
 
 /* Visualization */

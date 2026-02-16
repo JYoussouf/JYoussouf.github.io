@@ -643,6 +643,24 @@ function addOrUpdateFriend({ id, displayName, imageUrl }) {
   saveFriends(map);
 }
 
+function removeFriend(id) {
+  const key = normalizeUsername(id);
+  // Remove from friends list
+  const fmap = readFriends();
+  delete fmap[key];
+  saveFriends(fmap);
+  // Remove stored profile snapshot
+  const profiles = readProfiles();
+  delete profiles[key];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+  // Clear selection if needed
+  if (state.currentFriend === key) state.currentFriend = null;
+  if (state.invitedUsername === key) state.invitedUsername = null;
+  setCompareReady(false);
+  renderFriendsList();
+  showToast("Friend removed");
+}
+
 function renderFriendsList() {
   if (!ui.friendsList) return;
   const map = readFriends();
@@ -653,6 +671,8 @@ function renderFriendsList() {
   entries.forEach(f => {
     const el = document.getElementById(`friend-${f.id}`);
     if (el) el.addEventListener("click", ()=> selectFriend(f.id));
+    const del = document.getElementById(`friend-remove-${f.id}`);
+    if (del) del.addEventListener("click", (e)=> { e.stopPropagation(); removeFriend(f.id); });
   });
 }
 
@@ -665,6 +685,7 @@ function friendItemHtml(f) {
       <div class="friend-name">${escapeHtml(f.displayName||f.id)}</div>
       <div class="friend-sub">@${escapeHtml(f.id)}</div>
     </div>
+    <button id="friend-remove-${escapeHtml(f.id)}" class="friend-remove" type="button" aria-label="Remove ${escapeHtml(f.displayName||f.id)}">×</button>
   </div>`;
 }
 

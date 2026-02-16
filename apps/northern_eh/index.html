@@ -23,6 +23,28 @@
     <!-- Add Font Awesome for maple leaf icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+      /* Floating Ko-fi button */
+      #kofi-button {
+        position: fixed;
+        left: 16px;
+        bottom: 16px; /* bottom-left placement to sit left of panel */
+        z-index: 9999;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #29abe0; /* Ko-fi brand */
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 700;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+      #kofi-button:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(0,0,0,0.22); }
+      #kofi-button img { width: 20px; height: 20px; display: inline-block; }
+    </style>
+    <style>
       /* Responsive layout for sidebar and map */
       .hnay-container {
         display: flex;
@@ -157,5 +179,9 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Floating Ko-fi support button -->
+    <a id="kofi-button" href="https://ko-fi.com/V7V41UB3J1" target="_blank" rel="noopener" aria-label="Ko-fi">
+      <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi"> Ko-fi
+    </a>
 </body>
 </html>

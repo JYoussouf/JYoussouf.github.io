@@ -280,25 +280,25 @@ input:focus {
 .venn-user-right {
   font-size: 16px;
   font-weight: 700;
-  fill: #1f2d3a;
+  fill: var(--ink);
 }
 
 .venn-pct-left,
 .venn-pct-right {
   font-size: 26px;
   font-weight: 800;
-  fill: #13201a;
+  fill: var(--ink);
 }
 
 .venn-shared {
   font-size: 20px;
   font-weight: 800;
-  fill: #111111;
+  fill: var(--ink);
 }
 
 .venn-shared-sub {
   font-size: 11px;
-  fill: #303030;
+  fill: var(--muted);
 }
 
 .toast {
@@ -366,7 +366,7 @@ input:focus {
 .avatar-name {
   font-size: 0.96rem;
   font-weight: 700;
-  color: #112026;
+  color: var(--ink);
 }
 
 .avatar {
@@ -400,12 +400,12 @@ input:focus {
 
 .friend-avatar {
   width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
-  background: #e9edf6; display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 700; color: #1e2a44; font-size: 0.9rem;
+  background: var(--panel); display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; color: var(--ink); font-size: 0.9rem;
 }
 
 .friend-name {
-  font-weight: 700; font-size: 0.98rem; color: #102019;
+  font-weight: 700; font-size: 0.98rem; color: var(--ink);
 }
 
 .friend-sub {
@@ -426,7 +426,7 @@ input:focus {
 
 .artist-node {
   font-size: 11px;
-  fill: #0f2034;
+  fill: var(--ink);
   opacity: 0.92;
   transition: opacity 140ms ease;
   animation: drift 6.4s ease-in-out infinite;
@@ -445,7 +445,7 @@ input:focus {
 .circle-right { fill: rgba(29, 185, 84, 0.12); stroke: rgba(29, 185, 84, 0.6); }
 .circle-single { fill: rgba(76, 132, 214, 0.1); stroke: rgba(76, 132, 214, 0.55); }
 
-.label { font-size: 14px; fill: #102019; font-weight: 700; }
+.label { font-size: 14px; fill: var(--ink); font-weight: 700; }
 
 @media (min-width: 720px) {
   .layout {

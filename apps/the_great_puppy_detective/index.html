@@ -16,6 +16,28 @@
     <title>The Great Puppy Detective</title>
     <link rel="stylesheet" href="thegpd.css">
     <link rel="icon" type="image/x-icon" href="../portfolio/images/favicon.ico">
+        <style>
+            /* Floating Ko-fi button */
+            #kofi-button {
+                position: fixed;
+                left: 16px;
+                bottom: 16px; /* bottom-left placement */
+                z-index: 9999;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 14px;
+                border-radius: 999px;
+                background: #29abe0; /* Ko-fi brand */
+                color: #ffffff;
+                text-decoration: none;
+                font-weight: 700;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+                transition: transform 120ms ease, box-shadow 120ms ease;
+            }
+            #kofi-button:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(0,0,0,0.22); }
+            #kofi-button img { width: 20px; height: 20px; display: inline-block; }
+        </style>
 </head>
 <body>
     <div class="game-container" id="start-screen">
@@ -62,5 +84,9 @@
     <div class="game-credits">
       For Peri! API Access from <a href="https://dog.ceo" target="_blank" rel="noopener" style="color:#b2eaff;text-decoration:underline;">dog.ceo</a>.
     </div>
+        <!-- Floating Ko-fi support button -->
+        <a id="kofi-button" href="https://ko-fi.com/V7V41UB3J1" target="_blank" rel="noopener" aria-label="Ko-fi">
+            <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi"> Ko-fi
+        </a>
   </body>
 </html>

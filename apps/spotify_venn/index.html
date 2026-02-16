@@ -28,7 +28,7 @@
 
     <section class="panel" aria-labelledby="snapshot-title">
       <h2 id="snapshot-title">Your Snapshot</h2>
-      <p class="hint">Step 1 · Pull your top artists. We’ll auto‑save it.</p>
+      <p class="hint">Step 1 · Pull your listening data- Everything is stored locally and temporarily!</p>
       <div class="actions">
         <button id="pull-data" class="btn" type="button">Pull Listening Data</button>
       </div>
@@ -38,7 +38,7 @@
 
     <section class="panel" aria-labelledby="friends-title">
       <h2 id="friends-title">Friends</h2>
-      <p class="hint">Step 2 · Open a friend’s invite. They’ll show up here—click to compare.</p>
+      <p class="hint">Step 2 · Add friends via codes—generate yours and paste theirs.</p>
       <div id="friends-list" class="friends-list" aria-label="Friends with snapshots"></div>
     </section>
 
@@ -51,15 +51,22 @@
     </section>
 
     <section class="panel" aria-labelledby="invite-title">
-      <h2 id="invite-title">Invite A Friend</h2>
-      <p class="hint">Snapshots stored locally. For cross-device sharing, the link may include a compact snapshot.</p>
+      <h2 id="invite-title">Add A Friend</h2>
+      <p class="hint">Generate your code and exchange codes with a friend. Paste their code to add them.</p>
       <div class="row">
-        <label for="invite-link">Invite link</label>
-        <input id="invite-link" type="text" readonly placeholder="Save your snapshot to generate a shareable link">
+        <label for="my-code">Your code</label>
+        <input id="my-code" type="text" readonly placeholder="Pull your snapshot to generate a code">
       </div>
       <div class="actions">
-        <button id="copy-invite" class="btn" type="button">Copy Invite</button>
-        <button id="share-invite" class="btn ghost" type="button">Share Invite</button>
+        <button id="generate-code" class="btn" type="button">Generate Code</button>
+        <button id="copy-code" class="btn ghost" type="button">Copy Code</button>
+      </div>
+      <div class="row">
+        <label for="friend-code">Friend code</label>
+        <input id="friend-code" type="text" placeholder="Paste a friend’s code here">
+      </div>
+      <div class="actions">
+        <button id="add-friend" class="btn" type="button">Add Friend</button>
       </div>
     </section>
   </main>
@@ -67,7 +74,7 @@
   <footer class="footer">
     <div class="footer-inner">
       <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-      <script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#9b3aa6', 'V7V41UB3J1');kofiwidget2.draw();</script>
+      <script type='text/javascript'>kofiwidget2.init('Ko-fi', '#1db954', 'V7V41UB3J1');kofiwidget2.draw();</script>
     </div>
   </footer>
 

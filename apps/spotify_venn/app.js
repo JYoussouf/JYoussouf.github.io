@@ -22,6 +22,11 @@ const ui = {
   copyInvite: document.getElementById("copy-invite"),
   shareInvite: document.getElementById("share-invite"),
   inviteLink: document.getElementById("invite-link"),
+  myCode: document.getElementById("my-code"),
+  friendCode: document.getElementById("friend-code"),
+  generateCode: document.getElementById("generate-code"),
+  copyCode: document.getElementById("copy-code"),
+  addFriend: document.getElementById("add-friend"),
   compareSplit: document.getElementById("compare-split"),
   compareAvatars: document.getElementById("compare-avatars"),
   toast: document.getElementById("toast"),
@@ -61,8 +66,9 @@ function bindEvents() {
   ui.pullData && ui.pullData.addEventListener("click", loadMyListeningData);
   // Auto-save on pull; no explicit save button anymore
   if (ui.compare) ui.compare.addEventListener("click", compareUsers);
-  ui.copyInvite.addEventListener("click", copyInviteLink);
-  ui.shareInvite.addEventListener("click", shareInviteLink);
+  ui.generateCode && ui.generateCode.addEventListener("click", generateMyCode);
+  ui.copyCode && ui.copyCode.addEventListener("click", copyMyCode);
+  ui.addFriend && ui.addFriend.addEventListener("click", addFriendFromCode);
   ui.themeToggle && ui.themeToggle.addEventListener("click", toggleTheme);
 }
 
@@ -418,9 +424,9 @@ function showCompareAvatars({ me, other }) {
 
 function avatarHtml(name, imageUrl) {
   const initials = String(name||"?").trim().slice(0,2).toUpperCase();
-  const base = '<div class="avatar" style="width:72px;height:72px;border-radius:50%;background:#e9edf6;display:flex;align-items:center;justify-content:center;font-weight:600;color:#1e2a44;">'+initials+'</div>';
+  const base = '<div class="avatar friend-avatar" style="width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;">'+initials+'</div>';
   if (!imageUrl) return base;
-  return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(name)}" class="avatar" style="width:72px;height:72px;border-radius:50%;object-fit:cover;">`;
+  return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(name)}" class="avatar friend-avatar" style="width:72px;height:72px;border-radius:50%;object-fit:cover;">`;
 }
 
 function updateCompareUIForInvite() {
@@ -483,49 +489,101 @@ function decodeSnapshotFromUrl(str) {
   return JSON.parse(json);
 }
 
-function buildInviteUrl() {
-  if (!state.mySnapshot) { showToast("Save your snapshot first"); return ""; }
-  const s = state.mySnapshot;
-  const compact = {
-    spotifyUserId: s.spotifyUserId,
-    spotifyDisplayName: s.spotifyDisplayName,
-    spotifyImageUrl: s.spotifyImageUrl || "",
-    capturedAt: s.capturedAt,
-    artists: (s.artists||[]).slice(0,20),
-    tracks: (s.tracks||[]).slice(0,20),
+// Code-based friend sharing
+function snapshotToCompact(s) {
+  // Keep IDs to shorten code; names will be hydrated later if possible
+  const artistIds = Array.from(new Set((s.artists||[]).map(a=>a.id))).slice(0,80);
+  const trackIds = Array.from(new Set((s.tracks||[]).map(t=>t.id))).slice(0,80);
+  return {
+    u: normalizeUsername(s.spotifyUserId),
+    d: s.spotifyDisplayName || s.spotifyUserId,
+    i: s.spotifyImageUrl || "",
+    c: s.capturedAt,
+    a: artistIds,
+    t: trackIds,
   };
-  const snapshotParam = encodeSnapshotForUrl(compact);
-  const url = new URL(window.location.href);
-  url.search = ""; // reset existing params
-  url.hash = "";
-  url.searchParams.set("invite", normalizeUsername(s.spotifyUserId));
-  url.searchParams.set("snapshot", snapshotParam);
-  return url.toString();
 }
 
-function copyInviteLink() {
-  const url = buildInviteUrl();
-  if (!url) return;
-  ui.inviteLink.value = url;
-  navigator.clipboard?.writeText(url).then(()=>{
-    showToast("Invite copied");
+function compactToSnapshot(c) {
+  return {
+    spotifyUserId: c.u,
+    spotifyDisplayName: c.d || c.u,
+    spotifyImageUrl: c.i || "",
+    capturedAt: c.c || new Date().toISOString(),
+    artists: (c.a||[]).map(id=>({ id, name: id })),
+    tracks: (c.t||[]).map(id=>({ id, name: id, artists: "" })),
+  };
+}
+
+function buildFriendCode() {
+  if (!state.mySnapshot) { showToast("Pull your snapshot first"); return ""; }
+  const compact = snapshotToCompact(state.mySnapshot);
+  return encodeSnapshotForUrl(compact);
+}
+
+function generateMyCode() {
+  const code = buildFriendCode();
+  if (!code) return;
+  if (ui.myCode) ui.myCode.value = code;
+  showToast("Code generated");
+}
+
+function copyMyCode() {
+  const code = ui.myCode?.value?.trim();
+  if (!code) { showToast("Generate your code first"); return; }
+  navigator.clipboard?.writeText(code).then(()=>{
+    showToast("Code copied");
   }).catch(()=>{
     showToast("Copy failed; select and copy manually");
   });
 }
 
-function shareInviteLink() {
-  const url = buildInviteUrl();
-  if (!url) return;
-  ui.inviteLink.value = url;
-  if (navigator.share) {
-    navigator.share({ title: "Spotify Venn Invite", text: "Compare our listening overlap", url })
-      .then(()=>showToast("Invite shared"))
-      .catch(()=>{ /* ignored */ });
-  } else {
-    copyInviteLink();
+async function hydrateSnapshotNames(s) {
+  try {
+    const artistIds = (s.artists||[]).map(a=>a.id).filter(Boolean);
+    for (let i=0; i<artistIds.length; i+=50) {
+      const batch = artistIds.slice(i, i+50);
+      const data = await spotifyGet(`/artists?ids=${batch.join(',')}`);
+      const map = new Map((data.artists||[]).map(a=>[a.id, a.name]));
+      s.artists.forEach(a=>{ if (map.has(a.id)) a.name = map.get(a.id); });
+    }
+  } catch {}
+  try {
+    const trackIds = (s.tracks||[]).map(t=>t.id).filter(Boolean);
+    for (let i=0; i<trackIds.length; i+=50) {
+      const batch = trackIds.slice(i, i+50);
+      const data = await spotifyGet(`/tracks?ids=${batch.join(',')}`);
+      const map = new Map((data.tracks||[]).map(t=>[t.id, { name: t.name, artists: (t.artists||[]).map(a=>a.name).join(', ') }]));
+      s.tracks.forEach(t=>{ if (map.has(t.id)) { const v = map.get(t.id); t.name = v.name; t.artists = v.artists; } });
+    }
+  } catch {}
+}
+
+async function addFriendFromCode() {
+  const raw = ui.friendCode?.value?.trim();
+  if (!raw) { showToast("Paste a friend’s code first"); return; }
+  try {
+    const compact = decodeSnapshotFromUrl(raw);
+    const snapshot = compactToSnapshot(compact);
+    // Persist
+    const key = normalizeUsername(snapshot.spotifyUserId);
+    const profiles = readProfiles(); profiles[key] = snapshot;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+    // Add to friends list
+    addOrUpdateFriend({ id: key, displayName: snapshot.spotifyDisplayName, imageUrl: snapshot.spotifyImageUrl });
+    renderFriendsList();
+    // Try to hydrate names (optional, depends on Spotify session)
+    await hydrateSnapshotNames(snapshot);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(readProfiles()));
+    showToast("Friend added");
+    state.invitedUsername = key;
+    updateCompareUIForInvite();
+  } catch (err) {
+    showToast("Invalid code");
   }
 }
+
+// Deprecated invite link functions removed in favor of code-based sharing
 
 function showToast(msg) {
   if (!ui.toast) return;

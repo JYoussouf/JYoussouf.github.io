@@ -466,6 +466,45 @@ input:focus {
 
 .label { font-size: 14px; fill: var(--ink); font-weight: 700; }
 
+/* Genre-based Venn diagrams */
+.genre-venns-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.genre-venn-container {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.genre-title {
+  margin: 0 0 0.8rem 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.genre-venn-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.genre-score {
+  margin: 0.6rem 0 0 0;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 @media (min-width: 720px) {
   .layout {
     margin-top: 1.7rem;
@@ -478,4 +517,125 @@ input:focus {
   .split {
     grid-template-columns: 1fr 1fr;
   }
+  
+  .genre-venns-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .genre-venns-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* --- Genre Venn Modal Styles --- */
+.genre-venn-modal-overlay {
+  position: fixed;
+  z-index: 99999;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(24,32,28,0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInModalBg 0.2s;
+}
+@keyframes fadeInModalBg { from { opacity: 0; } to { opacity: 1; } }
+
+.genre-venn-modal {
+  background: var(--panel);
+  border-radius: 18px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.22);
+  max-width: 98vw;
+  max-height: 96vh;
+  width: 700px;
+  padding: 2.2rem 1.2rem 1.2rem 1.2rem;
+  position: relative;
+  overflow: auto;
+  animation: popInModal 0.22s cubic-bezier(.4,1.6,.6,1);
+}
+@keyframes popInModal { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.genre-venn-modal-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 1.1rem;
+  background: none;
+  border: none;
+  color: #b63d3d;
+  font-size: 2.2rem;
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 2;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s;
+}
+.genre-venn-modal-close:hover {
+  color: #e57373;
+}
+
+.genre-venn-modal-content {
+  max-width: 100%;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.genre-venn-modal .genre-venn-container {
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  background: none;
+}
+
+.genre-venn-modal .genre-venn-svg {
+  min-width: 520px;
+  min-height: 220px;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal[aria-hidden="false"] {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
+  box-shadow: var(--shadow);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.modal-venn {
+  width: 100%;
+  height: 100%;
 }

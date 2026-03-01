@@ -43,6 +43,60 @@ const state = {
   currentFriend: null,
 };
 
+// Genre categorization mapping
+const GENRE_CATEGORIES = {
+  RAP: ['rap', 'hip hop', 'trap', 'drill', 'grime', 'underground hip hop', 'gangster rap', 'conscious hip hop', 'alternative hip hop', 'southern hip hop', 'east coast hip hop', 'west coast rap'],
+  POP: ['pop', 'dance pop', 'electropop', 'synth-pop', 'indie pop', 'art pop', 'bedroom pop', 'chamber pop', 'k-pop', 'latin pop', 'europop', 'bubblegum pop'],
+  ROCK: ['rock', 'indie rock', 'alternative rock', 'punk', 'metal', 'hard rock', 'classic rock', 'progressive rock', 'psychedelic rock', 'garage rock', 'folk rock', 'post-punk', 'grunge', 'emo', 'screamo'],
+  COUNTRY: ['country', 'alt-country', 'contemporary country', 'country road', 'outlaw country', 'country rock', 'bluegrass', 'americana'],
+};
+
+function categorizeArtistByGenre(artist) {
+  const categories = [];
+  const genres = (artist.genres || []).map(g => g.toLowerCase());
+  
+  if (!genres.length) {
+    categories.push('OTHER');
+    return categories;
+  }
+  
+  for (const [category, keywords] of Object.entries(GENRE_CATEGORIES)) {
+    for (const genre of genres) {
+      if (keywords.some(keyword => genre.includes(keyword))) {
+        categories.push(category);
+        break;
+      }
+    }
+  }
+  
+  if (categories.length === 0) {
+    categories.push('OTHER');
+  }
+  
+  return categories;
+}
+
+function groupArtistsByGenreCategories(artists) {
+  const grouped = {
+    RAP: [],
+    POP: [],
+    ROCK: [],
+    COUNTRY: [],
+    OTHER: []
+  };
+  
+  for (const artist of artists) {
+    const categories = categorizeArtistByGenre(artist);
+    for (const category of categories) {
+      if (!grouped[category].some(a => a.id === artist.id)) {
+        grouped[category].push(artist);
+      }
+    }
+  }
+  
+  return grouped;
+}
+
 init();
 
 async function init() {
@@ -87,7 +141,22 @@ function getClientId() {
   return document.querySelector('meta[name="spotify-client-id"]')?.content?.trim() || "";
 }
 
+// --- DEV MODE FLAG ---
+function isDevMode() {
+  // Check URL param
+  if (window.location.search.includes('dev=1')) {
+    localStorage.setItem('spotify_venn_dev', '1');
+    return true;
+  }
+  // Check localStorage
+  return localStorage.getItem('spotify_venn_dev') === '1';
+}
+
 function getRedirectUri() {
+  if (isDevMode()) {
+    // Use the exact URI from your Spotify dashboard for local dev
+    return 'http://127.0.0.1:3000/apps/spotify_venn/';
+  }
   const meta = document.querySelector('meta[name="spotify-redirect-uri"]')?.content?.trim();
   if (meta) return meta;
   const url = new URL(window.location.href);
@@ -214,11 +283,11 @@ async function loadMyListeningData() {
     let followedArtists = [];
     try { savedTrackArtists = await fetchSavedTrackArtists(350); } catch {}
     try { followedArtists = await fetchFollowedArtists(200); } catch {}
-    // Union artist IDs across sources
+    // Union artist IDs across sources - include genres now
     const artistMap = new Map();
-    const addArtist = (a)=> { if (!a || !a.id) return; if (!artistMap.has(a.id)) artistMap.set(a.id, { id: a.id, name: a.name }); };
-    (topArtistsLong.items||[]).forEach(a=> addArtist({id:a.id,name:a.name}));
-    (topTracksLong.items||[]).forEach(t=> (t.artists||[]).forEach(a=> addArtist({id:a.id,name:a.name})));
+    const addArtist = (a)=> { if (!a || !a.id) return; if (!artistMap.has(a.id)) artistMap.set(a.id, { id: a.id, name: a.name, genres: a.genres || [] }); };
+    (topArtistsLong.items||[]).forEach(a=> addArtist({id:a.id,name:a.name,genres:a.genres||[]}));
+    (topTracksLong.items||[]).forEach(t=> (t.artists||[]).forEach(a=> addArtist({id:a.id,name:a.name,genres:[]})));
     savedTrackArtists.forEach(a=> addArtist(a));
     followedArtists.forEach(a=> addArtist(a));
     state.spotifyUser = { id: me.id, displayName: me.display_name || me.id, imageUrl: (me.images && me.images[0] && me.images[0].url) || "" };
@@ -239,7 +308,7 @@ async function loadMyListeningData() {
     ui.snapshotStatus.textContent = `Snapshot saved for @${key}`;
     // Build invite link and show single-circle viz immediately
     const url = buildInviteUrl(); if (url) ui.inviteLink.value = url;
-    renderVizSingle(state.mySnapshot);
+    renderVizSingleByGenres(state.mySnapshot);
     updateCompareUIForInvite();
   } catch (err) {
     ui.snapshotStatus.textContent = err.message || "Failed to load.";
@@ -255,7 +324,7 @@ async function fetchSavedTrackArtists(maxItems=300) {
     for (const item of (data.items||[])) {
       const track = item.track; if (!track) continue;
       for (const a of (track.artists||[])) {
-        if (a && a.id && !artists.has(a.id)) artists.set(a.id, { id: a.id, name: a.name });
+        if (a && a.id && !artists.has(a.id)) artists.set(a.id, { id: a.id, name: a.name, genres: [] });
       }
     }
     offset += limit;
@@ -273,7 +342,7 @@ async function fetchFollowedArtists(maxItems=200) {
     if (after) qs.set("after", after);
     const data = await spotifyGet(`/me/following?${qs.toString()}`);
     const items = (data.artists && data.artists.items) || [];
-    for (const a of items) { if (a && a.id && !artists.has(a.id)) artists.set(a.id, { id: a.id, name: a.name }); }
+    for (const a of items) { if (a && a.id && !artists.has(a.id)) artists.set(a.id, { id: a.id, name: a.name, genres: a.genres || [] }); }
     collected += items.length;
     after = (data.artists && data.artists.cursors && data.artists.cursors.after) || undefined;
     if (!after || items.length === 0) break;
@@ -305,6 +374,11 @@ function saveSnapshot() {
 function readProfiles() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return {}; try { return JSON.parse(raw) || {}; } catch { return {}; }
+}
+
+function buildInviteUrl() {
+  // Placeholder function - invite links are deprecated in favor of friend codes
+  return "";
 }
 
 function getProfile(username) {
@@ -579,11 +653,11 @@ async function decodeCompactFromCode(code) {
 
 // Code-based friend sharing
 function snapshotToCompact(s) {
-  // Include names to ensure readable labels when decoding on another device
+  // Include names and genres to ensure readable labels and categorization when decoding on another device
   const artists = (s.artists||[])
     .filter(a=> a && a.id && a.name)
     .slice(0, 40)
-    .map(a=> ({ id: a.id, name: a.name }));
+    .map(a=> ({ id: a.id, name: a.name, genres: a.genres || [] }));
   const tracks = (s.tracks||[])
     .filter(t=> t && t.id && t.name)
     .slice(0, 40)
@@ -604,7 +678,7 @@ function compactToSnapshot(c) {
     spotifyDisplayName: c.d || c.u,
     spotifyImageUrl: c.i || "",
     capturedAt: c.c || new Date().toISOString(),
-    artists: (c.a||[]).map(a=>({ id: a.id || a, name: a.name || a })),
+    artists: (c.a||[]).map(a=>({ id: a.id || a, name: a.name || a, genres: a.genres || [] })),
     tracks: (c.t||[]).map(t=>({ id: t.id || t, name: t.name || t, artists: t.artists || "" })),
   };
 }
@@ -782,9 +856,9 @@ function selectFriend(id) {
   const me = getMyProfile();
   const other = getProfile(id);
   if (me && other) {
-    renderVizVenn(me, other);
+    renderVizVennByGenres(me, other);
   } else if (me) {
-    renderVizSingle(me);
+    renderVizSingleByGenres(me);
   }
 }
 
@@ -795,10 +869,61 @@ function getMyProfile() {
 
 function renderInitialViz() {
   const me = getMyProfile();
-  if (me) renderVizSingle(me); else if (ui.viz) ui.viz.innerHTML = '';
+  if (me) renderVizSingleByGenres(me); else if (ui.viz) ui.viz.innerHTML = '';
 }
 
-// Visualization helpers
+// Visualization helpers - single user by genre
+function renderVizSingleByGenres(me) {
+  if (!ui.viz) return;
+
+  // Group artists by genre categories
+  const meGrouped = groupArtistsByGenreCategories(me.artists || []);
+
+  const genreOrder = ['RAP', 'POP', 'ROCK', 'COUNTRY', 'OTHER'];
+  const svgs = [];
+
+  for (const genre of genreOrder) {
+    const artists = meGrouped[genre] || [];
+
+    // Skip if no artists in this category
+    if (artists.length === 0) continue;
+
+    const W = 580, H = 250;
+    const cx = W/2, cy = H/2 + 10;
+    const count = artists.length;
+    const r = scaleRadiusGenre(count);
+
+    const placed = [];
+    const nodes = placeNodesInCircle(artists.slice(0, 50), { cx, cy, r }, placed);
+
+    const svg = document.createElement('div');
+    svg.className = 'genre-venn-container';
+    svg.innerHTML = `
+      <h3 class="genre-title">${genre}</h3>
+      <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
+        <circle class="circle-single" cx="${cx}" cy="${cy}" r="${r}" />
+        <text class="label" x="${cx - 70}" y="${cy - r - 16}">@${escapeHtml(me.spotifyDisplayName||'you')}</text>
+        ${nodes.map(n => artistText(n)).join('')}
+      </svg>
+      <p class="genre-score">${count} artists</p>
+    `;
+
+    // Add click event listener to open modal
+    svg.addEventListener('click', () => openVennModal(svg.querySelector('.viz-svg')));
+
+    svgs.push(svg.outerHTML);
+  }
+
+  if (svgs.length === 0) {
+    ui.viz.innerHTML = '<p class="status-text">No artist data available.</p>';
+    ui.scoreLine.textContent = '';
+    return;
+  }
+
+  ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
+  ui.scoreLine.textContent = `Your music taste broken down by genre · ${(me.artists || []).length} total artists`;
+}
+
 function renderVizSingle(me) {
   if (!ui.viz) return;
   const W = 640, H = 420; const cx = W/2, cy = H/2 + 10;
@@ -875,6 +1000,115 @@ function renderVizVenn(me, other) {
     </svg>
   `;
   ui.scoreLine.textContent = `You and @${normalizeUsername(other.spotifyDisplayName||other.spotifyUserId)} have ${pct}% overlapping music taste (artists)`;
+}
+
+function renderVizVennByGenres(me, other) {
+  if (!ui.viz) return;
+
+  // Group artists by genre categories for both users
+  const meGrouped = groupArtistsByGenreCategories(me.artists || []);
+  const otherGrouped = groupArtistsByGenreCategories(other.artists || []);
+
+  // Create a Venn diagram for each genre category
+  const genreOrder = ['RAP', 'POP', 'ROCK', 'COUNTRY', 'OTHER'];
+  const svgs = [];
+
+  for (const genre of genreOrder) {
+    const meArtists = meGrouped[genre] || [];
+    const otherArtists = otherGrouped[genre] || [];
+
+    // Skip if both users have no artists in this category
+    if (meArtists.length === 0 && otherArtists.length === 0) continue;
+
+    const leftSet = new Set(meArtists.map(a => a.id));
+    const rightSet = new Set(otherArtists.map(a => a.id));
+    const overlapIds = new Set([...leftSet].filter(x => rightSet.has(x)));
+
+    const intersectionCount = overlapIds.size;
+    const unionCount = new Set([...leftSet, ...rightSet]).size;
+    const pct = unionCount ? Math.round((intersectionCount * 100) / unionCount) : 0;
+
+    // Create a compact Venn diagram for this genre
+    const W = 580, H = 250, cy = 130;
+    const rLeft = scaleRadiusGenre(leftSet.size);
+    const rRight = scaleRadiusGenre(rightSet.size);
+
+    const ftarget = unionCount ? (intersectionCount / unionCount) : 0;
+    let d = computeDistanceForOverlapFractionGeneral(ftarget, rLeft, rRight);
+    if (ftarget <= 0) d = rLeft + rRight + 8;
+
+    const cx1 = (W/2) - (d/2);
+    const cx2 = (W/2) + (d/2);
+    const rMLeft = rLeft - 8;
+    const rMRight = rRight - 8;
+
+    // Slice for rendering
+    const leftOnly = meArtists.filter(a => !rightSet.has(a.id)).slice(0, 30);
+    const rightOnly = otherArtists.filter(a => !leftSet.has(a.id)).slice(0, 30);
+    const overlap = meArtists.filter(a => overlapIds.has(a.id)).slice(0, 40);
+
+    const placed = [];
+    const midNodes = placeNodesInRegion(
+      overlap,
+      (x,y) => inIntersection(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
+      { W, H, sampler: makeSamplerIntersection(cx1, cy, rMLeft, cx2) },
+      placed
+    );
+    const leftNodes = placeNodesInRegion(
+      leftOnly,
+      (x,y) => inLeftOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
+      { W, H, sampler: makeSamplerLeftOnly(cx1, cy, rMLeft, cx2) },
+      placed
+    );
+    const rightNodes = placeNodesInRegion(
+      rightOnly,
+      (x,y) => inRightOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
+      { W, H, sampler: makeSamplerRightOnly(cx2, cy, rMRight, cx1) },
+      placed
+    );
+
+    const svg = `
+      <div class="genre-venn-container">
+        <h3 class="genre-title">${genre}</h3>
+        <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
+          <circle class="circle-left" cx="${cx1}" cy="${cy}" r="${rLeft}" />
+          <circle class="circle-right" cx="${cx2}" cy="${cy}" r="${rRight}" />
+          <text class="label" x="${cx1 - 60}" y="${cy - Math.max(rLeft,rRight) - 12}">@${escapeHtml(me.spotifyDisplayName||'you')}</text>
+          <text class="label" x="${cx2 - 60}" y="${cy - Math.max(rLeft,rRight) - 12}">@${escapeHtml(other.spotifyDisplayName||other.spotifyUserId)}</text>
+          ${leftNodes.map(n => artistText(n)).join('')}
+          ${rightNodes.map(n => artistText(n)).join('')}
+          ${midNodes.map(n => artistText(n)).join('')}
+        </svg>
+        <p class="genre-score">${pct}% overlap · ${intersectionCount} shared artists</p>
+      </div>
+    `;
+    svgs.push(svg);
+  }
+
+  if (svgs.length === 0) {
+    ui.viz.innerHTML = '<p class="status-text">No genre data available for comparison.</p>';
+    ui.scoreLine.textContent = '';
+    return;
+  }
+
+  ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
+
+  // Calculate overall score
+  const allLeftSet = new Set((me.artists || []).map(a => a.id));
+  const allRightSet = new Set((other.artists || []).map(a => a.id));
+  const allOverlap = new Set([...allLeftSet].filter(x => allRightSet.has(x)));
+  const totalIntersection = allOverlap.size;
+  const totalUnion = new Set([...allLeftSet, ...allRightSet]).size;
+  const totalPct = totalUnion ? Math.round((totalIntersection * 100) / totalUnion) : 0;
+
+  ui.scoreLine.textContent = `Overall: You and @${normalizeUsername(other.spotifyDisplayName||other.spotifyUserId)} have ${totalPct}% overlapping music taste (${totalIntersection} shared artists across all genres)`;
+}
+
+function scaleRadiusGenre(count) {
+  // Slightly smaller radius for genre-specific diagrams
+  const baseCount = 30; const baseR = 100;
+  const r = baseR * Math.sqrt(Math.max(1, count) / baseCount);
+  return Math.max(80, Math.min(150, Math.round(r)));
 }
 
 function artistText(n) {

@@ -7,6 +7,9 @@ const STATE_KEY = "spotify_venn_oauth_state_v1";
 const VERIFIER_KEY = "spotify_venn_oauth_verifier_v1";
 const FRIENDS_KEY = "spotify_venn_friends_v1";
 
+// Dev mode detection - check if running on localhost or 127.0.0.1
+const IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 const ui = {
   connectSpotify: document.getElementById("connect-spotify"),
   pullData: document.getElementById("pull-data"),
@@ -116,6 +119,23 @@ async function init() {
   renderInitialViz();
   // Apply saved theme
   applySavedTheme();
+  
+  // Show dev mode indicator
+  if (IS_DEV_MODE) {
+    console.log("🔧 DEV MODE: Running with reduced data limits for faster loading");
+    console.log("   - Top artists/tracks: 20 (prod: 50)");
+    console.log("   - Saved tracks: 50 (prod: 350)");
+    console.log("   - Followed artists: 20 (prod: 200)");
+    
+    // Add visual dev mode badge to the app title
+    const appTitle = document.getElementById("app-title");
+    if (appTitle) {
+      const badge = document.createElement("span");
+      badge.textContent = " DEV";
+      badge.style.cssText = "font-size: 0.5em; color: #1db954; background: rgba(29, 185, 84, 0.15); padding: 0.2em 0.6em; border-radius: 4px; margin-left: 0.5em; font-weight: 600;";
+      appTitle.appendChild(badge);
+    }
+  }
 }
 
 // Modal functions
@@ -310,19 +330,24 @@ async function spotifyGet(path) {
 }
 
 async function loadMyListeningData() {
-  ui.snapshotStatus.textContent = "Loading your listening data...";
+  ui.snapshotStatus.textContent = IS_DEV_MODE ? "Loading (dev mode - limited data)..." : "Loading your listening data...";
   try {
+    // In dev mode, fetch much less data for faster loading
+    const topLimit = IS_DEV_MODE ? 20 : 50;
+    const savedTracksLimit = IS_DEV_MODE ? 50 : 350;
+    const followedArtistsLimit = IS_DEV_MODE ? 20 : 200;
+    
     const [me, topArtistsLong, topTracksLong] = await Promise.all([
       spotifyGet("/me"),
-      spotifyGet("/me/top/artists?limit=50&time_range=long_term"),
-      spotifyGet("/me/top/tracks?limit=50&time_range=long_term"),
+      spotifyGet(`/me/top/artists?limit=${topLimit}&time_range=long_term`),
+      spotifyGet(`/me/top/tracks?limit=${topLimit}&time_range=long_term`),
     ]);
     // Try to merge in saved tracks and followed artists to expand coverage.
     // These may fail if scopes not granted; we'll ignore errors gracefully.
     let savedTrackArtists = [];
     let followedArtists = [];
-    try { savedTrackArtists = await fetchSavedTrackArtists(350); } catch {}
-    try { followedArtists = await fetchFollowedArtists(200); } catch {}
+    try { savedTrackArtists = await fetchSavedTrackArtists(savedTracksLimit); } catch {}
+    try { followedArtists = await fetchFollowedArtists(followedArtistsLimit); } catch {}
     // Union artist IDs across sources - include genres now
     const artistMap = new Map();
     const addArtist = (a)=> { if (!a || !a.id) return; if (!artistMap.has(a.id)) artistMap.set(a.id, { id: a.id, name: a.name, genres: a.genres || [] }); };
@@ -345,7 +370,9 @@ async function loadMyListeningData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
     // Update UI
     renderMeSummary(state.mySnapshot);
-    ui.snapshotStatus.textContent = `Snapshot saved for @${key}`;
+    const artistCount = state.mySnapshot.artists.length;
+    const devModeTag = IS_DEV_MODE ? " [DEV MODE]" : "";
+    ui.snapshotStatus.textContent = `Snapshot saved for @${key} · ${artistCount} artists${devModeTag}`;
     // Build invite link and show single-circle viz immediately
     const url = buildInviteUrl(); if (url) ui.inviteLink.value = url;
     renderVizSingleByGenres(state.mySnapshot);

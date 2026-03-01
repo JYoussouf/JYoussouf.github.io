@@ -480,6 +480,13 @@ input:focus {
   background: var(--panel);
   padding: 1rem;
   box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.genre-venn-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(19, 32, 26, 0.12);
 }
 
 .genre-title {
@@ -603,39 +610,130 @@ input:focus {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0);
   display: none;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  transition: background 0.3s ease-out;
 }
 
 .modal[aria-hidden="false"] {
   display: flex;
+  animation: fadeInBackdrop 0.3s ease-out forwards;
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    background: rgba(0, 0, 0, 0);
+  }
+  to {
+    background: rgba(0, 0, 0, 0.85);
+  }
+}
+
+@keyframes fadeOutBackdrop {
+  from {
+    background: rgba(0, 0, 0, 0.85);
+  }
+  to {
+    background: rgba(0, 0, 0, 0);
+  }
 }
 
 .modal-content {
   background: var(--panel);
-  border-radius: 12px;
-  padding: 1.5rem;
-  max-width: 90%;
-  max-height: 90%;
+  border-radius: 16px;
+  padding: 3rem 2rem 2rem;
+  width: 96vw;
+  height: 96vh;
+  max-width: 96vw;
+  max-height: 96vh;
   overflow: auto;
-  box-shadow: var(--shadow);
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  position: relative;
+  animation: expandModal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform: scale(0.7);
+  opacity: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: var(--ink);
+}
+
+@keyframes expandModal {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes closeModal {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
 }
 
 .modal-close {
   position: absolute;
   top: 1rem;
-  right: 1rem;
-  background: none;
+  right: 1.5rem;
+  background: rgba(182, 61, 61, 0.1);
   border: none;
-  color: var(--muted);
-  font-size: 1.5rem;
+  color: #b63d3d;
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
   cursor: pointer;
+  z-index: 10;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-out;
+}
+
+.modal-close:hover {
+  color: #e57373;
+  background: rgba(229, 115, 115, 0.2);
+  transform: rotate(90deg) scale(1.1);
 }
 
 .modal-venn {
   width: 100%;
   height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-venn svg {
+  max-width: 100%;
+  max-height: 100%;
 }

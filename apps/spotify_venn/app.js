@@ -34,6 +34,9 @@ const ui = {
   viz: document.getElementById("viz"),
   scoreLine: document.getElementById("score-line"),
   themeToggle: document.getElementById("theme-toggle"),
+  vennModal: document.getElementById("venn-modal"),
+  modalVenn: document.getElementById("modal-venn"),
+  closeModal: document.getElementById("close-modal"),
 };
 
 const state = {
@@ -115,6 +118,32 @@ async function init() {
   applySavedTheme();
 }
 
+// Modal functions
+function openVennModal(element) {
+  if (!ui.vennModal || !ui.modalVenn) return;
+  ui.modalVenn.innerHTML = "";
+  const clone = element.cloneNode(true);
+  ui.modalVenn.appendChild(clone);
+  ui.vennModal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function closeVennModal() {
+  if (!ui.vennModal) return;
+  const modalContent = ui.vennModal.querySelector('.modal-content');
+  if (modalContent) {
+    modalContent.style.animation = 'closeModal 0.25s ease-out forwards';
+  }
+  ui.vennModal.style.animation = 'fadeOutBackdrop 0.25s ease-out forwards';
+  
+  setTimeout(() => {
+    ui.vennModal.setAttribute("aria-hidden", "true");
+    ui.vennModal.style.animation = '';
+    if (modalContent) modalContent.style.animation = '';
+    document.body.style.overflow = "";
+  }, 250);
+}
+
 function bindEvents() {
   ui.connectSpotify && ui.connectSpotify.addEventListener("click", startSpotifyAuth);
   ui.pullData && ui.pullData.addEventListener("click", loadMyListeningData);
@@ -124,6 +153,17 @@ function bindEvents() {
   ui.copyCode && ui.copyCode.addEventListener("click", copyMyCode);
   ui.addFriend && ui.addFriend.addEventListener("click", addFriendFromCode);
   ui.themeToggle && ui.themeToggle.addEventListener("click", toggleTheme);
+  ui.closeModal && ui.closeModal.addEventListener("click", closeVennModal);
+  ui.vennModal && ui.vennModal.addEventListener("click", (e) => {
+    if (e.target === ui.vennModal) closeVennModal();
+  });
+  
+  // Close modal on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && ui.vennModal && ui.vennModal.getAttribute("aria-hidden") === "false") {
+      closeVennModal();
+    }
+  });
 }
 
 function setAuthState(mode, message) {
@@ -896,22 +936,19 @@ function renderVizSingleByGenres(me) {
     const placed = [];
     const nodes = placeNodesInCircle(artists.slice(0, 50), { cx, cy, r }, placed);
 
-    const svg = document.createElement('div');
-    svg.className = 'genre-venn-container';
-    svg.innerHTML = `
-      <h3 class="genre-title">${genre}</h3>
-      <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
-        <circle class="circle-single" cx="${cx}" cy="${cy}" r="${r}" />
-        <text class="label" x="${cx - 70}" y="${cy - r - 16}">@${escapeHtml(me.spotifyDisplayName||'you')}</text>
-        ${nodes.map(n => artistText(n)).join('')}
-      </svg>
-      <p class="genre-score">${count} artists</p>
+    const svg = `
+      <div class="genre-venn-container">
+        <h3 class="genre-title">${genre}</h3>
+        <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
+          <circle class="circle-single" cx="${cx}" cy="${cy}" r="${r}" />
+          <text class="label" x="${cx - 70}" y="${cy - r - 16}">@${escapeHtml(me.spotifyDisplayName||'you')}</text>
+          ${nodes.map(n => artistText(n)).join('')}
+        </svg>
+        <p class="genre-score">${count} artists</p>
+      </div>
     `;
 
-    // Add click event listener to open modal
-    svg.addEventListener('click', () => openVennModal(svg.querySelector('.viz-svg')));
-
-    svgs.push(svg.outerHTML);
+    svgs.push(svg);
   }
 
   if (svgs.length === 0) {
@@ -922,6 +959,15 @@ function renderVizSingleByGenres(me) {
 
   ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
   ui.scoreLine.textContent = `Your music taste broken down by genre · ${(me.artists || []).length} total artists`;
+  
+  // Attach click handlers to all genre containers
+  const containers = ui.viz.querySelectorAll('.genre-venn-container');
+  containers.forEach(container => {
+    container.addEventListener('click', () => {
+      const svgElement = container.querySelector('.viz-svg');
+      if (svgElement) openVennModal(svgElement);
+    });
+  });
 }
 
 function renderVizSingle(me) {
@@ -1092,6 +1138,15 @@ function renderVizVennByGenres(me, other) {
   }
 
   ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
+
+  // Attach click handlers to all genre containers
+  const containers = ui.viz.querySelectorAll('.genre-venn-container');
+  containers.forEach(container => {
+    container.addEventListener('click', () => {
+      const svgElement = container.querySelector('.viz-svg');
+      if (svgElement) openVennModal(svgElement);
+    });
+  });
 
   // Calculate overall score
   const allLeftSet = new Set((me.artists || []).map(a => a.id));

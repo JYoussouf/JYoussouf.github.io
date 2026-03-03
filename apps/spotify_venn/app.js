@@ -148,6 +148,117 @@ function openVennModal(element) {
   document.body.style.overflow = "hidden";
 }
 
+// Open interactive modal with React zoom/pan component
+function openInteractiveVennModal(me, other, genre) {
+  if (!ui.vennModal || !ui.modalVenn || !window.VennDiagram || !window.ReactDOM) return;
+  
+  ui.modalVenn.innerHTML = "";
+  
+  // Prepare data for the specific genre or all genres
+  const meGrouped = groupArtistsByGenreCategories(me.artists || []);
+  const otherGrouped = other ? groupArtistsByGenreCategories(other.artists || []) : null;
+
+  let data;
+  
+  if (genre && !other) {
+    // Single user, specific genre
+    const artists = meGrouped[genre] || [];
+    const W = 580, H = 250;
+    const cx = W/2, cy = H/2 + 10;
+    const count = artists.length;
+    const r = scaleRadiusGenre(count);
+    const placed = [];
+    const nodes = placeNodesInCircle(artists.slice(0, 50), { cx, cy, r }, placed);
+    
+    data = {
+      type: 'genres',
+      genres: [{
+        genre,
+        singleUser: true,
+        username: me.spotifyDisplayName || 'you',
+        r,
+        nodes: nodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
+        scoreText: `${count} artists`
+      }]
+    };
+  } else if (genre && other) {
+    // Comparison, specific genre
+    const meArtists = meGrouped[genre] || [];
+    const otherArtists = otherGrouped[genre] || [];
+    
+    const leftSet = new Set(meArtists.map(a => a.id));
+    const rightSet = new Set(otherArtists.map(a => a.id));
+    const overlapIds = new Set([...leftSet].filter(x => rightSet.has(x)));
+    
+    const intersectionCount = overlapIds.size;
+    const unionCount = new Set([...leftSet, ...rightSet]).size;
+    const pct = unionCount ? Math.round((intersectionCount * 100) / unionCount) : 0;
+    
+    const W = 580, H = 250, cy = 130;
+    const rLeft = scaleRadiusGenre(leftSet.size);
+    const rRight = scaleRadiusGenre(rightSet.size);
+    
+    const ftarget = unionCount ? (intersectionCount / unionCount) : 0;
+    let d = computeDistanceForOverlapFractionGeneral(ftarget, rLeft, rRight);
+    if (ftarget <= 0) d = rLeft + rRight + 8;
+    
+    const cx1 = (W/2) - (d/2);
+    const cx2 = (W/2) + (d/2);
+    const rMLeft = rLeft - 8;
+    const rMRight = rRight - 8;
+    
+    const leftOnly = meArtists.filter(a => !rightSet.has(a.id)).slice(0, 30);
+    const rightOnly = otherArtists.filter(a => !leftSet.has(a.id)).slice(0, 30);
+    const overlap = meArtists.filter(a => overlapIds.has(a.id)).slice(0, 40);
+    
+    const placed = [];
+    const midNodes = placeNodesInRegion(
+      overlap,
+      (x,y) => inIntersection(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
+      { W, H, sampler: makeSamplerIntersection(cx1, cy, rMLeft, cx2) },
+      placed
+    );
+    const leftNodes = placeNodesInRegion(
+      leftOnly,
+      (x,y) => inLeftOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
+      { W, H, sampler: makeSamplerLeftOnly(cx1, cy, rMLeft, cx2) },
+      placed
+    );
+    const rightNodes = placeNodesInRegion(
+      rightOnly,
+      (x,y) => inRightOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
+      { W, H, sampler: makeSamplerRightOnly(cx2, cy, rMRight, cx1) },
+      placed
+    );
+    
+    data = {
+      type: 'genres',
+      genres: [{
+        genre,
+        singleUser: false,
+        meUsername: me.spotifyDisplayName || 'you',
+        otherUsername: other.spotifyDisplayName || other.spotifyUserId,
+        cx1, cx2, cy,
+        rLeft, rRight,
+        leftNodes: leftNodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
+        rightNodes: rightNodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
+        midNodes: midNodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
+        scoreText: `${pct}% overlap · ${intersectionCount} shared artists`
+      }]
+    };
+  }
+  
+  // Render React component with zoom/pan in modal
+  try {
+    ReactDOM.render(React.createElement(window.VennDiagram, { data }), ui.modalVenn);
+    ui.vennModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  } catch (error) {
+    console.error('Error rendering interactive modal:', error);
+    closeVennModal();
+  }
+}
+
 function closeVennModal() {
   if (!ui.vennModal) return;
   const modalContent = ui.vennModal.querySelector('.modal-content');
@@ -160,6 +271,11 @@ function closeVennModal() {
     ui.vennModal.setAttribute("aria-hidden", "true");
     ui.vennModal.style.animation = '';
     if (modalContent) modalContent.style.animation = '';
+    // Unmount React component to prevent memory leaks
+    if (ui.modalVenn && window.ReactDOM) {
+      ReactDOM.unmountComponentAtNode(ui.modalVenn);
+      ui.modalVenn.innerHTML = '';
+    }
     document.body.style.overflow = "";
   }, 250);
 }
@@ -964,7 +1080,7 @@ function renderVizSingleByGenres(me) {
     const nodes = placeNodesInCircle(artists.slice(0, 50), { cx, cy, r }, placed);
 
     const svg = `
-      <div class="genre-venn-container">
+      <div class="genre-venn-container" data-genre="${genre}">
         <h3 class="genre-title">${genre}</h3>
         <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
           <circle class="circle-single" cx="${cx}" cy="${cy}" r="${r}" />
@@ -987,12 +1103,12 @@ function renderVizSingleByGenres(me) {
   ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
   ui.scoreLine.textContent = `Your music taste broken down by genre · ${(me.artists || []).length} total artists`;
   
-  // Attach click handlers to all genre containers
+  // Attach click handlers to open interactive modal
   const containers = ui.viz.querySelectorAll('.genre-venn-container');
   containers.forEach(container => {
     container.addEventListener('click', () => {
-      const svgElement = container.querySelector('.viz-svg');
-      if (svgElement) openVennModal(svgElement);
+      const genre = container.getAttribute('data-genre');
+      openInteractiveVennModal(me, null, genre);
     });
   });
 }
@@ -1141,7 +1257,7 @@ function renderVizVennByGenres(me, other) {
     );
 
     const svg = `
-      <div class="genre-venn-container">
+      <div class="genre-venn-container" data-genre="${genre}">
         <h3 class="genre-title">${genre}</h3>
         <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
           <circle class="circle-left" cx="${cx1}" cy="${cy}" r="${rLeft}" />
@@ -1166,12 +1282,12 @@ function renderVizVennByGenres(me, other) {
 
   ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
 
-  // Attach click handlers to all genre containers
+  // Attach click handlers to open interactive modal
   const containers = ui.viz.querySelectorAll('.genre-venn-container');
   containers.forEach(container => {
     container.addEventListener('click', () => {
-      const svgElement = container.querySelector('.viz-svg');
-      if (svgElement) openVennModal(svgElement);
+      const genre = container.getAttribute('data-genre');
+      openInteractiveVennModal(me, other, genre);
     });
   });
 

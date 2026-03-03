@@ -616,6 +616,7 @@ input:focus {
   align-items: center;
   z-index: 1000;
   transition: background 0.3s ease-out;
+  overflow: visible;
 }
 
 .modal[aria-hidden="false"] {
@@ -649,8 +650,7 @@ input:focus {
   height: 96vh;
   max-width: 96vw;
   max-height: 96vh;
-  overflow: auto;
-  overflow-y: auto;
+  overflow: visible;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
   position: relative;
   animation: expandModal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -731,9 +731,417 @@ input:focus {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 0;
+  overflow: visible;
 }
 
 .modal-venn svg {
   max-width: 100%;
   max-height: 100%;
+}
+
+.modal-venn .venn-diagram-wrapper {
+  width: 100%;
+  height: 100%;
+  min-height: 80vh;
+  border-radius: 0;
+  box-shadow: none;
+  pointer-events: auto;
+  border: none;
+}
+
+.modal-venn .venn-container {
+  min-height: calc(80vh - 80px);
+  padding-bottom: 80px;
+}
+
+.modal-venn .genre-venns-grid-react {
+  padding: 2rem;
+  height: 100%;
+}
+
+.modal-venn .genre-venn-container-react {
+  cursor: default;
+  height: auto;
+  border: none !important;
+  background: transparent !important;
+}
+
+.modal-venn .genre-venn-container-react:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.modal-venn .venn-container {
+  pointer-events: auto;
+}
+
+.modal-venn .genre-title,
+.modal-venn .genre-score {
+  display: none;
+}
+
+/* Ensure SVG elements inside modal can receive hover events */
+.modal-venn svg,
+.modal-venn .artist-node,
+.modal-venn .circle-single,
+.modal-venn .circle-left,
+.modal-venn .circle-right {
+  pointer-events: auto;
+}
+/* React Venn Diagram Styles */
+.venn-diagram-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: visible;
+}
+
+.venn-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background: var(--panel);
+  padding: 0.4rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--line);
+}
+
+.venn-control-btn {
+  background: var(--spotify);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-out;
+  font-weight: bold;
+}
+
+.venn-control-btn:hover {
+  background: var(--spotify-dark);
+  transform: rotate(-180deg) scale(1.1);
+}
+
+.venn-zoom-level {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 45px;
+  text-align: center;
+}
+
+.venn-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--line);
+}
+
+.venn-container {
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  touch-action: none;
+  overflow: visible;
+}
+
+.venn-container.dragging {
+  cursor: grabbing !important;
+}
+
+.venn-stats-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, var(--panel) 85%, transparent);
+  padding: 1.5rem 2rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  z-index: 100;
+  pointer-events: none;
+  transition: all 0.3s ease-out;
+}
+
+.venn-stats-footer:hover {
+  background: linear-gradient(to top, var(--panel) 95%, transparent);
+  padding-bottom: 1.25rem;
+}
+
+.venn-stats-genre {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--spotify);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0.5rem 1rem;
+  background: rgba(29, 185, 84, 0.1);
+  border-radius: 20px;
+  transition: all 0.3s ease-out;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.venn-stats-genre:hover {
+  background: rgba(29, 185, 84, 0.2);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.2);
+}
+
+.venn-stats-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0.5rem 1.25rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  border: 2px solid var(--line);
+  transition: all 0.3s ease-out;
+  pointer-events: auto;
+  cursor: default;
+  backdrop-filter: blur(10px);
+}
+
+.venn-stats-text:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--spotify);
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  color: var(--spotify);
+}
+
+body.theme-dark .venn-stats-text {
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--ink);
+}
+
+body.theme-dark .venn-stats-text:hover {
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--spotify);
+}
+
+.venn-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+/* Enhanced SVG styles for React components */
+.viz-svg.single-venn,
+.viz-svg.compare-venn,
+.viz-svg.genre-venn-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Enhanced circle animations */
+.circle-single,
+.circle-left,
+.circle-right {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.circle-single:hover {
+  filter: url(#glow) brightness(1.1);
+}
+
+.circle-left:hover,
+.circle-right:hover {
+  filter: url(#glow-compare) brightness(1.1);
+}
+
+/* Floating animation for artist nodes */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.artist-node {
+  transition: all 0.3s ease-out;
+  cursor: pointer;
+}
+
+.artist-node:hover {
+  font-size: 13px !important;
+  font-weight: 700;
+  fill: var(--spotify);
+  filter: drop-shadow(0 2px 4px rgba(29, 185, 84, 0.4));
+}
+
+.artist-overlap:hover {
+  fill: var(--info);
+  filter: drop-shadow(0 2px 4px rgba(76, 132, 214, 0.4));
+}
+
+/* Genre Venns Grid for React */
+.genre-venns-grid-react {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.genre-venn-container-react {
+  background: linear-gradient(135deg, 
+    rgba(29, 185, 84, 0.03) 0%, 
+    rgba(76, 132, 214, 0.03) 100%);
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
+  transition: all 0.3s ease-out;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.genre-venn-container-react:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--spotify);
+}
+
+/* Main view genre containers - clickable */
+.genre-venns-grid .genre-venn-container {
+  background: linear-gradient(135deg, 
+    rgba(29, 185, 84, 0.03) 0%, 
+    rgba(76, 132, 214, 0.03) 100%);
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
+  transition: all 0.3s ease-out;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  position: relative;
+}
+
+.genre-venns-grid .genre-venn-container:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--spotify);
+}
+
+.genre-venns-grid .genre-venn-container::after {
+  content: '🔍 Click to zoom';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+  pointer-events: none;
+}
+
+.genre-venns-grid .genre-venn-container:hover::after {
+  opacity: 1;
+}
+
+.genre-title {
+  text-align: center;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  color: var(--spotify);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.genre-score {
+  text-align: center;
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .venn-diagram-wrapper {
+    min-height: 400px;
+  }
+
+  .venn-controls {
+    padding: 0.3rem;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .venn-hint {
+    display: none;
+  }
+
+  .genre-venns-grid-react {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .genre-venn-container-react {
+    padding: 1rem 0.5rem;
+  }
+
+  .venn-stats-footer {
+    flex-direction: column;
+    padding: 1rem 1rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .venn-stats-genre,
+  .venn-stats-text {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.9rem;
+  }
+}
+
+/* Dark theme enhancements for React components */
+body.theme-dark .venn-diagram-wrapper {
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-dark .genre-venn-container-react {
+  background: linear-gradient(135deg, 
+    rgba(29, 185, 84, 0.08) 0%, 
+    rgba(76, 132, 214, 0.08) 100%);
+}
+
+body.theme-dark .genre-venn-container-react:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+body.theme-dark .genre-venns-grid .genre-venn-container {
+  background: linear-gradient(135deg, 
+    rgba(29, 185, 84, 0.08) 0%, 
+    rgba(76, 132, 214, 0.08) 100%);
+}
+
+body.theme-dark .genre-venns-grid .genre-venn-container:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.theme-dark .venn-stats-footer {
+  background: linear-gradient(to top, var(--panel) 85%, transparent);
+}
+
+body.theme-dark .venn-stats-footer:hover {
+  background: linear-gradient(to top, var(--panel) 95%, transparent);
 }

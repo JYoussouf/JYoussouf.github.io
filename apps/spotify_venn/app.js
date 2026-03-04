@@ -50,48 +50,125 @@ const state = {
 };
 
 // Genre categorization mapping
+// NOTE: Order matters - more specific patterns are checked first to avoid false matches
 const GENRE_CATEGORIES = {
-  RAP: ['rap', 'hip hop', 'trap', 'drill', 'grime', 'underground hip hop', 'gangster rap', 'conscious hip hop', 'alternative hip hop', 'southern hip hop', 'east coast hip hop', 'west coast rap'],
-  POP: ['pop', 'dance pop', 'electropop', 'synth-pop', 'indie pop', 'art pop', 'bedroom pop', 'chamber pop', 'k-pop', 'latin pop', 'europop', 'bubblegum pop'],
-  ROCK: ['rock', 'indie rock', 'alternative rock', 'punk', 'metal', 'hard rock', 'classic rock', 'progressive rock', 'psychedelic rock', 'garage rock', 'folk rock', 'post-punk', 'grunge', 'emo', 'screamo'],
-  COUNTRY: ['country', 'alt-country', 'contemporary country', 'country road', 'outlaw country', 'country rock', 'bluegrass', 'americana'],
+  ROCK: [
+    // Metal subgenres (check these first before generic terms)
+    'nu metal', 'rap metal', 'funk metal', 'alternative metal', 'progressive metal', 
+    'death metal', 'black metal', 'thrash metal', 'doom metal', 'metalcore', 'deathcore',
+    'djent', 'math metal', 'sludge metal', 'stoner metal', 'groove metal',
+    // Other rock subgenres
+    'indie rock', 'alternative rock', 'punk rock', 'pop punk', 'post-punk', 'hardcore punk',
+    'hard rock', 'classic rock', 'progressive rock', 'psychedelic rock', 'garage rock', 
+    'folk rock', 'grunge', 'emo', 'screamo', 'post-rock', 'shoegaze', 'noise rock',
+    // Multi-permutation genres
+    'pop rock', 'dance rock', 'synth-rock', 'indie pop rock', 'electro rock', 'art rock', 'folk pop rock',
+    // Generic terms (checked last)
+    'rock', 'punk', 'metal'
+  ],
+  RAP: [
+    'hip hop', 'hiphop', 'trap', 'drill', 'grime', 'underground hip hop', 'gangster rap', 
+    'conscious hip hop', 'alternative hip hop', 'southern hip hop', 'east coast hip hop', 
+    'west coast rap', 'cloud rap', 'mumble rap', 'boom bap', 'horrorcore',
+    'urban', 'gangsta', 'rap', 'rappers', 'hip-hop', 'hip hop', 'hiphop', 'rap', 'trap', 'drill'
+  ],
+  POP: [
+    'dance pop', 'electropop', 'synth-pop', 'synth pop', 'indie pop', 'art pop', 
+    'bedroom pop', 'chamber pop', 'k-pop', 'latin pop', 'europop', 'bubblegum pop',
+    'dream pop', 'power pop', 'britpop',
+    // Multi-permutation genres
+    'pop rock', 'dance rock', 'synth-rock', 'indie pop rock', 'electro rock', 'art rock', 'folk pop rock',
+    'pop', 'pop music', 'mainstream', 'top 40', 'radio', 'popstar', 'popstars'
+  ],
+  COUNTRY: [
+    'alt-country', 'alternative country', 'contemporary country', 'country road', 
+    'outlaw country', 'country rock', 'bluegrass', 'americana', 'roots country',
+    'country' // Generic term at end
+  ],
+  EDM: [
+    'house', 'techno', 'trance', 'dubstep', 'drum and bass', 'dnb', 'jungle',
+    'edm', 'electronic', 'electronica', 'future bass', 'bass music', 'uk garage',
+    'hardstyle', 'breakbeat', 'downtempo', 'trip hop', 'idm'
+  ],
+  RNB: [
+    'r&b', 'rnb', 'r and b', 'soul', 'neo soul', 'contemporary r&b', 'alternative r&b',
+    'funk', 'motown', 'quiet storm'
+  ],
+  JAZZ: [
+    'jazz', 'bebop', 'cool jazz', 'free jazz', 'fusion', 'jazz fusion', 'smooth jazz',
+    'swing', 'big band', 'latin jazz'
+  ],
+  INDIE: [
+    'indie folk', 'indie', 'indietronica', 'indie pop', 'indie rock', 'lo-fi', 'lofi'
+  ],
 };
 
 function categorizeArtistByGenre(artist) {
-  const categories = [];
-  const genres = (artist.genres || []).map(g => g.toLowerCase());
-  
+  const genres = (artist.genres || []).map(g => g.toLowerCase().trim());
   if (!genres.length) {
-    categories.push('OTHER');
-    return categories;
+    return ['OTHER'];
   }
-  
-  for (const [category, keywords] of Object.entries(GENRE_CATEGORIES)) {
-    for (const genre of genres) {
-      if (keywords.some(keyword => genre.includes(keyword))) {
-        categories.push(category);
-        break;
+  // Count matches for each category
+  const categoryCounts = {};
+  for (const genre of genres) {
+    const genreLower = genre.toLowerCase();
+    for (const [category, keywords] of Object.entries(GENRE_CATEGORIES)) {
+      for (const keyword of keywords) {
+        if (genreLower.includes(keyword.toLowerCase())) {
+          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+        }
       }
     }
+    // Aggressive matching for legacy support
+    if (genreLower.includes('rap') || genreLower.includes('hip hop') || genreLower.includes('hiphop') || genreLower.includes('trap') || genreLower.includes('drill')) {
+      categoryCounts['RAP'] = (categoryCounts['RAP'] || 0) + 1;
+    }
+    if (genreLower.includes('pop') || genreLower.includes('mainstream') || genreLower.includes('top 40') || genreLower.includes('radio')) {
+      categoryCounts['POP'] = (categoryCounts['POP'] || 0) + 1;
+    }
+    if (genreLower.includes('rock')) {
+      categoryCounts['ROCK'] = (categoryCounts['ROCK'] || 0) + 1;
+    }
+    if (genreLower.includes('edm') || genreLower.includes('electronic') || genreLower.includes('dance')) {
+      categoryCounts['EDM'] = (categoryCounts['EDM'] || 0) + 1;
+    }
+    if (genreLower.includes('r&b') || genreLower.includes('rnb') || genreLower.includes('soul')) {
+      categoryCounts['RNB'] = (categoryCounts['RNB'] || 0) + 1;
+    }
+    if (genreLower.includes('country')) {
+      categoryCounts['COUNTRY'] = (categoryCounts['COUNTRY'] || 0) + 1;
+    }
+    if (genreLower.includes('jazz')) {
+      categoryCounts['JAZZ'] = (categoryCounts['JAZZ'] || 0) + 1;
+    }
+    if (genreLower.includes('indie')) {
+      categoryCounts['INDIE'] = (categoryCounts['INDIE'] || 0) + 1;
+    }
   }
-  
-  if (categories.length === 0) {
-    categories.push('OTHER');
+  // Find the category with the highest count
+  const maxCategory = Object.keys(categoryCounts).reduce((a, b) => categoryCounts[a] > categoryCounts[b] ? a : b, null);
+  if (!maxCategory) {
+    console.log('Uncategorized artist:', artist.name, 'Genres:', artist.genres);
+    return ['OTHER'];
   }
-  
-  return categories;
+  return [maxCategory];
 }
 
 function groupArtistsByGenreCategories(artists) {
   const grouped = {
+    ROCK: [],
     RAP: [],
     POP: [],
-    ROCK: [],
+    EDM: [],
+    RNB: [],
     COUNTRY: [],
+    JAZZ: [],
+    INDIE: [],
     OTHER: []
   };
   
   for (const artist of artists) {
+    console.log('Artist:', artist.name, 'Genres:', artist.genres);
     const categories = categorizeArtistByGenre(artist);
     for (const category of categories) {
       if (!grouped[category].some(a => a.id === artist.id)) {
@@ -101,6 +178,156 @@ function groupArtistsByGenreCategories(artists) {
   }
   
   return grouped;
+}
+
+const GENRE_ORDER = ['RAP', 'POP', 'ROCK', 'COUNTRY', 'EDM', 'RNB', 'JAZZ', 'INDIE', 'OTHER'];
+
+function uniqueArtistsById(artists) {
+  const map = new Map();
+  for (const artist of (artists || [])) {
+    if (artist && artist.id && !map.has(artist.id)) map.set(artist.id, artist);
+  }
+  return map;
+}
+
+function intersectArtistMaps(leftMap, rightMap) {
+  const out = new Map();
+  for (const [id, artist] of leftMap.entries()) {
+    if (rightMap.has(id)) out.set(id, artist);
+  }
+  return out;
+}
+
+function subtractArtistMaps(leftMap, rightMap) {
+  const out = new Map();
+  for (const [id, artist] of leftMap.entries()) {
+    if (!rightMap.has(id)) out.set(id, artist);
+  }
+  return out;
+}
+
+function artistNameList(map, max = 10) {
+  return Array.from(map.values()).slice(0, max).map((artist) => artist.name);
+}
+
+function buildGenreVennModels(me, other) {
+  const meGrouped = groupArtistsByGenreCategories(me.artists || []);
+  const otherGrouped = other ? groupArtistsByGenreCategories(other.artists || []) : null;
+
+  const meLabel = `@${normalizeUsername(me.spotifyDisplayName || 'you') || 'you'}`;
+  const otherLabel = other ? `@${normalizeUsername(other.spotifyDisplayName || other.spotifyUserId || 'friend') || 'friend'}` : null;
+  const models = [];
+
+  for (const genre of GENRE_ORDER) {
+    const meMap = uniqueArtistsById(meGrouped[genre] || []);
+
+    if (!other) {
+      if (meMap.size === 0) continue;
+      models.push({
+        key: genre,
+        title: genre,
+        subtitle: `${meMap.size} artists`,
+        distinctSets: {
+          left: { label: meLabel, ids: Array.from(meMap.keys()) },
+        },
+        vennAreas: [
+          {
+            sets: [meLabel],
+            size: meMap.size,
+            label: meLabel,
+            items: artistNameList(meMap),
+            areaType: 'single',
+          },
+        ],
+      });
+      continue;
+    }
+
+    const otherMap = uniqueArtistsById((otherGrouped && otherGrouped[genre]) || []);
+    if (meMap.size === 0 && otherMap.size === 0) continue;
+
+    const overlapMap = intersectArtistMaps(meMap, otherMap);
+    const leftOnlyMap = subtractArtistMaps(meMap, otherMap);
+    const rightOnlyMap = subtractArtistMaps(otherMap, meMap);
+    const unionSize = leftOnlyMap.size + rightOnlyMap.size + overlapMap.size;
+    const overlapPct = unionSize ? Math.round((overlapMap.size * 100) / unionSize) : 0;
+
+    models.push({
+      key: genre,
+      title: genre,
+      subtitle: `${overlapPct}% overlap · ${overlapMap.size} shared artists`,
+      distinctSets: {
+        left: { label: meLabel, ids: Array.from(meMap.keys()) },
+        right: { label: otherLabel, ids: Array.from(otherMap.keys()) },
+        overlap: { label: 'Shared', ids: Array.from(overlapMap.keys()) },
+        leftOnly: { label: `${meLabel} only`, ids: Array.from(leftOnlyMap.keys()) },
+        rightOnly: { label: `${otherLabel} only`, ids: Array.from(rightOnlyMap.keys()) },
+      },
+      vennAreas: [
+        {
+          sets: [meLabel],
+          size: meMap.size,
+          label: meLabel,
+          items: artistNameList(meMap),
+          areaType: 'left',
+        },
+        {
+          sets: [otherLabel],
+          size: otherMap.size,
+          label: otherLabel,
+          items: artistNameList(otherMap),
+          areaType: 'right',
+        },
+        {
+          sets: [meLabel, otherLabel],
+          size: overlapMap.size,
+          label: `Shared (${overlapMap.size})`,
+          items: artistNameList(overlapMap),
+          areaType: 'overlap',
+        },
+      ],
+    });
+  }
+
+  return models;
+}
+
+function renderGenreVennReact({ me, other = null, inModal = false, genre = null }) {
+  const mountPoint = inModal ? ui.modalVenn : ui.viz;
+  if (!mountPoint || !window.ReactDOM || !window.GenreVennDiagram) return;
+
+  const models = buildGenreVennModels(me, other);
+  if (!models.length) {
+    mountPoint.innerHTML = '<p class="status-text">No genre data available.</p>';
+    return;
+  }
+
+  if (inModal) {
+    const selected = genre ? models.find((model) => model.key === genre) : models[0];
+    if (!selected) {
+      mountPoint.innerHTML = '<p class="status-text">Genre not available for this comparison.</p>';
+      return;
+    }
+    ReactDOM.render(
+      React.createElement(window.GenreVennDiagram, {
+        mode: 'single',
+        diagram: selected,
+        compact: false,
+      }),
+      mountPoint
+    );
+    return;
+  }
+
+  ReactDOM.render(
+    React.createElement(window.GenreVennDiagram, {
+      mode: 'grid',
+      diagrams: models,
+      compact: true,
+      onDiagramClick: (selectedGenre) => openInteractiveVennModal(me, other, selectedGenre),
+    }),
+    mountPoint
+  );
 }
 
 init();
@@ -150,111 +377,16 @@ function openVennModal(element) {
 
 // Open interactive modal with React zoom/pan component
 function openInteractiveVennModal(me, other, genre) {
-  if (!ui.vennModal || !ui.modalVenn || !window.VennDiagram || !window.ReactDOM) return;
-  
-  ui.modalVenn.innerHTML = "";
-  
-  // Prepare data for the specific genre or all genres
-  const meGrouped = groupArtistsByGenreCategories(me.artists || []);
-  const otherGrouped = other ? groupArtistsByGenreCategories(other.artists || []) : null;
+  if (!ui.vennModal || !ui.modalVenn || !window.GenreVennDiagram || !window.ReactDOM) return;
 
-  let data;
-  
-  if (genre && !other) {
-    // Single user, specific genre
-    const artists = meGrouped[genre] || [];
-    const W = 580, H = 250;
-    const cx = W/2, cy = H/2 + 10;
-    const count = artists.length;
-    const r = scaleRadiusGenre(count);
-    const placed = [];
-    const nodes = placeNodesInCircle(artists.slice(0, 50), { cx, cy, r }, placed);
-    
-    data = {
-      type: 'genres',
-      genres: [{
-        genre,
-        singleUser: true,
-        username: me.spotifyDisplayName || 'you',
-        r,
-        nodes: nodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
-        scoreText: `${count} artists`
-      }]
-    };
-  } else if (genre && other) {
-    // Comparison, specific genre
-    const meArtists = meGrouped[genre] || [];
-    const otherArtists = otherGrouped[genre] || [];
-    
-    const leftSet = new Set(meArtists.map(a => a.id));
-    const rightSet = new Set(otherArtists.map(a => a.id));
-    const overlapIds = new Set([...leftSet].filter(x => rightSet.has(x)));
-    
-    const intersectionCount = overlapIds.size;
-    const unionCount = new Set([...leftSet, ...rightSet]).size;
-    const pct = unionCount ? Math.round((intersectionCount * 100) / unionCount) : 0;
-    
-    const W = 580, H = 250, cy = 130;
-    const rLeft = scaleRadiusGenre(leftSet.size);
-    const rRight = scaleRadiusGenre(rightSet.size);
-    
-    const ftarget = unionCount ? (intersectionCount / unionCount) : 0;
-    let d = computeDistanceForOverlapFractionGeneral(ftarget, rLeft, rRight);
-    if (ftarget <= 0) d = rLeft + rRight + 8;
-    
-    const cx1 = (W/2) - (d/2);
-    const cx2 = (W/2) + (d/2);
-    const rMLeft = rLeft - 8;
-    const rMRight = rRight - 8;
-    
-    const leftOnly = meArtists.filter(a => !rightSet.has(a.id)).slice(0, 30);
-    const rightOnly = otherArtists.filter(a => !leftSet.has(a.id)).slice(0, 30);
-    const overlap = meArtists.filter(a => overlapIds.has(a.id)).slice(0, 40);
-    
-    const placed = [];
-    const midNodes = placeNodesInRegion(
-      overlap,
-      (x,y) => inIntersection(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-      { W, H, sampler: makeSamplerIntersection(cx1, cy, rMLeft, cx2) },
-      placed
-    );
-    const leftNodes = placeNodesInRegion(
-      leftOnly,
-      (x,y) => inLeftOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-      { W, H, sampler: makeSamplerLeftOnly(cx1, cy, rMLeft, cx2) },
-      placed
-    );
-    const rightNodes = placeNodesInRegion(
-      rightOnly,
-      (x,y) => inRightOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-      { W, H, sampler: makeSamplerRightOnly(cx2, cy, rMRight, cx1) },
-      placed
-    );
-    
-    data = {
-      type: 'genres',
-      genres: [{
-        genre,
-        singleUser: false,
-        meUsername: me.spotifyDisplayName || 'you',
-        otherUsername: other.spotifyDisplayName || other.spotifyUserId,
-        cx1, cx2, cy,
-        rLeft, rRight,
-        leftNodes: leftNodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
-        rightNodes: rightNodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
-        midNodes: midNodes.map(n => ({ x: n.x, y: n.y, name: shorten(n.item.name, 18) })),
-        scoreText: `${pct}% overlap · ${intersectionCount} shared artists`
-      }]
-    };
-  }
-  
-  // Render React component with zoom/pan in modal
+  ui.modalVenn.innerHTML = "";
+
   try {
-    ReactDOM.render(React.createElement(window.VennDiagram, { data }), ui.modalVenn);
+    renderGenreVennReact({ me, other, inModal: true, genre });
     ui.vennModal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
   } catch (error) {
-    console.error('Error rendering interactive modal:', error);
+    console.error("Error rendering interactive modal:", error);
     closeVennModal();
   }
 }
@@ -449,9 +581,9 @@ async function loadMyListeningData() {
   ui.snapshotStatus.textContent = IS_DEV_MODE ? "Loading (dev mode - limited data)..." : "Loading your listening data...";
   try {
     // In dev mode, fetch much less data for faster loading
-    const topLimit = IS_DEV_MODE ? 20 : 50;
-    const savedTracksLimit = IS_DEV_MODE ? 50 : 350;
-    const followedArtistsLimit = IS_DEV_MODE ? 20 : 200;
+    const topLimit = IS_DEV_MODE ? 8 : 50;
+    const savedTracksLimit = IS_DEV_MODE ? 20 : 350;
+    const followedArtistsLimit = IS_DEV_MODE ? 8 : 200;
     
     const [me, topArtistsLong, topTracksLong] = await Promise.all([
       spotifyGet("/me"),
@@ -466,11 +598,68 @@ async function loadMyListeningData() {
     try { followedArtists = await fetchFollowedArtists(followedArtistsLimit); } catch {}
     // Union artist IDs across sources - include genres now
     const artistMap = new Map();
-    const addArtist = (a)=> { if (!a || !a.id) return; if (!artistMap.has(a.id)) artistMap.set(a.id, { id: a.id, name: a.name, genres: a.genres || [] }); };
-    (topArtistsLong.items||[]).forEach(a=> addArtist({id:a.id,name:a.name,genres:a.genres||[]}));
-    (topTracksLong.items||[]).forEach(t=> (t.artists||[]).forEach(a=> addArtist({id:a.id,name:a.name,genres:[]})));
-    savedTrackArtists.forEach(a=> addArtist(a));
-    followedArtists.forEach(a=> addArtist(a));
+    // Helper to get genres from the artists of top 5 tracks for an artist
+    function getGenresFromTopTracksArtists(artistId) {
+      const tracks = (topTracksLong.items || []).filter(t => t.artists.some(a => a.id === artistId)).slice(0, 5);
+      const genreSet = new Set();
+      tracks.forEach(track => {
+        (track.artists || []).forEach(trackArtist => {
+          if (trackArtist.genres && trackArtist.genres.length) {
+            trackArtist.genres.forEach(g => genreSet.add(g));
+          }
+        });
+      });
+      return Array.from(genreSet);
+    }
+
+    // Helper to fetch genres from Last.fm for an artist name
+    async function getGenresFromLastFM(artistName) {
+      const apiKey = '184d3c8b9bb267fd50000c43ab16d8f5';
+      const url = `https://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&artist=${encodeURIComponent(artistName)}&api_key=${apiKey}&format=json`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.error('Last.fm error for artist:', artistName, 'Status:', res.status, 'URL:', url);
+          throw new Error('Last.fm error');
+        }
+        const data = await res.json();
+        if (data.toptags && data.toptags.tag) {
+          // Get top 5 tags
+          return data.toptags.tag.slice(0, 5).map(tag => tag.name);
+        } else {
+          console.error('Last.fm response missing tags for artist:', artistName, 'Response:', data);
+        }
+      } catch (e) {
+        console.error('Last.fm genre fetch failed for', artistName, 'Error:', e);
+      }
+      return [];
+    }
+    const addArtist = async (a)=> {
+      if (!a || !a.id) return;
+      let genres = a.genres || [];
+      if (!genres.length) {
+        genres = getGenresFromTopTracksArtists(a.id);
+        if (!genres.length && a.name) {
+          genres = await getGenresFromLastFM(a.name);
+        }
+      }
+      if (!artistMap.has(a.id)) artistMap.set(a.id, { id: a.id, name: a.name, genres });
+    };
+    // Use for-await to handle async addArtist
+    for (const a of (topArtistsLong.items||[])) {
+      await addArtist({id:a.id,name:a.name,genres:a.genres||[]});
+    }
+    for (const t of (topTracksLong.items||[])) {
+      for (const a of (t.artists||[])) {
+        await addArtist({id:a.id,name:a.name,genres:[]});
+      }
+    }
+    for (const a of savedTrackArtists) {
+      await addArtist(a);
+    }
+    for (const a of followedArtists) {
+      await addArtist(a);
+    }
     state.spotifyUser = { id: me.id, displayName: me.display_name || me.id, imageUrl: (me.images && me.images[0] && me.images[0].url) || "" };
     state.mySnapshot = {
       spotifyUserId: me.id,
@@ -1058,59 +1247,8 @@ function renderInitialViz() {
 // Visualization helpers - single user by genre
 function renderVizSingleByGenres(me) {
   if (!ui.viz) return;
-
-  // Group artists by genre categories
-  const meGrouped = groupArtistsByGenreCategories(me.artists || []);
-
-  const genreOrder = ['RAP', 'POP', 'ROCK', 'COUNTRY', 'OTHER'];
-  const svgs = [];
-
-  for (const genre of genreOrder) {
-    const artists = meGrouped[genre] || [];
-
-    // Skip if no artists in this category
-    if (artists.length === 0) continue;
-
-    const W = 580, H = 250;
-    const cx = W/2, cy = H/2 + 10;
-    const count = artists.length;
-    const r = scaleRadiusGenre(count);
-
-    const placed = [];
-    const nodes = placeNodesInCircle(artists.slice(0, 50), { cx, cy, r }, placed);
-
-    const svg = `
-      <div class="genre-venn-container" data-genre="${genre}">
-        <h3 class="genre-title">${genre}</h3>
-        <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
-          <circle class="circle-single" cx="${cx}" cy="${cy}" r="${r}" />
-          <text class="label" x="${cx - 70}" y="${cy - r - 16}">@${escapeHtml(me.spotifyDisplayName||'you')}</text>
-          ${nodes.map(n => artistText(n)).join('')}
-        </svg>
-        <p class="genre-score">${count} artists</p>
-      </div>
-    `;
-
-    svgs.push(svg);
-  }
-
-  if (svgs.length === 0) {
-    ui.viz.innerHTML = '<p class="status-text">No artist data available.</p>';
-    ui.scoreLine.textContent = '';
-    return;
-  }
-
-  ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
+  renderGenreVennReact({ me, other: null, inModal: false });
   ui.scoreLine.textContent = `Your music taste broken down by genre · ${(me.artists || []).length} total artists`;
-  
-  // Attach click handlers to open interactive modal
-  const containers = ui.viz.querySelectorAll('.genre-venn-container');
-  containers.forEach(container => {
-    container.addEventListener('click', () => {
-      const genre = container.getAttribute('data-genre');
-      openInteractiveVennModal(me, null, genre);
-    });
-  });
 }
 
 function renderVizSingle(me) {
@@ -1152,29 +1290,33 @@ function renderVizVenn(me, other) {
   // Center circles horizontally
   const cx1 = (W/2) - (d/2);
   const cx2 = (W/2) + (d/2);
-  const rMLeft = rLeft - 12;
-  const rMRight = rRight - 12;
+  // Increased margins to prevent text overflow (was 12)
+  const rMLeft = rLeft - 20;
+  const rMRight = rRight - 20;
   // Slice only for rendering density
   const leftOnly = (me.artists||[]).filter(a=> !rightSet.has(a.id)).slice(0,60);
   const rightOnly = (other.artists||[]).filter(a=> !leftSet.has(a.id)).slice(0,60);
   const overlap = (me.artists||[]).filter(a=> overlapIds.has(a.id)).slice(0,80);
+  
   const placed = [];
   const midNodes = placeNodesInRegion(
     overlap,
     (x,y)=> inIntersection(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-    { W, H, sampler: makeSamplerIntersection(cx1, cy, rMLeft, cx2) },
-    placed
+    { W, H, sampler: makeSamplerIntersection(cx1, cy, rMLeft, cx2, cy, rMRight) },
+    placed,
+    true // isIntersection = true
   );
+  
   const leftNodes = placeNodesInRegion(
     leftOnly,
     (x,y)=> inLeftOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-    { W, H, sampler: makeSamplerLeftOnly(cx1, cy, rMLeft, cx2) },
+    { W, H, sampler: makeSamplerLeftOnly(cx1, cy, rMLeft, cx2, cy, rMRight) },
     placed
   );
   const rightNodes = placeNodesInRegion(
     rightOnly,
     (x,y)=> inRightOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-    { W, H, sampler: makeSamplerRightOnly(cx2, cy, rMRight, cx1) },
+    { W, H, sampler: makeSamplerRightOnly(cx2, cy, rMRight, cx1, cy, rMLeft) },
     placed
   );
   ui.viz.innerHTML = `
@@ -1193,103 +1335,7 @@ function renderVizVenn(me, other) {
 
 function renderVizVennByGenres(me, other) {
   if (!ui.viz) return;
-
-  // Group artists by genre categories for both users
-  const meGrouped = groupArtistsByGenreCategories(me.artists || []);
-  const otherGrouped = groupArtistsByGenreCategories(other.artists || []);
-
-  // Create a Venn diagram for each genre category
-  const genreOrder = ['RAP', 'POP', 'ROCK', 'COUNTRY', 'OTHER'];
-  const svgs = [];
-
-  for (const genre of genreOrder) {
-    const meArtists = meGrouped[genre] || [];
-    const otherArtists = otherGrouped[genre] || [];
-
-    // Skip if both users have no artists in this category
-    if (meArtists.length === 0 && otherArtists.length === 0) continue;
-
-    const leftSet = new Set(meArtists.map(a => a.id));
-    const rightSet = new Set(otherArtists.map(a => a.id));
-    const overlapIds = new Set([...leftSet].filter(x => rightSet.has(x)));
-
-    const intersectionCount = overlapIds.size;
-    const unionCount = new Set([...leftSet, ...rightSet]).size;
-    const pct = unionCount ? Math.round((intersectionCount * 100) / unionCount) : 0;
-
-    // Create a compact Venn diagram for this genre
-    const W = 580, H = 250, cy = 130;
-    const rLeft = scaleRadiusGenre(leftSet.size);
-    const rRight = scaleRadiusGenre(rightSet.size);
-
-    const ftarget = unionCount ? (intersectionCount / unionCount) : 0;
-    let d = computeDistanceForOverlapFractionGeneral(ftarget, rLeft, rRight);
-    if (ftarget <= 0) d = rLeft + rRight + 8;
-
-    const cx1 = (W/2) - (d/2);
-    const cx2 = (W/2) + (d/2);
-    const rMLeft = rLeft - 8;
-    const rMRight = rRight - 8;
-
-    // Slice for rendering
-    const leftOnly = meArtists.filter(a => !rightSet.has(a.id)).slice(0, 30);
-    const rightOnly = otherArtists.filter(a => !leftSet.has(a.id)).slice(0, 30);
-    const overlap = meArtists.filter(a => overlapIds.has(a.id)).slice(0, 40);
-
-    const placed = [];
-    const midNodes = placeNodesInRegion(
-      overlap,
-      (x,y) => inIntersection(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-      { W, H, sampler: makeSamplerIntersection(cx1, cy, rMLeft, cx2) },
-      placed
-    );
-    const leftNodes = placeNodesInRegion(
-      leftOnly,
-      (x,y) => inLeftOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-      { W, H, sampler: makeSamplerLeftOnly(cx1, cy, rMLeft, cx2) },
-      placed
-    );
-    const rightNodes = placeNodesInRegion(
-      rightOnly,
-      (x,y) => inRightOnly(x,y,cx1,cy,rMLeft,cx2,cy,rMRight),
-      { W, H, sampler: makeSamplerRightOnly(cx2, cy, rMRight, cx1) },
-      placed
-    );
-
-    const svg = `
-      <div class="genre-venn-container" data-genre="${genre}">
-        <h3 class="genre-title">${genre}</h3>
-        <svg class="viz-svg genre-venn-svg" viewBox="0 0 ${W} ${H}">
-          <circle class="circle-left" cx="${cx1}" cy="${cy}" r="${rLeft}" />
-          <circle class="circle-right" cx="${cx2}" cy="${cy}" r="${rRight}" />
-          <text class="label" x="${cx1 - 60}" y="${cy - Math.max(rLeft,rRight) - 12}">@${escapeHtml(me.spotifyDisplayName||'you')}</text>
-          <text class="label" x="${cx2 - 60}" y="${cy - Math.max(rLeft,rRight) - 12}">@${escapeHtml(other.spotifyDisplayName||other.spotifyUserId)}</text>
-          ${leftNodes.map(n => artistText(n)).join('')}
-          ${rightNodes.map(n => artistText(n)).join('')}
-          ${midNodes.map(n => artistText(n)).join('')}
-        </svg>
-        <p class="genre-score">${pct}% overlap · ${intersectionCount} shared artists</p>
-      </div>
-    `;
-    svgs.push(svg);
-  }
-
-  if (svgs.length === 0) {
-    ui.viz.innerHTML = '<p class="status-text">No genre data available for comparison.</p>';
-    ui.scoreLine.textContent = '';
-    return;
-  }
-
-  ui.viz.innerHTML = `<div class="genre-venns-grid">${svgs.join('')}</div>`;
-
-  // Attach click handlers to open interactive modal
-  const containers = ui.viz.querySelectorAll('.genre-venn-container');
-  containers.forEach(container => {
-    container.addEventListener('click', () => {
-      const genre = container.getAttribute('data-genre');
-      openInteractiveVennModal(me, other, genre);
-    });
-  });
+  renderGenreVennReact({ me, other, inModal: false });
 
   // Calculate overall score
   const allLeftSet = new Set((me.artists || []).map(a => a.id));
@@ -1313,8 +1359,9 @@ function artistText(n) {
   const dx = (Math.random()*3-1.5).toFixed(1) + 'px';
   const dy = (Math.random()*3-1.5).toFixed(1) + 'px';
   const delay = (Math.random()*2).toFixed(2) + 's';
-  const name = shorten(n.item.name, 18);
-  return `<text class="artist-node" x="${n.x}" y="${n.y}" text-anchor="middle" style="--dx:${dx};--dy:${dy};animation-delay:${delay};">${escapeHtml(name)}</text>`;
+  const fontSize = n.fontSize || 11; // Default to 11px if not specified
+  const name = n.item.name;
+  return `<text class="artist-node" x="${n.x}" y="${n.y}" text-anchor="middle" style="--dx:${dx};--dy:${dy};animation-delay:${delay};font-size:${fontSize}px;">${escapeHtml(name)}</text>`;
 }
 
 function shorten(s, max) {
@@ -1330,37 +1377,46 @@ function inLeftOnly(x,y,cx1,cy1,r1,cx2,cy2,r2) { return pointInCircle(x,y,cx1,cy
 function inRightOnly(x,y,cx1,cy1,r1,cx2,cy2,r2) { return pointInCircle(x,y,cx2,cy2,r2) && !pointInCircle(x,y,cx1,cy1,r1); }
 
 // Targeted samplers to focus random sampling within each region's bounding box.
-function makeSamplerIntersection(cx1, cy, r, cx2) {
-  const xmin = Math.max(cx1 - r, cx2 - r);
-  const xmax = Math.min(cx1 + r, cx2 + r);
-  const ymin = cy - r;
-  const ymax = cy + r;
+function makeSamplerIntersection(cx1, cy, r1, cx2, cy2, r2) {
+  const xmin = Math.max(cx1 - r1, cx2 - r2);
+  const xmax = Math.min(cx1 + r1, cx2 + r2);
+  const ymin = Math.max(cy - r1, cy2 - r2);
+  const ymax = Math.min(cy + r1, cy2 + r2);
+  // Guard against invalid ranges (non-overlapping circles)
+  if (xmin >= xmax || ymin >= ymax) {
+    // Return center point of the overlap area
+    const midX = (cx1 + cx2) / 2;
+    const midY = (cy + cy2) / 2;
+    return () => [midX, midY];
+  }
   return () => [rand(xmin, xmax), rand(ymin, ymax)];
 }
 
-function makeSamplerLeftOnly(cx1, cy, r, cx2) {
-  let xmin = cx1 - r;
-  let xmax = Math.min(cx1 + r, cx2 - r);
+function makeSamplerLeftOnly(cx1, cy, r1, cx2, cy2, r2) {
+  let xmin = cx1 - r1;
+  let xmax = Math.min(cx1 + r1, cx2 - r2);
   // If circles are disjoint or just-touching, sample full left circle bbox
-  if (xmax <= xmin) { xmin = cx1 - r; xmax = cx1 + r; }
-  const ymin = cy - r;
-  const ymax = cy + r;
+  if (xmax <= xmin) { xmin = cx1 - r1; xmax = cx1 + r1; }
+  const ymin = cy - r1;
+  const ymax = cy + r1;
   return () => [rand(xmin, xmax), rand(ymin, ymax)];
 }
 
-function makeSamplerRightOnly(cx2, cy, r, cx1) {
-  let xmin = Math.max(cx2 - r, cx1 + r);
-  let xmax = cx2 + r;
+function makeSamplerRightOnly(cx2, cy2, r2, cx1, cy, r1) {
+  let xmin = Math.max(cx2 - r2, cx1 + r1);
+  let xmax = cx2 + r2;
   // If circles are disjoint or just-touching, sample full right circle bbox
-  if (xmin >= xmax) { xmin = cx2 - r; xmax = cx2 + r; }
-  const ymin = cy - r;
-  const ymax = cy + r;
+  if (xmin >= xmax) { xmin = cx2 - r2; xmax = cx2 + r2; }
+  const ymin = cy2 - r2;
+  const ymax = cy2 + r2;
   return () => [rand(xmin, xmax), rand(ymin, ymax)];
 }
 
-function approxTextWidth(name) {
-  const n = Math.min(18, String(name||"").length);
-  return 7 * n + 10; // font-size ~11; rough width per char + padding
+function approxTextWidth(name, fontSize = 11) {
+  const n = String(name||"").length;
+  // Approximate width based on font size, ~0.64 ratio for character width
+  const charWidth = fontSize * 0.64;
+  return charWidth * n + 16; // Padding for containment
 }
 
 function overlapsAny(rect, list) {
@@ -1372,23 +1428,36 @@ function overlapsAny(rect, list) {
 
 function fitsRectInPredicate(x, y, w, h, predicate) {
   const hw = w/2, hh = h/2;
+  // Check center and all 4 corners to ensure text is FULLY contained
   const points = [
-    [x, y],
-    [x - hw*0.9, y - hh*0.9],
-    [x + hw*0.9, y - hh*0.9],
-    [x - hw*0.9, y + hh*0.9],
-    [x + hw*0.9, y + hh*0.9],
+    [x, y],               // center
+    [x - hw, y - hh],     // top-left corner (full extent)
+    [x + hw, y - hh],     // top-right corner  
+    [x - hw, y + hh],     // bottom-left corner
+    [x + hw, y + hh],     // bottom-right corner
   ];
+  // ALL points must be within the region - no overflow allowed
   return points.every(([px,py])=> predicate(px,py));
 }
 
 function placeNodesInCircle(items, {cx,cy,r}, placedRects=[]) {
   const nodes = [];
-  const marginR = r - 12;
+  // Increased margin to prevent text overflow (was 12)
+  const marginR = r - 20;
   for (let i=0; i<items.length; i++) {
     const item = items[i];
     let guard=0; let placed=false;
-    const w = approxTextWidth(item.name); const h = 14;
+    
+    const nameLength = String(item.name || "").length;
+    // Scale font size based on name length
+    let fontSize = 11;
+    if (nameLength > 18) {
+      fontSize = Math.max(6, 11 * Math.pow(18 / nameLength, 0.8));
+    }
+    
+    const w = approxTextWidth(item.name, fontSize); 
+    const h = 16;
+    
     while(!placed && guard<600) {
       const angle = Math.random() * Math.PI * 2;
       const radius = marginR * Math.sqrt(Math.random());
@@ -1399,7 +1468,7 @@ function placeNodesInCircle(items, {cx,cy,r}, placedRects=[]) {
       const rect = { x1: x - w/2, y1: y - h/2, x2: x + w/2, y2: y + h/2 };
       if (overlapsAny(rect, placedRects)) { guard++; continue; }
       placedRects.push(rect);
-      nodes.push({ x: Math.round(x), y: Math.round(y), item });
+      nodes.push({ x: Math.round(x), y: Math.round(y), item, fontSize });
       placed = true;
     }
     if (!placed) break;
@@ -1407,14 +1476,28 @@ function placeNodesInCircle(items, {cx,cy,r}, placedRects=[]) {
   return nodes;
 }
 
-function placeNodesInRegion(items, predicate, {W,H, sampler}, placedRects=[]) {
+function placeNodesInRegion(items, predicate, {W,H, sampler}, placedRects=[], isIntersection=false) {
   const nodes = [];
   let attempts = 0;
+  const maxAttempts = isIntersection ? 40000 : 25000; // More attempts for intersections
+  const maxGuard = isIntersection ? 1500 : 800; // More tries per item for intersections
+  
   for (let i=0; i<items.length; i++) {
     const item = items[i];
-    const w = approxTextWidth(item.name); const h = 14;
+    const nameLength = String(item.name || "").length;
+    // Scale font size based on name length to avoid truncation
+    // Base font: 11px for names up to 18 chars, scale down smoothly for longer names
+    let fontSize = 11;
+    if (nameLength > 18) {
+      // More aggressive scaling: for every 5 chars over 18, reduce by ~20%
+      fontSize = Math.max(6, 11 * Math.pow(18 / nameLength, 0.8));
+    }
+    
+    const w = approxTextWidth(item.name, fontSize); 
+    const h = 16;
     let placed = false; let guard=0;
-    while(!placed && guard<800) {
+    
+    while(!placed && guard<maxGuard) {
       const pt = sampler ? sampler() : [rand(100, W-100), rand(130, H-90)];
       const x = pt[0], y = pt[1];
       if (!predicate(x,y)) { guard++; attempts++; continue; }
@@ -1422,11 +1505,12 @@ function placeNodesInRegion(items, predicate, {W,H, sampler}, placedRects=[]) {
       const rect = { x1: x - w/2, y1: y - h/2, x2: x + w/2, y2: y + h/2 };
       if (overlapsAny(rect, placedRects)) { guard++; attempts++; continue; }
       placedRects.push(rect);
-      nodes.push({ x: Math.round(x), y: Math.round(y), item });
+      nodes.push({ x: Math.round(x), y: Math.round(y), item, fontSize });
       placed = true;
     }
+    
     if (!placed) break;
-    if (attempts>25000) break;
+    if (attempts>maxAttempts) break;
   }
   return nodes;
 }

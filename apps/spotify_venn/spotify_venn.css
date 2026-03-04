@@ -767,6 +767,10 @@ input:focus {
   background: transparent !important;
 }
 
+.modal-venn .genre-venn-diagram svg {
+  width: min(100%, 980px);
+}
+
 .modal-venn .genre-venn-container-react:hover {
   transform: none !important;
   box-shadow: none !important;
@@ -1017,12 +1021,30 @@ body.theme-dark .venn-stats-text:hover {
   transition: all 0.3s ease-out;
   border: 1px solid var(--line);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .genre-venn-container-react:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   border-color: var(--spotify);
+}
+
+.genre-venn-diagram {
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.genre-venn-diagram svg {
+  width: min(100%, 700px);
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 /* Main view genre containers - clickable */

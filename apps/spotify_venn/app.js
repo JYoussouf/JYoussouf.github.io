@@ -104,54 +104,62 @@ const GENRE_CATEGORIES = {
 };
 
 function categorizeArtistByGenre(artist) {
+  const categories = new Set(); // Use Set to avoid duplicates
   const genres = (artist.genres || []).map(g => g.toLowerCase().trim());
+  
   if (!genres.length) {
     return ['OTHER'];
   }
-  // Count matches for each category
-  const categoryCounts = {};
+  
+  // Check each genre for keyword substring matches
   for (const genre of genres) {
     const genreLower = genre.toLowerCase();
+    // Aggressive matching for RAP
+    if (genreLower.includes('rap') || genreLower.includes('hip hop') || genreLower.includes('hiphop') || genreLower.includes('trap') || genreLower.includes('drill')) {
+      categories.add('RAP');
+    }
+    // Aggressive matching for POP
+    if (genreLower.includes('pop') || genreLower.includes('mainstream') || genreLower.includes('top 40') || genreLower.includes('radio')) {
+      categories.add('POP');
+    }
+    // Aggressive matching for ROCK
+    if (genreLower.includes('rock')) {
+      categories.add('ROCK');
+    }
+    // Aggressive matching for EDM
+    if (genreLower.includes('edm') || genreLower.includes('electronic') || genreLower.includes('dance')) {
+      categories.add('EDM');
+    }
+    // Aggressive matching for RNB
+    if (genreLower.includes('r&b') || genreLower.includes('rnb') || genreLower.includes('soul')) {
+      categories.add('RNB');
+    }
+    // Aggressive matching for COUNTRY
+    if (genreLower.includes('country')) {
+      categories.add('COUNTRY');
+    }
+    // Aggressive matching for JAZZ
+    if (genreLower.includes('jazz')) {
+      categories.add('JAZZ');
+    }
+    // Aggressive matching for INDIE
+    if (genreLower.includes('indie')) {
+      categories.add('INDIE');
+    }
+    // Also check all keywords for legacy support
     for (const [category, keywords] of Object.entries(GENRE_CATEGORIES)) {
       for (const keyword of keywords) {
         if (genreLower.includes(keyword.toLowerCase())) {
-          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+          categories.add(category);
         }
       }
     }
-    // Aggressive matching for legacy support
-    if (genreLower.includes('rap') || genreLower.includes('hip hop') || genreLower.includes('hiphop') || genreLower.includes('trap') || genreLower.includes('drill')) {
-      categoryCounts['RAP'] = (categoryCounts['RAP'] || 0) + 1;
-    }
-    if (genreLower.includes('pop') || genreLower.includes('mainstream') || genreLower.includes('top 40') || genreLower.includes('radio')) {
-      categoryCounts['POP'] = (categoryCounts['POP'] || 0) + 1;
-    }
-    if (genreLower.includes('rock')) {
-      categoryCounts['ROCK'] = (categoryCounts['ROCK'] || 0) + 1;
-    }
-    if (genreLower.includes('edm') || genreLower.includes('electronic') || genreLower.includes('dance')) {
-      categoryCounts['EDM'] = (categoryCounts['EDM'] || 0) + 1;
-    }
-    if (genreLower.includes('r&b') || genreLower.includes('rnb') || genreLower.includes('soul')) {
-      categoryCounts['RNB'] = (categoryCounts['RNB'] || 0) + 1;
-    }
-    if (genreLower.includes('country')) {
-      categoryCounts['COUNTRY'] = (categoryCounts['COUNTRY'] || 0) + 1;
-    }
-    if (genreLower.includes('jazz')) {
-      categoryCounts['JAZZ'] = (categoryCounts['JAZZ'] || 0) + 1;
-    }
-    if (genreLower.includes('indie')) {
-      categoryCounts['INDIE'] = (categoryCounts['INDIE'] || 0) + 1;
-    }
   }
-  // Find the category with the highest count
-  const maxCategory = Object.keys(categoryCounts).reduce((a, b) => categoryCounts[a] > categoryCounts[b] ? a : b, null);
-  if (!maxCategory) {
+  if (categories.size === 0) {
     console.log('Uncategorized artist:', artist.name, 'Genres:', artist.genres);
     return ['OTHER'];
   }
-  return [maxCategory];
+  return Array.from(categories);
 }
 
 function groupArtistsByGenreCategories(artists) {
@@ -358,7 +366,7 @@ async function init() {
     const appTitle = document.getElementById("app-title");
     if (appTitle) {
       const badge = document.createElement("span");
-      badge.textContent = " DEV";
+      badge.textContent = "DEV";
       badge.style.cssText = "font-size: 0.5em; color: #1db954; background: rgba(29, 185, 84, 0.15); padding: 0.2em 0.6em; border-radius: 4px; margin-left: 0.5em; font-weight: 600;";
       appTitle.appendChild(badge);
     }
@@ -581,9 +589,9 @@ async function loadMyListeningData() {
   ui.snapshotStatus.textContent = IS_DEV_MODE ? "Loading (dev mode - limited data)..." : "Loading your listening data...";
   try {
     // In dev mode, fetch much less data for faster loading
-    const topLimit = IS_DEV_MODE ? 8 : 50;
-    const savedTracksLimit = IS_DEV_MODE ? 20 : 350;
-    const followedArtistsLimit = IS_DEV_MODE ? 8 : 200;
+    const topLimit = IS_DEV_MODE ? 20 : 50;
+    const savedTracksLimit = IS_DEV_MODE ? 50 : 350;
+    const followedArtistsLimit = IS_DEV_MODE ? 20 : 200;
     
     const [me, topArtistsLong, topTracksLong] = await Promise.all([
       spotifyGet("/me"),
@@ -618,19 +626,14 @@ async function loadMyListeningData() {
       const url = `https://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&artist=${encodeURIComponent(artistName)}&api_key=${apiKey}&format=json`;
       try {
         const res = await fetch(url);
-        if (!res.ok) {
-          console.error('Last.fm error for artist:', artistName, 'Status:', res.status, 'URL:', url);
-          throw new Error('Last.fm error');
-        }
+        if (!res.ok) throw new Error('Last.fm error');
         const data = await res.json();
         if (data.toptags && data.toptags.tag) {
           // Get top 5 tags
           return data.toptags.tag.slice(0, 5).map(tag => tag.name);
-        } else {
-          console.error('Last.fm response missing tags for artist:', artistName, 'Response:', data);
         }
       } catch (e) {
-        console.error('Last.fm genre fetch failed for', artistName, 'Error:', e);
+        console.log('Last.fm genre fetch failed for', artistName, e);
       }
       return [];
     }

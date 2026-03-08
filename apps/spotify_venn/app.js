@@ -6,6 +6,8 @@ const TOKEN_KEY = "spotify_venn_token_v1";
 const STATE_KEY = "spotify_venn_oauth_state_v1";
 const VERIFIER_KEY = "spotify_venn_oauth_verifier_v1";
 const FRIENDS_KEY = "spotify_venn_friends_v1";
+const ARTIST_GENRE_CACHE_KEY = "spotify_venn_artist_genres_v1";
+const ARTIST_GENRE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Dev mode detection - check if running on localhost or 127.0.0.1
 const IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -17,6 +19,10 @@ const ui = {
   authChip: document.getElementById("auth-chip"),
   authStatus: document.getElementById("auth-status"),
   snapshotStatus: document.getElementById("snapshot-status"),
+  snapshotLoader: document.getElementById("snapshot-loader"),
+  snapshotLoaderLabel: document.getElementById("snapshot-loader-label"),
+  snapshotProgressBar: document.getElementById("snapshot-progress-bar"),
+  snapshotProgressPercent: document.getElementById("snapshot-progress-percent"),
   compareStatus: document.getElementById("compare-status"),
   meSummary: document.getElementById("me-summary"),
   sharedArtists: document.getElementById("shared-artists"),
@@ -48,6 +54,23 @@ const state = {
   invitedUsername: null,
   currentFriend: null,
 };
+
+function setSnapshotLoading(active, label = "", percent = 0) {
+  const pct = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+  if (ui.pullData) {
+    ui.pullData.disabled = active;
+    ui.pullData.textContent = active ? "Loading..." : "Pull Listening Data";
+  }
+  if (ui.snapshotLoader) {
+    ui.snapshotLoader.classList.toggle("is-active", active);
+    ui.snapshotLoader.setAttribute("aria-hidden", active ? "false" : "true");
+    const progressTrack = ui.snapshotLoader.querySelector(".snapshot-progress-track");
+    if (progressTrack) progressTrack.setAttribute("aria-valuenow", String(pct));
+  }
+  if (ui.snapshotLoaderLabel && label) ui.snapshotLoaderLabel.textContent = label;
+  if (ui.snapshotProgressBar) ui.snapshotProgressBar.style.width = `${pct}%`;
+  if (ui.snapshotProgressPercent) ui.snapshotProgressPercent.textContent = `${pct}%`;
+}
 
 // Genre categorization mapping
 // NOTE: Order matters - more specific patterns are checked first to avoid false matches
@@ -585,8 +608,65 @@ async function spotifyGet(path) {
   return res.json();
 }
 
+function readArtistGenreCache() {
+  const raw = localStorage.getItem(ARTIST_GENRE_CACHE_KEY);
+  if (!raw) return {};
+  try { return JSON.parse(raw) || {}; } catch { return {}; }
+}
+
+function writeArtistGenreCache(cache) {
+  localStorage.setItem(ARTIST_GENRE_CACHE_KEY, JSON.stringify(cache));
+}
+
+function cleanGenres(genres) {
+  if (!Array.isArray(genres)) return [];
+  return genres.map((g) => String(g || "").trim()).filter(Boolean);
+}
+
+async function enrichArtistsWithGenres(artists, onProgress) {
+  const cache = readArtistGenreCache();
+  const now = Date.now();
+  const missingIds = [];
+
+  for (const artist of artists) {
+    if (!artist || !artist.id) continue;
+    if (artist.genres && artist.genres.length) {
+      cache[artist.id] = { genres: cleanGenres(artist.genres), expiresAt: now + ARTIST_GENRE_CACHE_TTL_MS };
+      continue;
+    }
+    const cached = cache[artist.id];
+    if (cached && cached.expiresAt > now && Array.isArray(cached.genres) && cached.genres.length) {
+      artist.genres = cleanGenres(cached.genres);
+      continue;
+    }
+    missingIds.push(artist.id);
+  }
+
+  const uniqueMissingIds = [...new Set(missingIds)];
+  const totalBatches = Math.max(1, Math.ceil(uniqueMissingIds.length / 50));
+  if (typeof onProgress === "function") onProgress(0, totalBatches);
+  for (let i = 0; i < uniqueMissingIds.length; i += 50) {
+    const batch = uniqueMissingIds.slice(i, i + 50);
+    const data = await spotifyGet(`/artists?ids=${batch.join(",")}`);
+    for (const a of (data.artists || [])) {
+      if (!a || !a.id) continue;
+      const genres = cleanGenres(a.genres);
+      cache[a.id] = { genres, expiresAt: now + ARTIST_GENRE_CACHE_TTL_MS };
+    }
+    if (typeof onProgress === "function") onProgress(Math.floor(i / 50) + 1, totalBatches);
+  }
+
+  for (const artist of artists) {
+    if (!artist || !artist.id || (artist.genres && artist.genres.length)) continue;
+    artist.genres = cleanGenres(cache[artist.id]?.genres);
+  }
+
+  writeArtistGenreCache(cache);
+}
+
 async function loadMyListeningData() {
   ui.snapshotStatus.textContent = IS_DEV_MODE ? "Loading (dev mode - limited data)..." : "Loading your listening data...";
+  setSnapshotLoading(true, "Connecting to Spotify...", 6);
   try {
     // In dev mode, fetch much less data for faster loading
     const topLimit = IS_DEV_MODE ? 20 : 50;
@@ -598,78 +678,59 @@ async function loadMyListeningData() {
       spotifyGet(`/me/top/artists?limit=${topLimit}&time_range=long_term`),
       spotifyGet(`/me/top/tracks?limit=${topLimit}&time_range=long_term`),
     ]);
+    setSnapshotLoading(true, "Loaded profile and top listening data", 30);
     // Try to merge in saved tracks and followed artists to expand coverage.
     // These may fail if scopes not granted; we'll ignore errors gracefully.
     let savedTrackArtists = [];
     let followedArtists = [];
-    try { savedTrackArtists = await fetchSavedTrackArtists(savedTracksLimit); } catch {}
-    try { followedArtists = await fetchFollowedArtists(followedArtistsLimit); } catch {}
-    // Union artist IDs across sources - include genres now
-    const artistMap = new Map();
-    // Helper to get genres from the artists of top 5 tracks for an artist
-    function getGenresFromTopTracksArtists(artistId) {
-      const tracks = (topTracksLong.items || []).filter(t => t.artists.some(a => a.id === artistId)).slice(0, 5);
-      const genreSet = new Set();
-      tracks.forEach(track => {
-        (track.artists || []).forEach(trackArtist => {
-          if (trackArtist.genres && trackArtist.genres.length) {
-            trackArtist.genres.forEach(g => genreSet.add(g));
-          }
-        });
+    try {
+      savedTrackArtists = await fetchSavedTrackArtists(savedTracksLimit, (done, total) => {
+        const frac = total > 0 ? done / total : 1;
+        setSnapshotLoading(true, "Scanning saved tracks...", 30 + (frac * 26));
       });
-      return Array.from(genreSet);
-    }
-
-    // Helper to fetch genres from Last.fm for an artist name
-    async function getGenresFromLastFM(artistName) {
-      const apiKey = '184d3c8b9bb267fd50000c43ab16d8f5';
-      const url = `https://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&artist=${encodeURIComponent(artistName)}&api_key=${apiKey}&format=json`;
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Last.fm error');
-        const data = await res.json();
-        if (data.toptags && data.toptags.tag) {
-          // Get top 5 tags
-          return data.toptags.tag.slice(0, 5).map(tag => tag.name);
-        }
-      } catch (e) {
-        console.log('Last.fm genre fetch failed for', artistName, e);
-      }
-      return [];
-    }
-    const addArtist = async (a)=> {
+    } catch {}
+    try {
+      followedArtists = await fetchFollowedArtists(followedArtistsLimit, (done, total) => {
+        const frac = total > 0 ? done / total : 1;
+        setSnapshotLoading(true, "Loading followed artists...", 56 + (frac * 16));
+      });
+    } catch {}
+    setSnapshotLoading(true, "Preparing artist dataset...", 74);
+    // Union artist IDs across sources, then enrich missing genres in batches.
+    const artistMap = new Map();
+    const addArtist = (a) => {
       if (!a || !a.id) return;
-      let genres = a.genres || [];
-      if (!genres.length) {
-        genres = getGenresFromTopTracksArtists(a.id);
-        if (!genres.length && a.name) {
-          genres = await getGenresFromLastFM(a.name);
-        }
+      if (!artistMap.has(a.id)) {
+        artistMap.set(a.id, { id: a.id, name: a.name || "", genres: cleanGenres(a.genres) });
+        return;
       }
-      if (!artistMap.has(a.id)) artistMap.set(a.id, { id: a.id, name: a.name, genres });
+      const existing = artistMap.get(a.id);
+      if (!existing.name && a.name) existing.name = a.name;
+      if ((!existing.genres || !existing.genres.length) && a.genres && a.genres.length) {
+        existing.genres = cleanGenres(a.genres);
+      }
     };
-    // Use for-await to handle async addArtist
-    for (const a of (topArtistsLong.items||[])) {
-      await addArtist({id:a.id,name:a.name,genres:a.genres||[]});
+
+    for (const a of (topArtistsLong.items || [])) addArtist({ id: a.id, name: a.name, genres: a.genres || [] });
+    for (const t of (topTracksLong.items || [])) {
+      for (const a of (t.artists || [])) addArtist({ id: a.id, name: a.name, genres: [] });
     }
-    for (const t of (topTracksLong.items||[])) {
-      for (const a of (t.artists||[])) {
-        await addArtist({id:a.id,name:a.name,genres:[]});
-      }
-    }
-    for (const a of savedTrackArtists) {
-      await addArtist(a);
-    }
-    for (const a of followedArtists) {
-      await addArtist(a);
-    }
+    for (const a of savedTrackArtists) addArtist(a);
+    for (const a of followedArtists) addArtist(a);
+
+    const dedupedArtists = Array.from(artistMap.values());
+    await enrichArtistsWithGenres(dedupedArtists, (done, total) => {
+      const frac = total > 0 ? done / total : 1;
+      setSnapshotLoading(true, "Enriching artist genres...", 74 + (frac * 22));
+    });
+    setSnapshotLoading(true, "Finalizing snapshot...", 98);
     state.spotifyUser = { id: me.id, displayName: me.display_name || me.id, imageUrl: (me.images && me.images[0] && me.images[0].url) || "" };
     state.mySnapshot = {
       spotifyUserId: me.id,
       spotifyDisplayName: me.display_name || me.id,
       spotifyImageUrl: (me.images && me.images[0] && me.images[0].url) || "",
       capturedAt: new Date().toISOString(),
-      artists: Array.from(artistMap.values()),
+      artists: dedupedArtists,
       tracks: (topTracksLong.items || []).map((t) => ({ id: t.id, name: t.name, artists: (t.artists || []).map((a) => a.name).join(", ") })),
     };
     // Auto-save snapshot under your Spotify ID
@@ -681,18 +742,22 @@ async function loadMyListeningData() {
     const artistCount = state.mySnapshot.artists.length;
     const devModeTag = IS_DEV_MODE ? " [DEV MODE]" : "";
     ui.snapshotStatus.textContent = `Snapshot saved for @${key} · ${artistCount} artists${devModeTag}`;
+    setSnapshotLoading(true, "Snapshot ready", 100);
+    setTimeout(() => setSnapshotLoading(false, "Preparing fetch...", 0), 350);
     // Build invite link and show single-circle viz immediately
     const url = buildInviteUrl(); if (url) ui.inviteLink.value = url;
     renderVizSingleByGenres(state.mySnapshot);
     updateCompareUIForInvite();
   } catch (err) {
     ui.snapshotStatus.textContent = err.message || "Failed to load.";
+    setSnapshotLoading(false, "Preparing fetch...", 0);
   }
 }
 
 // Fetch a sample of saved tracks and return unique artists
-async function fetchSavedTrackArtists(maxItems=300) {
+async function fetchSavedTrackArtists(maxItems=300, onProgress) {
   const pageSize = 50; let offset = 0; const artists = new Map();
+  if (typeof onProgress === "function") onProgress(0, maxItems);
   while (offset < maxItems) {
     const limit = Math.min(pageSize, maxItems - offset);
     const data = await spotifyGet(`/me/tracks?limit=${limit}&offset=${offset}`);
@@ -703,15 +768,17 @@ async function fetchSavedTrackArtists(maxItems=300) {
       }
     }
     offset += limit;
+    if (typeof onProgress === "function") onProgress(Math.min(offset, maxItems), maxItems);
     if (!data.next) break;
   }
   return Array.from(artists.values());
 }
 
 // Fetch a sample of followed artists
-async function fetchFollowedArtists(maxItems=200) {
+async function fetchFollowedArtists(maxItems=200, onProgress) {
   // Spotify uses cursor pagination for followed artists with 'after'
   const pageSize = 50; let collected = 0; let after = undefined; const artists = new Map();
+  if (typeof onProgress === "function") onProgress(0, maxItems);
   while (collected < maxItems) {
     const qs = new URLSearchParams({ type: "artist", limit: String(Math.min(pageSize, maxItems - collected)) });
     if (after) qs.set("after", after);
@@ -719,6 +786,7 @@ async function fetchFollowedArtists(maxItems=200) {
     const items = (data.artists && data.artists.items) || [];
     for (const a of items) { if (a && a.id && !artists.has(a.id)) artists.set(a.id, { id: a.id, name: a.name, genres: a.genres || [] }); }
     collected += items.length;
+    if (typeof onProgress === "function") onProgress(Math.min(collected, maxItems), maxItems);
     after = (data.artists && data.artists.cursors && data.artists.cursors.after) || undefined;
     if (!after || items.length === 0) break;
   }

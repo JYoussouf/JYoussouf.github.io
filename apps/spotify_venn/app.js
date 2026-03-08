@@ -8,6 +8,8 @@ const VERIFIER_KEY = "spotify_venn_oauth_verifier_v1";
 const FRIENDS_KEY = "spotify_venn_friends_v1";
 const ARTIST_GENRE_CACHE_KEY = "spotify_venn_artist_genres_v1";
 const ARTIST_GENRE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const INVITE_API_TIMEOUT_MS = 5000;
+const SHORT_CODE_PATTERN = /^[A-Za-z0-9_-]{6,16}$/;
 
 // Dev mode detection - check if running on localhost or 127.0.0.1
 const IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -28,9 +30,6 @@ const ui = {
   sharedArtists: document.getElementById("shared-artists"),
   sharedTracks: document.getElementById("shared-tracks"),
   venn: document.getElementById("venn"),
-  copyInvite: document.getElementById("copy-invite"),
-  shareInvite: document.getElementById("share-invite"),
-  inviteLink: document.getElementById("invite-link"),
   myCode: document.getElementById("my-code"),
   friendCode: document.getElementById("friend-code"),
   generateCode: document.getElementById("generate-code"),
@@ -480,6 +479,53 @@ function getClientId() {
   return document.querySelector('meta[name="spotify-client-id"]')?.content?.trim() || "";
 }
 
+function getInviteApiBase() {
+  const raw = document.querySelector('meta[name="spotify-invite-api"]')?.content?.trim() || "";
+  if (!raw) return "";
+  return raw.replace(/\/+$/, "");
+}
+
+function isLikelyShortCode(code) {
+  return SHORT_CODE_PATTERN.test(String(code || "").trim());
+}
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = INVITE_API_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const text = await res.text();
+    let json = {};
+    try { json = text ? JSON.parse(text) : {}; } catch {}
+    if (!res.ok) {
+      const message = (json && json.error) || `request failed (${res.status})`;
+      throw new Error(message);
+    }
+    return json;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function createHostedInviteCode(payloadCode) {
+  const apiBase = getInviteApiBase();
+  if (!apiBase) return "";
+  const res = await fetchJsonWithTimeout(`${apiBase}/api/invites`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ payload: payloadCode }),
+  });
+  return String((res && res.code) || "").trim();
+}
+
+async function resolveHostedInviteCode(shortCode) {
+  const apiBase = getInviteApiBase();
+  if (!apiBase) return "";
+  const encoded = encodeURIComponent(shortCode);
+  const res = await fetchJsonWithTimeout(`${apiBase}/api/invites/${encoded}`);
+  return String((res && res.payload) || "").trim();
+}
+
 // --- DEV MODE FLAG ---
 function isDevMode() {
   // Check URL param
@@ -744,8 +790,8 @@ async function loadMyListeningData() {
     ui.snapshotStatus.textContent = `Snapshot saved for @${key} · ${artistCount} artists${devModeTag}`;
     setSnapshotLoading(true, "Snapshot ready", 100);
     setTimeout(() => setSnapshotLoading(false, "Preparing fetch...", 0), 350);
-    // Build invite link and show single-circle viz immediately
-    const url = buildInviteUrl(); if (url) ui.inviteLink.value = url;
+    // Generate friend code immediately for convenience
+    if (ui.myCode) ui.myCode.value = await buildFriendCode();
     renderVizSingleByGenres(state.mySnapshot);
     updateCompareUIForInvite();
   } catch (err) {
@@ -807,9 +853,6 @@ function saveSnapshot() {
   const profiles = readProfiles(); profiles[key] = state.mySnapshot;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
   ui.snapshotStatus.textContent = `Saved snapshot for @${key}`;
-  // Build invite link immediately for convenience
-  const url = buildInviteUrl();
-  if (url) ui.inviteLink.value = url;
   updateCompareUIForInvite();
   renderInitialViz();
 }
@@ -819,9 +862,27 @@ function readProfiles() {
   if (!raw) return {}; try { return JSON.parse(raw) || {}; } catch { return {}; }
 }
 
-function buildInviteUrl() {
-  // Placeholder function - invite links are deprecated in favor of friend codes
-  return "";
+function parseInviteCodeFromLocation() {
+  const params = new URLSearchParams(window.location.search);
+  const codeFromSearch = (params.get("code") || "").trim();
+  if (codeFromSearch) return codeFromSearch;
+  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+  const hashParams = new URLSearchParams(hash);
+  return (hashParams.get("code") || "").trim();
+}
+
+function clearInviteCodeFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("code");
+  if (url.hash) {
+    const hash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
+    const params = new URLSearchParams(hash);
+    params.delete("code");
+    const nextHash = params.toString();
+    url.hash = nextHash ? `#${nextHash}` : "";
+  }
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, document.title, next);
 }
 
 function getProfile(username) {
@@ -829,6 +890,12 @@ function getProfile(username) {
 }
 
 function applyInviteFromUrl() {
+  const codeParam = parseInviteCodeFromLocation();
+  if (codeParam) {
+    importFriendFromCode(codeParam, { source: "invite-link" }).finally(() => clearInviteCodeFromUrl());
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const invited = normalizeUsername(params.get("invite") || "");
   const snapshotParam = params.get("snapshot") || "";
@@ -853,6 +920,43 @@ function applyInviteFromUrl() {
     updateCompareUIForInvite();
     renderFriendsList();
   }
+}
+
+async function importFriendFromCode(rawCode, { source = "manual" } = {}) {
+  const compact = await decodeIncomingFriendCode(rawCode.trim());
+  const snapshot = compactToSnapshot(compact);
+  const key = normalizeUsername(snapshot.spotifyUserId);
+  if (!key) throw new Error("invalid friend code");
+
+  const profiles = readProfiles();
+  profiles[key] = snapshot;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+  addOrUpdateFriend({ id: key, displayName: snapshot.spotifyDisplayName, imageUrl: snapshot.spotifyImageUrl });
+  renderFriendsList();
+
+  await hydrateSnapshotNames(snapshot);
+  const after = readProfiles();
+  after[key] = snapshot;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(after));
+
+  state.invitedUsername = key;
+  updateCompareUIForInvite();
+  showToast(source === "invite-link" ? "Friend added from invite link" : "Friend added");
+  return snapshot;
+}
+
+async function decodeIncomingFriendCode(inputCode) {
+  const code = String(inputCode || "").trim();
+  if (!code) throw new Error("missing code");
+  try {
+    return await decodeCompactFromCode(code);
+  } catch {}
+  if (!isLikelyShortCode(code)) {
+    throw new Error("invalid code");
+  }
+  const resolvedPayload = await resolveHostedInviteCode(code);
+  if (!resolvedPayload) throw new Error("code not found");
+  return await decodeCompactFromCode(resolvedPayload);
 }
 
 function compareUsers() {
@@ -1129,7 +1233,12 @@ function compactToSnapshot(c) {
 async function buildFriendCode() {
   if (!state.mySnapshot) { showToast("Pull your snapshot first"); return ""; }
   const compact = snapshotToCompact(state.mySnapshot);
-  return await encodeCompactToShortCode(compact);
+  const payloadCode = await encodeCompactToShortCode(compact);
+  try {
+    const hostedCode = await createHostedInviteCode(payloadCode);
+    if (hostedCode) return hostedCode;
+  } catch {}
+  return payloadCode;
 }
 
 async function generateMyCode() {
@@ -1140,13 +1249,32 @@ async function generateMyCode() {
 }
 
 function copyMyCode() {
-  const code = ui.myCode?.value?.trim();
-  if (!code) { showToast("Generate your code first"); return; }
-  navigator.clipboard?.writeText(code).then(()=>{
+  const existing = ui.myCode?.value?.trim();
+  const maybeCode = existing ? Promise.resolve(existing) : buildFriendCode();
+  maybeCode.then((code) => {
+    if (!code) { showToast("Pull your snapshot first"); return; }
+    if (ui.myCode) ui.myCode.value = code;
+    return navigator.clipboard?.writeText(code);
+  }).then(()=>{
     showToast("Code copied");
   }).catch(()=>{
     showToast("Copy failed; select and copy manually");
   });
+}
+
+function extractFriendCode(input) {
+  const trimmed = String(input || "").trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    const qCode = (parsed.searchParams.get("code") || "").trim();
+    if (qCode) return qCode;
+    const hash = parsed.hash.startsWith("#") ? parsed.hash.slice(1) : parsed.hash;
+    const hashParams = new URLSearchParams(hash);
+    return (hashParams.get("code") || "").trim();
+  } catch {
+    return trimmed;
+  }
 }
 
 async function hydrateSnapshotNames(s) {
@@ -1174,21 +1302,9 @@ async function addFriendFromCode() {
   const raw = ui.friendCode?.value?.trim();
   if (!raw) { showToast("Paste a friend’s code first"); return; }
   try {
-    const compact = await decodeCompactFromCode(raw);
-    const snapshot = compactToSnapshot(compact);
-    // Persist
-    const key = normalizeUsername(snapshot.spotifyUserId);
-    const profiles = readProfiles(); profiles[key] = snapshot;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-    // Add to friends list
-    addOrUpdateFriend({ id: key, displayName: snapshot.spotifyDisplayName, imageUrl: snapshot.spotifyImageUrl });
-    renderFriendsList();
-    // Try to hydrate names (optional, depends on Spotify session)
-    await hydrateSnapshotNames(snapshot);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(readProfiles()));
-    showToast("Friend added");
-    state.invitedUsername = key;
-    updateCompareUIForInvite();
+    const code = extractFriendCode(raw);
+    if (!code) throw new Error("missing code");
+    await importFriendFromCode(code, { source: "manual" });
   } catch (err) {
     showToast("Invalid code");
   }

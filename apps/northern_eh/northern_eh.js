@@ -1,49 +1,49 @@
 // --- Cleaned up and modernized Northern Eh main JS ---
 
+const MAPBOX_TOKEN_META = (document.querySelector('meta[name="mapbox-token"]')?.content || "").trim();
 const NORTHERN_EH_CONFIG_API = (document.querySelector('meta[name="northern-eh-config-api"]')?.content || "").trim();
 const TOKEN_FETCH_TIMEOUT_MS = 5000;
-const MAPBOX_RENDER_TOKEN = (document.querySelector('meta[name="mapbox-render-token"]')?.content || "").trim();
+let mapboxToken = MAPBOX_TOKEN_META;
 import { getCanadianPopulationFurtherSouthFromCSV } from './data/canada_population_csv.js';
 
-function getNorthernEhApiBase() {
+async function ensureMapboxTokenLoaded() {
+    if (mapboxToken) return mapboxToken;
     if (!NORTHERN_EH_CONFIG_API) {
-        throw new Error("Missing Northern Eh config API endpoint.");
+        throw new Error("Missing Mapbox token configuration.");
     }
-    return NORTHERN_EH_CONFIG_API.replace(/\/+$/, "");
+    const token = await fetchNorthernEhTokenFromApi();
+    if (!token) throw new Error("Mapbox token unavailable.");
+    mapboxToken = token;
+    return mapboxToken;
 }
 
-async function fetchJsonWithTimeout(url) {
+async function fetchNorthernEhTokenFromApi() {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TOKEN_FETCH_TIMEOUT_MS);
     try {
-        const res = await fetch(url, { method: "GET", signal: controller.signal });
-        if (!res.ok) throw new Error(`request failed (${res.status})`);
-        return await res.json();
+        const base = NORTHERN_EH_CONFIG_API.replace(/\/+$/, "");
+        const res = await fetch(`${base}/api/config/northern-eh`, { method: "GET", signal: controller.signal });
+        if (!res.ok) return "";
+        const data = await res.json();
+        return String((data && data.token) || "").trim();
+    } catch {
+        return "";
     } finally {
         clearTimeout(timeout);
     }
 }
 
 async function geocodeLocation(input) {
-    const base = getNorthernEhApiBase();
-    const url = `${base}/api/northern-eh/geocode?q=${encodeURIComponent(input)}&limit=7`;
-    try {
-        const data = await fetchJsonWithTimeout(url);
-        return Array.isArray(data?.results) ? data.results : [];
-    } catch {
-        return [];
-    }
-}
-
-async function reverseGeocodeLocation(lat, lon) {
-    const base = getNorthernEhApiBase();
-    const url = `${base}/api/northern-eh/reverse?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}`;
-    try {
-        const data = await fetchJsonWithTimeout(url);
-        return String(data?.place_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`);
-    } catch {
-        return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-    }
+    const token = await ensureMapboxTokenLoaded();
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?limit=5&access_token=${token}`;
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.features.map(f => ({
+        display_name: f.place_name,
+        lat: f.center[1],
+        lon: f.center[0]
+    }));
 }
 
 function addLatitudeLine(lat) {
@@ -113,9 +113,8 @@ async function handleLocationSubmit() {
     document.getElementById('result').textContent = resultText;
 
     // --- Map logic ---
-    if (!MAPBOX_RENDER_TOKEN) return;
     if (!window.northMap) {
-        mapboxgl.accessToken = MAPBOX_RENDER_TOKEN;
+        mapboxgl.accessToken = await ensureMapboxTokenLoaded();
         window.northMap = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v11',
@@ -180,7 +179,18 @@ function addOrUpdateMarkerAndPopup(lon, lat, displayName) {
     // Marker drag event
     window.northMarker.on('dragend', async () => {
         const lngLat = window.northMarker.getLngLat();
-        const placeName = await reverseGeocodeLocation(lngLat.lat, lngLat.lng);
+        const token = await ensureMapboxTokenLoaded();
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lngLat.lng},${lngLat.lat}.json?limit=1&access_token=${token}`;
+        let placeName = `${lngLat.lat.toFixed(5)}, ${lngLat.lng.toFixed(5)}`;
+        try {
+            const resp = await fetch(url);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.features && data.features[0] && data.features[0].place_name) {
+                    placeName = data.features[0].place_name;
+                }
+            }
+        } catch {}
         const input = document.getElementById('location-input');
         if (input) {
             input.value = placeName;
@@ -272,28 +282,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         dropdown.innerHTML = '';
         dropdown.classList.remove('show');
     }
-    try { getNorthernEhApiBase(); } catch (err) {
+    try {
+        // Preload token on launch so map + geocoding are ready immediately.
+        mapboxgl.accessToken = await ensureMapboxTokenLoaded();
+    } catch (err) {
         const result = document.getElementById('result');
-        if (result) result.textContent = err.message || "Missing Northern Eh config API endpoint.";
+        if (result) result.textContent = err.message || "Missing Mapbox token.";
         return;
     }
     if (!window.northMap) {
-        if (!MAPBOX_RENDER_TOKEN) {
-            const mapEl = document.getElementById('map');
-            if (mapEl) mapEl.innerHTML = '<div style="padding:1rem;color:#555;font-size:0.95rem;">Map preview disabled (no render token set). Search still works.</div>';
-        } else {
-            mapboxgl.accessToken = MAPBOX_RENDER_TOKEN;
-            window.northMap = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/mapbox/streets-v11',
-                center: [-95.7129, 56.1304],
-                zoom: 3.2
-            });
-            window.northMap.on('load', () => {
-                if (window.northMap.getLayer('latitude-line')) window.northMap.removeLayer('latitude-line');
-                if (window.northMap.getSource('latitude-line')) window.northMap.removeSource('latitude-line');
-            });
-        }
+        window.northMap = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [-95.7129, 56.1304],
+            zoom: 3.2
+        });
+        window.northMap.on('load', () => {
+            if (window.northMap.getLayer('latitude-line')) window.northMap.removeLayer('latitude-line');
+            if (window.northMap.getSource('latitude-line')) window.northMap.removeSource('latitude-line');
+        });
     }
     const button = document.getElementById('location-submit');
     button.addEventListener('click', handleLocationSubmit);

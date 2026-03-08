@@ -21,70 +21,20 @@ async function routeRequest(request, env) {
     return json({ ok: true, now: new Date().toISOString() }, 200, request, env);
   }
 
-  if (url.pathname === "/api/northern-eh/geocode" && request.method === "GET") {
+  if (url.pathname === "/api/config/northern-eh" && request.method === "GET") {
     assertOriginAllowed(request, env);
-    return geocode(request, env, url);
-  }
-
-  if (url.pathname === "/api/northern-eh/reverse" && request.method === "GET") {
-    assertOriginAllowed(request, env);
-    return reverseGeocode(request, env, url);
+    return getNorthernEhConfig(request, env);
   }
 
   return json({ error: "not found" }, 404, request, env);
 }
 
-function getMapboxToken(env) {
+function getNorthernEhConfig(request, env) {
   const token = String(env.MAPBOX_PUBLIC_TOKEN_NORTHERN_EH || "").trim();
   if (!token) {
-    const err = new Error("northern-eh token not configured");
-    err.status = 503;
-    throw err;
+    return json({ error: "northern-eh token not configured" }, 503, request, env);
   }
-  return token;
-}
-
-async function geocode(request, env, url) {
-  const token = getMapboxToken(env);
-  const query = (url.searchParams.get("q") || "").trim();
-  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || "5"), 1), 10);
-  if (!query) return json({ results: [] }, 200, request, env);
-
-  const mapboxUrl = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`);
-  mapboxUrl.searchParams.set("limit", String(limit));
-  mapboxUrl.searchParams.set("access_token", token);
-
-  const upstream = await fetch(mapboxUrl.toString(), { method: "GET" });
-  if (!upstream.ok) return json({ error: `upstream geocode failed (${upstream.status})` }, 502, request, env);
-  const payload = await upstream.json();
-  const features = Array.isArray(payload?.features) ? payload.features : [];
-  const results = features.map((f) => ({
-    display_name: f?.place_name || "",
-    lat: Array.isArray(f?.center) ? f.center[1] : null,
-    lon: Array.isArray(f?.center) ? f.center[0] : null,
-  })).filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon));
-
-  return json({ results }, 200, request, env);
-}
-
-async function reverseGeocode(request, env, url) {
-  const token = getMapboxToken(env);
-  const lat = Number(url.searchParams.get("lat"));
-  const lon = Number(url.searchParams.get("lon"));
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return json({ error: "lat/lon required" }, 400, request, env);
-  }
-
-  const mapboxUrl = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json`);
-  mapboxUrl.searchParams.set("limit", "1");
-  mapboxUrl.searchParams.set("access_token", token);
-
-  const upstream = await fetch(mapboxUrl.toString(), { method: "GET" });
-  if (!upstream.ok) return json({ error: `upstream reverse failed (${upstream.status})` }, 502, request, env);
-  const payload = await upstream.json();
-  const first = Array.isArray(payload?.features) ? payload.features[0] : null;
-  const placeName = first?.place_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-  return json({ place_name: placeName }, 200, request, env);
+  return json({ token }, 200, request, env);
 }
 
 function assertOriginAllowed(request, env, { allowMissingOrigin = false } = {}) {

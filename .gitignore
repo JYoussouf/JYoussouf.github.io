@@ -1,0 +1,17 @@
+# Cloudflare/Wrangler local auth + state
+.wrangler/
+
+# Local env/secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+.secrets*
+
+# Private key material
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519

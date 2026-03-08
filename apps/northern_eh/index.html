@@ -13,6 +13,7 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mapbox-token" content="">
     <title>Northern, Eh?</title>
     <link rel="stylesheet" href="northern_eh.css">
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
@@ -160,7 +161,7 @@
       // --- Prevent rapid page refreshes (client-side rate limit) ---
       (function() {
         const KEY = 'northern_eh_refresh_times';
-        const LIMIT = 10; // max refreshes - STOP MESSIN' WITH MY MAPBOX CALLS!
+        const LIMIT = 10; // max refreshes
         const WINDOW_MS = 30 * 1000; // in 30 seconds
         let times = [];
         try {

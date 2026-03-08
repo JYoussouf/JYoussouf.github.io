@@ -1,9 +1,16 @@
 // --- Cleaned up and modernized Northern Eh main JS ---
 
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam9leW91c3NvdWYiLCJhIjoiY21jam5sbjV4MDVjOTJscHg2Y2NsMWpobCJ9.YlM6rWOxEYOs6NJ8r6GzRA'; // URL Restricted and cuts off after a while within the free tier, don't you dare!
+const MAPBOX_TOKEN = (document.querySelector('meta[name="mapbox-token"]')?.content || "").trim();
 import { getCanadianPopulationFurtherSouthFromCSV } from './data/canada_population_csv.js';
 
+function requireMapboxToken() {
+    if (!MAPBOX_TOKEN) {
+        throw new Error("Missing Mapbox token. Set <meta name=\"mapbox-token\"> in northern_eh/index.html.");
+    }
+}
+
 async function geocodeLocation(input) {
+    requireMapboxToken();
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?limit=5&access_token=${MAPBOX_TOKEN}`;
     const response = await fetch(url);
     if (!response.ok) return [];
@@ -251,6 +258,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dropdown.classList.remove('show');
     }
     if (!window.northMap) {
+        try {
+            requireMapboxToken();
+        } catch (err) {
+            const result = document.getElementById('result');
+            if (result) result.textContent = err.message || "Missing Mapbox token.";
+            return;
+        }
         mapboxgl.accessToken = MAPBOX_TOKEN;
         window.northMap = new mapboxgl.Map({
             container: 'map',

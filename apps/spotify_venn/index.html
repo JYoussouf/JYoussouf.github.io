@@ -51,6 +51,20 @@
         <button id="pull-data" class="btn" type="button">Pull Listening Data</button>
       </div>
       <p id="snapshot-status" class="status-text" aria-live="polite">No data loaded.</p>
+      <div id="snapshot-loader" class="snapshot-loader" aria-live="polite" aria-hidden="true">
+        <div class="snapshot-loader-top">
+          <div class="snapshot-orbit" aria-hidden="true">
+            <span class="orbit orbit-a"></span>
+            <span class="orbit orbit-b"></span>
+            <span class="orbit-center"></span>
+          </div>
+          <div id="snapshot-loader-label" class="snapshot-loader-label">Preparing fetch...</div>
+          <div id="snapshot-progress-percent" class="snapshot-progress-percent">0%</div>
+        </div>
+        <div class="snapshot-progress-track" role="progressbar" aria-label="Snapshot load progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="snapshot-progress-bar" class="snapshot-progress-bar"></div>
+        </div>
+      </div>
       <div id="me-summary" class="list" aria-label="Your snapshot preview"></div>
     </section>
 

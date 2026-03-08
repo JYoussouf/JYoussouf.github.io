@@ -204,6 +204,113 @@ input:focus {
   font-size: 0.94rem;
 }
 
+.snapshot-loader {
+  margin-top: 0;
+  padding: 0 0.82rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(76, 132, 214, 0.08), rgba(29, 185, 84, 0.08));
+  opacity: 0;
+  transform: translateY(-3px);
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 220ms ease, transform 220ms ease, max-height 220ms ease, margin 220ms ease, padding 220ms ease;
+}
+
+.snapshot-loader.is-active {
+  margin-top: 0.7rem;
+  padding: 0.75rem 0.82rem;
+  border-color: var(--line);
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 140px;
+}
+
+.snapshot-loader-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.snapshot-orbit {
+  position: relative;
+  width: 28px;
+  height: 28px;
+}
+
+.orbit {
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.orbit-a {
+  border-top-color: var(--spotify);
+  border-right-color: var(--spotify);
+  animation: orbitSpin 900ms linear infinite;
+}
+
+.orbit-b {
+  inset: 3px;
+  border-left-color: var(--info);
+  border-bottom-color: var(--info);
+  animation: orbitSpinReverse 800ms linear infinite;
+}
+
+.orbit-center {
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.snapshot-loader-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.snapshot-progress-percent {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--muted);
+  min-width: 40px;
+  text-align: right;
+}
+
+.snapshot-progress-track {
+  margin-top: 0.6rem;
+  width: 100%;
+  height: 11px;
+  border-radius: 999px;
+  background: rgba(19, 32, 26, 0.09);
+  overflow: hidden;
+}
+
+.snapshot-progress-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--info), var(--spotify));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  transition: width 220ms ease;
+  position: relative;
+}
+
+.snapshot-progress-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -35%;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  animation: progressShimmer 1200ms linear infinite;
+}
+
 .split {
   margin-top: 0.9rem;
   display: grid;
@@ -458,6 +565,21 @@ input:focus {
   0% { transform: translate(0,0) }
   50% { transform: translate(var(--dx, 2px), var(--dy, -2px)) }
   100% { transform: translate(0,0) }
+}
+
+@keyframes orbitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbitSpinReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes progressShimmer {
+  0% { left: -35%; }
+  100% { left: 100%; }
 }
 
 .circle-left { fill: rgba(76, 132, 214, 0.12); stroke: rgba(76, 132, 214, 0.6); }

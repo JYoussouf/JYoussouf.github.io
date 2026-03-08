@@ -1,0 +1,15 @@
+name = "spotify-venn-invites"
+main = "src/index.js"
+compatibility_date = "2026-03-08"
+
+kv_namespaces = [
+  { binding = "INVITES", id = "b44e7ceb10684448a06a25dde7f13fef" }
+]
+
+[vars]
+INVITE_TTL_SECONDS = "3600"
+MAX_PAYLOAD_CHARS = "22000"
+CREATE_RATE_LIMIT_PER_MINUTE = "20"
+RESOLVE_RATE_LIMIT_PER_MINUTE = "120"
+BURN_AFTER_READ = "false"
+ALLOWED_ORIGINS = "https://joseppy.ca,http://127.0.0.1:3000,http://localhost:3000"

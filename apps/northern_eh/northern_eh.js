@@ -1,17 +1,41 @@
 // --- Cleaned up and modernized Northern Eh main JS ---
 
-const MAPBOX_TOKEN = (document.querySelector('meta[name="mapbox-token"]')?.content || "").trim();
+const MAPBOX_TOKEN_META = (document.querySelector('meta[name="mapbox-token"]')?.content || "").trim();
+const NORTHERN_EH_CONFIG_API = (document.querySelector('meta[name="northern-eh-config-api"]')?.content || "").trim();
+const TOKEN_FETCH_TIMEOUT_MS = 5000;
+let mapboxToken = MAPBOX_TOKEN_META;
 import { getCanadianPopulationFurtherSouthFromCSV } from './data/canada_population_csv.js';
 
-function requireMapboxToken() {
-    if (!MAPBOX_TOKEN) {
-        throw new Error("Missing Mapbox token. Set <meta name=\"mapbox-token\"> in northern_eh/index.html.");
+async function ensureMapboxTokenLoaded() {
+    if (mapboxToken) return mapboxToken;
+    if (!NORTHERN_EH_CONFIG_API) {
+        throw new Error("Missing Mapbox token configuration.");
+    }
+    const token = await fetchNorthernEhTokenFromApi();
+    if (!token) throw new Error("Mapbox token unavailable.");
+    mapboxToken = token;
+    return mapboxToken;
+}
+
+async function fetchNorthernEhTokenFromApi() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TOKEN_FETCH_TIMEOUT_MS);
+    try {
+        const base = NORTHERN_EH_CONFIG_API.replace(/\/+$/, "");
+        const res = await fetch(`${base}/api/config/northern-eh`, { method: "GET", signal: controller.signal });
+        if (!res.ok) return "";
+        const data = await res.json();
+        return String((data && data.token) || "").trim();
+    } catch {
+        return "";
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
 async function geocodeLocation(input) {
-    requireMapboxToken();
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?limit=5&access_token=${MAPBOX_TOKEN}`;
+    const token = await ensureMapboxTokenLoaded();
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?limit=5&access_token=${token}`;
     const response = await fetch(url);
     if (!response.ok) return [];
     const data = await response.json();
@@ -90,7 +114,7 @@ async function handleLocationSubmit() {
 
     // --- Map logic ---
     if (!window.northMap) {
-        mapboxgl.accessToken = MAPBOX_TOKEN;
+        mapboxgl.accessToken = await ensureMapboxTokenLoaded();
         window.northMap = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v11',
@@ -155,7 +179,8 @@ function addOrUpdateMarkerAndPopup(lon, lat, displayName) {
     // Marker drag event
     window.northMarker.on('dragend', async () => {
         const lngLat = window.northMarker.getLngLat();
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lngLat.lng},${lngLat.lat}.json?limit=1&access_token=${MAPBOX_TOKEN}`;
+        const token = await ensureMapboxTokenLoaded();
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lngLat.lng},${lngLat.lat}.json?limit=1&access_token=${token}`;
         let placeName = `${lngLat.lat.toFixed(5)}, ${lngLat.lng.toFixed(5)}`;
         try {
             const resp = await fetch(url);
@@ -246,7 +271,7 @@ function clearActiveSuggestion() {
 }
 
 // --- DOMContentLoaded: UI/UX setup ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const input = document.getElementById('location-input');
     if (input) {
         input.value = '';
@@ -257,15 +282,15 @@ document.addEventListener('DOMContentLoaded', () => {
         dropdown.innerHTML = '';
         dropdown.classList.remove('show');
     }
+    try {
+        // Preload token on launch so map + geocoding are ready immediately.
+        mapboxgl.accessToken = await ensureMapboxTokenLoaded();
+    } catch (err) {
+        const result = document.getElementById('result');
+        if (result) result.textContent = err.message || "Missing Mapbox token.";
+        return;
+    }
     if (!window.northMap) {
-        try {
-            requireMapboxToken();
-        } catch (err) {
-            const result = document.getElementById('result');
-            if (result) result.textContent = err.message || "Missing Mapbox token.";
-            return;
-        }
-        mapboxgl.accessToken = MAPBOX_TOKEN;
         window.northMap = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v11',

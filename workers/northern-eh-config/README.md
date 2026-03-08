@@ -1,11 +1,13 @@
 # Northern Eh Config Worker
 
-Cloudflare Worker dedicated to serving runtime config for the Northern Eh app.
+Cloudflare Worker dedicated to Northern Eh geocoding proxy.
 
-## Endpoint
+## Endpoints
 
-- `GET /api/config/northern-eh`
-  - returns `{ "token": "<mapbox public token>" }` for allowed origins only
+- `GET /api/northern-eh/geocode?q=<query>&limit=7`
+  - returns `{ "results": [{ "display_name", "lat", "lon" }, ...] }`
+- `GET /api/northern-eh/reverse?lat=<lat>&lon=<lon>`
+  - returns `{ "place_name": "..." }`
 
 ## Setup
 
@@ -27,4 +29,5 @@ In `apps/northern_eh/index.html`:
 ## Notes
 
 - Do not commit the token itself.
+- Browser clients no longer need the token for geocoding.
 - Keep `ALLOWED_ORIGINS` exact (production domain + optional localhost).

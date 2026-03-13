@@ -127,7 +127,7 @@ function renderLeaderboard(entries) {
   const listEl = document.getElementById("leaderboard-list");
   if (!listEl) return;
   listEl.innerHTML = "";
-  entries.forEach((entry, index) => {
+  entries.slice(0, 5).forEach((entry, index) => {
     const row = document.createElement("li");
     row.className = "leaderboard-entry";
     row.innerHTML = `

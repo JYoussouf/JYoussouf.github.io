@@ -1,0 +1,10 @@
+name = "gpd-leaderboard"
+main = "src/index.js"
+compatibility_date = "2026-03-13"
+
+d1_databases = [
+  { binding = "LEADERBOARD_DB", database_name = "gpd_leaderboard", database_id = "2f753646-3ec9-4398-99db-091d574d621d" }
+]
+
+[vars]
+ALLOWED_ORIGINS = "https://joseppy.ca,http://127.0.0.1:3000,http://localhost:3000"

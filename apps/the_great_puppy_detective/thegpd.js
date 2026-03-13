@@ -144,6 +144,21 @@ function setLeaderboardStatus(text) {
   if (statusEl) statusEl.textContent = text;
 }
 
+function getTopScoresByPlayer(entries, limit = 10) {
+  const bestByPlayer = new Map();
+  (Array.isArray(entries) ? entries : []).forEach((entry) => {
+    if (!Array.isArray(entry)) return;
+    const name = normalizePlayerName(entry[0]);
+    const score = Number(entry[1]);
+    if (!name || !Number.isFinite(score)) return;
+    const prev = bestByPlayer.get(name);
+    if (prev == null || score > prev) bestByPlayer.set(name, score);
+  });
+  const deduped = Array.from(bestByPlayer.entries()).map(([name, score]) => [name, score]);
+  deduped.sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
+  return deduped.slice(0, limit);
+}
+
 async function loadLeaderboard() {
   if (!LEADERBOARD_API) {
     setLeaderboardStatus("Leaderboard offline");
@@ -156,7 +171,7 @@ async function loadLeaderboard() {
     });
     if (!resp.ok) throw new Error("leaderboard request failed");
     const data = await resp.json();
-    leaderboardEntries = Array.isArray(data?.entries) ? data.entries : [];
+    leaderboardEntries = getTopScoresByPlayer(data?.entries, 10);
     if (leaderboardEntries.length === 0) {
       renderLeaderboard([]);
       setLeaderboardStatus("No scores yet");
@@ -171,10 +186,7 @@ async function loadLeaderboard() {
 
 function mergeLocalLeaderboard(name, score) {
   if (!name || !Number.isFinite(score)) return;
-  const merged = leaderboardEntries.slice();
-  merged.push([name, score]);
-  merged.sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
-  leaderboardEntries = merged.slice(0, 10);
+  leaderboardEntries = getTopScoresByPlayer([...leaderboardEntries, [name, score]], 10);
   renderLeaderboard(leaderboardEntries);
   if (leaderboardEntries.length) setLeaderboardStatus("");
 }

@@ -20,6 +20,7 @@ let endlessMode = false;
 let playerTag = null;
 let leaderboardEntries = [];
 const LEADERBOARD_API = getLeaderboardApiBase();
+let sessionToken = null;
 
 async function fetchAllBreeds() {
   const resp = await fetch('https://dog.ceo/api/breeds/list/all');
@@ -184,13 +185,33 @@ async function submitLeaderboardScore(name, score) {
     const resp = await fetch(`${LEADERBOARD_API}/api/score`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ n: name, s: score }),
+      body: JSON.stringify({ n: name, s: score, t: sessionToken }),
     });
     if (resp.ok) {
       mergeLocalLeaderboard(name, score);
+      sessionToken = null;
+    } else if (resp.status === 403) {
+      sessionToken = null;
     }
   } catch (err) {
     // Silent fail to keep gameplay smooth.
+  }
+}
+
+async function createSessionToken(name) {
+  if (!LEADERBOARD_API || !name) return null;
+  try {
+    const resp = await fetch(`${LEADERBOARD_API}/api/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ n: name }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    sessionToken = String(data?.t || "");
+    return sessionToken || null;
+  } catch (err) {
+    return null;
   }
 }
 
@@ -456,7 +477,7 @@ function showCongratsScreen() {
   // Endless Mode button
   const endlessBtn = document.getElementById('endless-mode-btn');
   if (endlessBtn) {
-    endlessBtn.onclick = () => {
+    endlessBtn.onclick = async () => {
       endlessMode = true;
       congratsScreen.style.display = 'none';
       document.getElementById('game-screen').style.display = '';
@@ -469,6 +490,12 @@ function showCongratsScreen() {
       const sidebar = document.querySelector('.score-sidebar');
       if (sidebar) sidebar.style.display = 'none';
       updateScoreDisplay();
+      if (LEADERBOARD_API && playerTag) {
+        const token = await createSessionToken(playerTag);
+        if (!token) {
+          setLeaderboardStatus("Leaderboard unavailable");
+        }
+      }
       nextRound();
     };
   }
@@ -605,6 +632,11 @@ function checkUserAnswer(selectedOption, btn) {
           if (sidebar) sidebar.style.display = '';
           updateScoreDisplay();
         }
+        if (LEADERBOARD_API && playerTag) {
+          createSessionToken(playerTag).then((token) => {
+            if (!token) setLeaderboardStatus("Leaderboard unavailable");
+          });
+        }
         nextRound();
       };
     } else {
@@ -656,9 +688,15 @@ function checkUserAnswer(selectedOption, btn) {
       playAgainBtn.style.marginLeft = '16px';
       playAgainBtn.style.marginTop = '10px';
       homeBtn.style.display = '';
-      playAgainBtn.onclick = () => {
+      playAgainBtn.onclick = async () => {
         playAgainBtn.style.display = 'none';
         homeBtn.style.display = 'none';
+        if (LEADERBOARD_API && playerTag) {
+          const token = await createSessionToken(playerTag);
+          if (!token) {
+            setLeaderboardStatus("Leaderboard unavailable");
+          }
+        }
         nextRound();
       };
     }
@@ -706,6 +744,13 @@ window.onload = async () => {
     localStorage.setItem("gpd_player_name", name);
     playerTag = name;
     setLeaderboardPlayer(playerTag);
+    if (LEADERBOARD_API) {
+      const token = await createSessionToken(playerTag);
+      if (!token) {
+        setPlayerNameError("Leaderboard unavailable. Try again.");
+        return;
+      }
+    }
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = '';
     allBreeds = await fetchAllBreeds();

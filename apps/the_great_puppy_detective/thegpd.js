@@ -17,6 +17,9 @@ let doubleDipUsed = false;
 let currentOptions = [];
 let currentQuestionNumber = 0;
 let endlessMode = false;
+let playerTag = null;
+let leaderboardEntries = [];
+const LEADERBOARD_API = getLeaderboardApiBase();
 
 async function fetchAllBreeds() {
   const resp = await fetch('https://dog.ceo/api/breeds/list/all');
@@ -82,6 +85,113 @@ function shuffle(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+function getLeaderboardApiBase() {
+  const meta = document.querySelector('meta[name="gpd-leaderboard-api"]');
+  if (!meta) return "";
+  return String(meta.content || "").trim().replace(/\/+$/, "");
+}
+
+function normalizePlayerName(raw) {
+  return String(raw || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 3);
+}
+
+function getPlayerNameFromInput() {
+  const input = document.getElementById("player-tag-input");
+  if (!input) return "";
+  return normalizePlayerName(input.value);
+}
+
+function setPlayerNameInput(name) {
+  const input = document.getElementById("player-tag-input");
+  if (!input) return;
+  input.value = name || "";
+}
+
+function setPlayerNameError(text) {
+  const errorEl = document.getElementById("player-tag-error");
+  if (errorEl) errorEl.textContent = text || "";
+}
+
+function setLeaderboardPlayer(name) {
+  const playerEl = document.getElementById("leaderboard-player");
+  if (playerEl) playerEl.textContent = name ? `You: ${name}` : "You: ---";
+}
+
+function renderLeaderboard(entries) {
+  const listEl = document.getElementById("leaderboard-list");
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  entries.forEach((entry, index) => {
+    const row = document.createElement("li");
+    row.className = "leaderboard-entry";
+    row.innerHTML = `
+      <span class="lb-rank">${index + 1}</span>
+      <span class="lb-name">${entry[0]}</span>
+      <span class="lb-score">${entry[1]}</span>
+    `;
+    listEl.appendChild(row);
+  });
+}
+
+function setLeaderboardStatus(text) {
+  const statusEl = document.getElementById("leaderboard-status");
+  if (statusEl) statusEl.textContent = text;
+}
+
+async function loadLeaderboard() {
+  if (!LEADERBOARD_API) {
+    setLeaderboardStatus("Leaderboard offline");
+    return;
+  }
+  setLeaderboardStatus("Loading...");
+  try {
+    const resp = await fetch(`${LEADERBOARD_API}/api/leaderboard?limit=10`, {
+      method: "GET",
+    });
+    if (!resp.ok) throw new Error("leaderboard request failed");
+    const data = await resp.json();
+    leaderboardEntries = Array.isArray(data?.entries) ? data.entries : [];
+    if (leaderboardEntries.length === 0) {
+      renderLeaderboard([]);
+      setLeaderboardStatus("No scores yet");
+      return;
+    }
+    renderLeaderboard(leaderboardEntries);
+    setLeaderboardStatus("");
+  } catch (err) {
+    setLeaderboardStatus("Leaderboard unavailable");
+  }
+}
+
+function mergeLocalLeaderboard(name, score) {
+  if (!name || !Number.isFinite(score)) return;
+  const merged = leaderboardEntries.slice();
+  merged.push([name, score]);
+  merged.sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
+  leaderboardEntries = merged.slice(0, 10);
+  renderLeaderboard(leaderboardEntries);
+  if (leaderboardEntries.length) setLeaderboardStatus("");
+}
+
+async function submitLeaderboardScore(name, score) {
+  if (!LEADERBOARD_API || !name || !Number.isFinite(score) || score < 0) return;
+  try {
+    const resp = await fetch(`${LEADERBOARD_API}/api/score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ n: name, s: score }),
+    });
+    if (resp.ok) {
+      mergeLocalLeaderboard(name, score);
+    }
+  } catch (err) {
+    // Silent fail to keep gameplay smooth.
+  }
 }
 
 function renderLifelines() {
@@ -409,6 +519,7 @@ function checkUserAnswer(selectedOption, btn) {
       });
     }
     if (!endlessMode && score === 10) {
+      submitLeaderboardScore(playerTag, score);
       setTimeout(showCongratsScreen, 900);
     } else {
       setTimeout(nextRound, 1200);
@@ -422,8 +533,10 @@ function checkUserAnswer(selectedOption, btn) {
     const ddText = document.getElementById('double-dip-active');
     if (ddText) ddText.style.display = 'none';
   } else {
+    const finalScore = score;
     document.getElementById('result').innerHTML = `Oops! The answer was: ${accepted[0]}.<br>Your streak was ${score}.`;
     if (endlessMode) {
+      submitLeaderboardScore(playerTag, finalScore);
       // In endless mode, show regular play again/home buttons, not congrats screen
       // Disable all answer buttons on loss
       const optionsDiv = document.getElementById('options');
@@ -495,6 +608,7 @@ function checkUserAnswer(selectedOption, btn) {
         nextRound();
       };
     } else {
+      submitLeaderboardScore(playerTag, finalScore);
       score = 0;
       currentQuestionNumber = 0; // Reset question number on game over
       updateScoreDisplay();
@@ -572,7 +686,26 @@ document.addEventListener('visibilitychange', function() {
 });
 
 window.onload = async () => {
+  const tagInput = document.getElementById("player-tag-input");
+  if (tagInput) {
+    const last = localStorage.getItem("gpd_player_name") || "";
+    if (last) setPlayerNameInput(last);
+    tagInput.addEventListener("input", () => {
+      const normalized = normalizePlayerName(tagInput.value);
+      tagInput.value = normalized;
+      setPlayerNameError("");
+    });
+  }
   document.getElementById('play-btn').onclick = async () => {
+    const name = getPlayerNameFromInput();
+    if (name.length !== 3) {
+      setPlayerNameError("Please enter exactly 3 letters or numbers (A-Z or 0-9).");
+      if (tagInput) tagInput.focus();
+      return;
+    }
+    localStorage.setItem("gpd_player_name", name);
+    playerTag = name;
+    setLeaderboardPlayer(playerTag);
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = '';
     allBreeds = await fetchAllBreeds();
@@ -589,6 +722,7 @@ window.onload = async () => {
       document.getElementById('game-screen').appendChild(lifelineDiv);
     }
     updateScoreDisplay();
+    loadLeaderboard();
     nextRound();
   };
   // Show high score on home screen

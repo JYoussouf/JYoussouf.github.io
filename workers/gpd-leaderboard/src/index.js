@@ -46,7 +46,13 @@ async function routeRequest(request, env) {
 
 async function getLeaderboard(request, env, url) {
   const limit = clampInt(url.searchParams.get("limit"), 10, 1, MAX_LIMIT);
-  const query = "SELECT name, score FROM scores ORDER BY score DESC, created_at ASC LIMIT ?1";
+  const query = `
+    SELECT name, MAX(score) AS score, MIN(created_at) AS created_at
+    FROM scores
+    GROUP BY name
+    ORDER BY score DESC, created_at ASC
+    LIMIT ?1
+  `;
   const result = await env.LEADERBOARD_DB.prepare(query).bind(limit).all();
   const entries = (result?.results || []).map((row) => [row.name, row.score]);
   return json({ entries }, 200, request, env);

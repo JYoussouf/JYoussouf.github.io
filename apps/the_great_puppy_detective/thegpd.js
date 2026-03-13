@@ -166,7 +166,7 @@ async function loadLeaderboard() {
   }
   setLeaderboardStatus("Loading...");
   try {
-    const resp = await fetch(`${LEADERBOARD_API}/api/leaderboard?limit=10`, {
+    const resp = await fetch(`${LEADERBOARD_API}/api/leaderboard?limit=20`, {
       method: "GET",
     });
     if (!resp.ok) throw new Error("leaderboard request failed");

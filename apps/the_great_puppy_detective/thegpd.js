@@ -737,8 +737,16 @@ window.onload = async () => {
   document.getElementById('play-btn').onclick = async () => {
     const name = getPlayerNameFromInput();
     if (name.length !== 3) {
-      setPlayerNameError("Please enter exactly 3 letters or numbers (A-Z or 0-9).");
-      if (tagInput) tagInput.focus();
+      setPlayerNameError("");
+      if (tagInput) {
+        tagInput.classList.remove("gentle-hover", "friendly-shake");
+        void tagInput.offsetWidth; // Force reflow for animation restart
+        tagInput.classList.add("gentle-hover", "friendly-shake");
+        tagInput.focus();
+        setTimeout(() => {
+          tagInput.classList.remove("gentle-hover", "friendly-shake");
+        }, 400);
+      }
       return;
     }
     localStorage.setItem("gpd_player_name", name);

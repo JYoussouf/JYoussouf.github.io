@@ -442,7 +442,7 @@ input:focus {
 /* Dark mode toggle */
 .theme-toggle {
   position: fixed;
-  right: 14px;
+  left: 14px;
   bottom: 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -455,6 +455,39 @@ input:focus {
 }
 
 .theme-toggle:hover { transform: translateY(-1px); }
+
+/* Joseppy home button */
+#joseppy-home-btn {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  z-index: 20;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+#joseppy-home-btn:hover,
+#joseppy-home-btn:focus-visible {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 8px 18px rgba(19, 32, 26, 0.16);
+  border-color: rgba(29, 185, 84, 0.45);
+}
+
+#joseppy-home-btn img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
 
 /* Avatars compare header */
 #compare-avatars {
@@ -1409,7 +1442,8 @@ body.theme-dark .venn-stats-footer:hover {
 
 .theme-toggle {
   position: fixed;
-  right: max(10px, env(safe-area-inset-right));
+  left: max(10px, env(safe-area-inset-left));
+  right: auto;
   z-index: 3;
 }
 

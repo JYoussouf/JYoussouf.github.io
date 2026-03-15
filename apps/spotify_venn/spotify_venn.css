@@ -166,6 +166,12 @@ input:focus {
   border-color: #b9c7ba;
 }
 
+body.theme-dark .btn:not(.primary) {
+  background: #1c241e;
+  color: var(--ink);
+  border-color: #2f3a31;
+}
+
 .status-row {
   margin-top: 0.85rem;
   display: flex;

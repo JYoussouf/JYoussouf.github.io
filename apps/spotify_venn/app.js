@@ -1325,7 +1325,7 @@ function escapeHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&l
 // Theme handling
 function applySavedTheme() {
   const saved = localStorage.getItem("spotify_venn_theme");
-  const mode = saved === "dark" ? "dark" : "light";
+  const mode = saved === "light" ? "light" : "dark";
   setTheme(mode);
 }
 

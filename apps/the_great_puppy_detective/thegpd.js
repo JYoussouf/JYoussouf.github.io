@@ -273,7 +273,7 @@ function renderLifelines() {
   lifelineDiv.appendChild(rerollBtn);
   // Double Dip
   const ddBtn = document.createElement('button');
-  ddBtn.className = 'lifeline-btn';
+  ddBtn.className = 'lifeline-btn lifeline-doubledip';
   ddBtn.innerHTML = 'DOUBLE-DIP!';
   ddBtn.disabled = !lifelines.doubledip || doubleDipActive;
   ddBtn.onclick = function() {
@@ -309,8 +309,8 @@ function createLifelineInfoPopup() {
 
 function addLifelineInfoButton() {
   if (document.getElementById('lifeline-info-btn')) return;
-  const scoreDiv = document.querySelector('.score');
-  if (!scoreDiv) return;
+  const lifelineDiv = document.getElementById('lifelines');
+  if (!lifelineDiv) return;
   const btn = document.createElement('button');
   btn.id = 'lifeline-info-btn';
   btn.title = 'What do lifelines do?';
@@ -319,7 +319,7 @@ function addLifelineInfoButton() {
   btn.onclick = createLifelineInfoPopup;
   btn.type = 'button';
   // Remove all inline styles, use only CSS for layout
-  scoreDiv.appendChild(btn);
+  lifelineDiv.appendChild(btn);
 }
 
 // Patch renderLifelines to always add the info button (now after score bar)
@@ -780,10 +780,8 @@ window.onload = async () => {
     if (!lifelineDiv) {
       lifelineDiv = document.createElement('div');
       lifelineDiv.id = 'lifelines';
+      lifelineDiv.className = 'lifelines';
       lifelineDiv.style.marginTop = '24px';
-      lifelineDiv.style.display = 'flex';
-      lifelineDiv.style.justifyContent = 'center';
-      lifelineDiv.style.gap = '18px';
       document.getElementById('game-screen').appendChild(lifelineDiv);
     }
     updateScoreDisplay();

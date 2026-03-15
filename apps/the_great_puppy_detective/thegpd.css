@@ -283,7 +283,7 @@ h1 {
   color: #00c6ff;
   border: 1.5px solid #333;
   border-radius: 999px;
-  padding: 10px 28px;
+  padding: 9px 14px;
   font-size: clamp(0.85em, 3.2vw, 1.05em);
   font-family: inherit;
   cursor: pointer;
@@ -294,6 +294,9 @@ h1 {
   transition: background 0.18s, color 0.18s, border 0.18s, transform 0.18s;
   position: relative;
   overflow: visible;
+  min-width: clamp(92px, 22vw, 128px);
+  text-align: center;
+  white-space: nowrap;
 }
 .lifeline-badge {
   position: absolute;
@@ -333,10 +336,17 @@ h1 {
   transform: scale(1.06);
 }
 #lifelines {
-    font-size: clamp(0.85em, 3.2vw, 1.05em);
+  font-size: clamp(0.85em, 3.2vw, 1.05em);
   display: flex;
+  flex-wrap: nowrap;
+  gap: 12px 18px;
   justify-content: center;
-  gap: 18px;
+  align-items: center;
+  position: relative;
+  padding-bottom: 22px;
+}
+.lifeline-btn.lifeline-doubledip {
+  font-size: clamp(0.78em, 3vw, 0.98em);
 }
 .double-dip-active {
   font-size: clamp(0.85em, 3vw, 0.98em);
@@ -352,9 +362,6 @@ h1 {
   display: inline-block;
   text-align: center;
   border: none;
-}
-.lifeline-btn.lifeline-5050 {
-  font-size: clamp(0.85em, 3vw, 1.05em);
 }
 
 /* Subtitle hover effect */
@@ -634,12 +641,13 @@ h1 {
   justify-content: center;
   cursor: pointer;
   font-size: 0.92em;
-  margin-left: 6px;
-  margin-top: 4px;
+  margin: 0;
   transition: box-shadow 0.22s, transform 0.22s, border 0.22s;
   outline: none;
-  position: static;
+  position: absolute;
   box-shadow: none !important;
+  right: 6px;
+  bottom: -6px;
 }
 .lifeline-info-btn:hover, .lifeline-info-btn:focus {
   box-shadow: 0 4px 16px #00c6ff33;
@@ -690,8 +698,8 @@ h1 {
         min-width: 24px;
         margin: 0 2px;
     }
-    .lifelines {
-    gap: 8px;
+  .lifelines {
+    gap: 8px 12px;
     padding: 0 6vw;
     justify-content: center;
   }

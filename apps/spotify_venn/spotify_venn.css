@@ -411,13 +411,14 @@ input:focus {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 14px;
+  top: 14px;
   transform: translate(-50%, 10px);
   background: #17231d;
   color: #ffffff;
   border-radius: 999px;
   padding: 0.52rem 0.85rem;
   font-size: 0.86rem;
+  z-index: 30;
   opacity: 0;
   pointer-events: none;
   transition: transform 150ms ease, opacity 150ms ease;
@@ -1434,7 +1435,6 @@ body.theme-dark .venn-stats-footer:hover {
 
 .layout,
 .footer,
-.toast,
 .modal {
   position: relative;
   z-index: 1;

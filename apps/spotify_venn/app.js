@@ -287,8 +287,8 @@ function buildGenreVennModels(me, other) {
       title: genre,
       subtitle: `${overlapPct}% overlap · ${overlapMap.size} shared artists`,
       distinctSets: {
-        left: { label: meLabel, ids: Array.from(meMap.keys()) },
-        right: { label: otherLabel, ids: Array.from(otherMap.keys()) },
+        left: { label: meLabel, ids: Array.from(leftOnlyMap.keys()) },
+        right: { label: otherLabel, ids: Array.from(rightOnlyMap.keys()) },
         overlap: { label: 'Shared', ids: Array.from(overlapMap.keys()) },
         leftOnly: { label: `${meLabel} only`, ids: Array.from(leftOnlyMap.keys()) },
         rightOnly: { label: `${otherLabel} only`, ids: Array.from(rightOnlyMap.keys()) },
@@ -298,14 +298,14 @@ function buildGenreVennModels(me, other) {
           sets: [meLabel],
           size: meMap.size,
           label: meLabel,
-          items: artistNameList(meMap),
+          items: artistNameList(leftOnlyMap),
           areaType: 'left',
         },
         {
           sets: [otherLabel],
           size: otherMap.size,
           label: otherLabel,
-          items: artistNameList(otherMap),
+          items: artistNameList(rightOnlyMap),
           areaType: 'right',
         },
         {

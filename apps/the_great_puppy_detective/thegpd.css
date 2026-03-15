@@ -647,7 +647,7 @@ h1 {
   position: absolute;
   box-shadow: none !important;
   right: 6px;
-  bottom: -6px;
+  bottom: -12px;
 }
 .lifeline-info-btn:hover, .lifeline-info-btn:focus {
   box-shadow: 0 4px 16px #00c6ff33;

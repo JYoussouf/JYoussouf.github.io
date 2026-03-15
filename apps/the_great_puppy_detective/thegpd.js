@@ -31,13 +31,23 @@ async function fetchAllBreeds() {
 function getAllBreedOptions() {
   // Returns array of {breed, sub, label}
   const options = [];
+  const isExcluded = (label) => {
+    const normalized = label.toLowerCase();
+    return normalized.includes('mix') || normalized.includes('indian');
+  };
   for (const breed in allBreeds) {
     const subs = allBreeds[breed];
     if (subs.length === 0) {
-      options.push({ breed, sub: null, label: breed.replace(/-/g, ' ') });
+      const label = breed.replace(/-/g, ' ');
+      if (!isExcluded(label)) {
+        options.push({ breed, sub: null, label });
+      }
     } else {
       for (const sub of subs) {
-        options.push({ breed, sub, label: `${sub} ${breed}`.replace(/-/g, ' ') });
+        const label = `${sub} ${breed}`.replace(/-/g, ' ');
+        if (!isExcluded(label)) {
+          options.push({ breed, sub, label });
+        }
       }
     }
   }

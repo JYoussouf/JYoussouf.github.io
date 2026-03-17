@@ -96,6 +96,9 @@
         </div>
         <h1 class="shiny-blue-title">The Great Puppy Detective</h1>
         <div class="score">Score: <span id="score">0</span> <span style="color:#888;font-weight:400;">|</span> Highest Score: <span id="high-score">0</span></div>
+        <div class="audio-controls audio-controls--game">
+          <button class="music-toggle" type="button" aria-pressed="true">Music: On</button>
+        </div>
         <div class="main-dog-img-container">
             <img id="breed-img" src="" alt="Dog" class="main-dog-img" />
         </div>
@@ -159,9 +162,34 @@
       })();
     </script>
     <script src="thegpd.js"></script>
-    
-    <div class="game-credits">
-      For Peri! API Access from <a href="https://dog.ceo" target="_blank" rel="noopener" style="color:#b2eaff;text-decoration:underline;">dog.ceo</a>.
+
+    <div class="audio-controls">
+      <button id="music-toggle" class="music-toggle" type="button" aria-pressed="false">Music: Off</button>
+    </div>
+    <audio
+      id="bg-music"
+      src="Trouble Makers (Loopable).wav"
+      data-menu-src="Trouble Makers (Loopable).wav"
+      data-game-src="Deliciously Sour.mp3"
+      preload="auto"
+      loop
+    ></audio>
+
+    <div class="credits-modal" id="credits-modal" aria-hidden="true">
+      <div class="credits-modal__panel" role="dialog" aria-modal="true" aria-labelledby="credits-title">
+        <button class="credits-modal__close" id="credits-close" type="button" aria-label="Close credits">Close</button>
+        <h2 id="credits-title">Credits</h2>
+        <p>
+          For Peri!
+        </p>
+        <p>
+          API Access from
+          <a href="https://dog.ceo" target="_blank" rel="noopener">dog.ceo</a>
+        </p>
+        <p>
+          Music: "Trouble Makers (Loopable)" and "Deliciously Sour".
+        </p>
+      </div>
     </div>
         <!-- Floating Ko-fi support button -->
         <a id="kofi-button" href="https://ko-fi.com/V7V41UB3J1" target="_blank" rel="noopener" aria-label="Ko-fi">

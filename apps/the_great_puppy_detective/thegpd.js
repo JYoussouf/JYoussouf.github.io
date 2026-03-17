@@ -21,6 +21,18 @@ let playerTag = null;
 let leaderboardEntries = [];
 const LEADERBOARD_API = getLeaderboardApiBase();
 let sessionToken = null;
+let correctSfx = null;
+let wrongSfx = null;
+
+function playSfx(audioEl) {
+  if (!audioEl) return;
+  try {
+    audioEl.currentTime = 0;
+    audioEl.play();
+  } catch (err) {
+    // Silent fail to keep gameplay smooth.
+  }
+}
 
 async function fetchAllBreeds() {
   const resp = await fetch('https://dog.ceo/api/breeds/list/all');
@@ -532,6 +544,7 @@ function showCongratsScreen() {
       lifelines = { fifty: true, reroll: 5, doubledip: true };
       congratsScreen.style.display = 'none';
       document.getElementById('start-screen').style.display = '';
+      if (window.gpdSetSceneMusic) window.gpdSetSceneMusic('menu');
       // Remove the gif for next time
       const gif = document.getElementById('success-gif');
       if (gif) gif.remove();
@@ -546,6 +559,7 @@ function showCongratsScreen() {
 function checkUserAnswer(selectedOption, btn) {
   const accepted = getAcceptedLabels(currentBreed.breed, currentBreed.sub).map(x => x.toLowerCase());
   if (accepted.includes(selectedOption.label.toLowerCase())) {
+    playSfx(correctSfx);
     score++;
     currentQuestionNumber++; // Increment question number on correct answer
     if (score > highScore) {
@@ -582,6 +596,8 @@ function checkUserAnswer(selectedOption, btn) {
     const ddText = document.getElementById('double-dip-active');
     if (ddText) ddText.style.display = 'none';
   } else {
+    playSfx(wrongSfx);
+    if (window.gpdStopMusic) window.gpdStopMusic();
     const finalScore = score;
     document.getElementById('result').innerHTML = `Oops! The answer was: ${accepted[0]}.<br>Your streak was ${score}.`;
     if (endlessMode) {
@@ -627,6 +643,7 @@ function checkUserAnswer(selectedOption, btn) {
           lifelines = { fifty: true, reroll: 5, doubledip: true };
           document.getElementById('game-screen').style.display = 'none';
           document.getElementById('start-screen').style.display = '';
+          if (window.gpdSetSceneMusic) window.gpdSetSceneMusic('menu');
           playAgainBtn.style.display = 'none';
           homeBtn.style.display = 'none';
           // Restore the score sidebar
@@ -701,6 +718,7 @@ function checkUserAnswer(selectedOption, btn) {
         homeBtn.onclick = () => {
           document.getElementById('game-screen').style.display = 'none';
           document.getElementById('start-screen').style.display = '';
+          if (window.gpdSetSceneMusic) window.gpdSetSceneMusic('menu');
           playAgainBtn.style.display = 'none';
           homeBtn.style.display = 'none';
         };
@@ -746,6 +764,12 @@ document.addEventListener('visibilitychange', function() {
 });
 
 window.onload = async () => {
+  correctSfx = new Audio('dog_bark.mp3');
+  wrongSfx = new Audio('meow.mp3');
+  correctSfx.preload = 'auto';
+  wrongSfx.preload = 'auto';
+  correctSfx.volume = 0.6;
+  wrongSfx.volume = 0.6;
   const tagInput = document.getElementById("player-tag-input");
   if (tagInput) {
     const last = localStorage.getItem("gpd_player_name") || "";
@@ -757,6 +781,7 @@ window.onload = async () => {
     });
   }
   document.getElementById('play-btn').onclick = async () => {
+    if (window.gpdSetSceneMusic) window.gpdSetSceneMusic('game');
     const name = getPlayerNameFromInput();
     if (name.length !== 3) {
       setPlayerNameError("");
@@ -811,6 +836,17 @@ window.onload = async () => {
     homeHighScore.style.textAlign = 'center';
     document.getElementById('start-screen').appendChild(homeHighScore);
   }
+  const creditsBtnId = 'credits-btn';
+  let creditsBtn = document.getElementById(creditsBtnId);
+  if (!creditsBtn) {
+    creditsBtn = document.createElement('button');
+    creditsBtn.id = creditsBtnId;
+    creditsBtn.type = 'button';
+    creditsBtn.className = 'credits-toggle';
+    creditsBtn.textContent = 'Credits';
+    const startScreen = document.getElementById('start-screen');
+    startScreen.appendChild(creditsBtn);
+  }
   function updateHomeHighScore() {
     homeHighScore.textContent = `Highest Score: ${highScore}`;
   }
@@ -821,6 +857,131 @@ window.onload = async () => {
     origUpdateScoreDisplay();
     updateHomeHighScore();
   };
+  const creditsModal = document.getElementById('credits-modal');
+  const creditsClose = document.getElementById('credits-close');
+  if (creditsBtn && creditsModal) {
+    const setCreditsOpen = (isOpen) => {
+      creditsModal.classList.toggle('is-open', isOpen);
+      creditsModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    };
+    creditsBtn.addEventListener('click', () => setCreditsOpen(true));
+    if (creditsClose) {
+      creditsClose.addEventListener('click', () => setCreditsOpen(false));
+    }
+    creditsModal.addEventListener('click', (event) => {
+      if (event.target === creditsModal) setCreditsOpen(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && creditsModal.classList.contains('is-open')) {
+        setCreditsOpen(false);
+      }
+    });
+  }
+  const musicToggles = Array.from(document.querySelectorAll('.music-toggle'));
+  const bgMusic = document.getElementById('bg-music');
+  if (musicToggles.length && bgMusic) {
+    const menuTrack = bgMusic.dataset.menuSrc || 'Trouble Makers (Loopable).wav';
+    const gameTrack = bgMusic.dataset.gameSrc || 'Deliciously Sour.mp3';
+    const defaultVolume = 0.35;
+    let musicEnabled = true;
+    let activeScene = 'menu';
+    let fadeToken = 0;
+    let pendingGesture = false;
+
+    const encodeSrc = (src) => encodeURI(src);
+    const fadeTo = (target, duration = 200) => new Promise((resolve) => {
+      const token = ++fadeToken;
+      const start = bgMusic.volume;
+      const delta = target - start;
+      const startTime = performance.now();
+      const step = (now) => {
+        if (token !== fadeToken) return resolve();
+        const t = Math.min(1, (now - startTime) / duration);
+        bgMusic.volume = start + delta * t;
+        if (t < 1) {
+          requestAnimationFrame(step);
+        } else {
+          resolve();
+        }
+      };
+      requestAnimationFrame(step);
+    });
+
+    const setMusicState = (isOn) => {
+      musicToggles.forEach((toggle) => {
+        toggle.textContent = `Music: ${isOn ? 'On' : 'Off'}`;
+        toggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+        toggle.classList.toggle('active', isOn);
+      });
+    };
+
+    const setTrack = async (nextSrc, shouldPlay) => {
+      const encoded = encodeSrc(nextSrc);
+      const current = bgMusic.getAttribute('data-current-src');
+      const wasPlaying = !bgMusic.paused;
+      if (current !== encoded) {
+        if (wasPlaying) await fadeTo(0, 140);
+        bgMusic.src = encoded;
+        bgMusic.setAttribute('data-current-src', encoded);
+        bgMusic.load();
+      }
+      bgMusic.volume = defaultVolume;
+      if (shouldPlay) {
+        try {
+          bgMusic.volume = 0;
+          await bgMusic.play();
+          await fadeTo(defaultVolume, 120);
+        } catch (err) {
+          pendingGesture = true;
+        }
+      } else if (wasPlaying) {
+        await fadeTo(0, 140);
+        bgMusic.pause();
+        bgMusic.volume = defaultVolume;
+      } else {
+        bgMusic.pause();
+      }
+    };
+
+    const setSceneMusic = async (scene) => {
+      activeScene = scene;
+      const track = scene === 'game' ? gameTrack : menuTrack;
+      await setTrack(track, musicEnabled);
+    };
+
+    window.gpdSetSceneMusic = setSceneMusic;
+    window.gpdStopMusic = () => {
+      fadeToken += 1;
+      bgMusic.pause();
+      bgMusic.volume = defaultVolume;
+      setMusicState(false);
+      musicEnabled = false;
+    };
+
+    bgMusic.volume = defaultVolume;
+    setMusicState(true);
+    setSceneMusic('menu');
+
+    const resumeOnGesture = async () => {
+      if (!pendingGesture || !musicEnabled) return;
+      pendingGesture = false;
+      await setSceneMusic(activeScene);
+    };
+    document.addEventListener('click', resumeOnGesture, { passive: true });
+    document.addEventListener('pointerdown', resumeOnGesture, { passive: true });
+    document.addEventListener('touchstart', resumeOnGesture, { passive: true });
+    document.addEventListener('keydown', resumeOnGesture);
+    document.addEventListener('wheel', resumeOnGesture, { passive: true });
+    document.addEventListener('scroll', resumeOnGesture, { passive: true });
+
+    musicToggles.forEach((toggle) => {
+      toggle.addEventListener('click', async () => {
+        musicEnabled = !musicEnabled;
+        setMusicState(musicEnabled);
+        await setSceneMusic(activeScene);
+      });
+    });
+  }
   // Add floating home button to joseppy.ca if not present
   if (!document.getElementById('joseppy-home-btn')) {
     const btn = document.createElement('button');

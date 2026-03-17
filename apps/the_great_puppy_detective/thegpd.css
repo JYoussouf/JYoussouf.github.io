@@ -531,21 +531,122 @@ h1 {
     border: 2px solid #00c6ff55;
     box-shadow: none;
 }
-.game-credits {
-    font-size: 0.78em;
-    color: #888;
-    text-align: center;
-    margin: 80px 0 18px 0;
-    letter-spacing: 0.1px;
-    opacity: 0.82;
-    user-select: none;
+.audio-controls {
+    display: flex;
+    justify-content: center;
+    margin: 36px 0 10px 0;
     position: relative;
     z-index: 1;
 }
-.game-credits a {
+.audio-controls--game {
+    margin: 10px 0 14px 0;
+}
+.music-toggle {
+    border: 1px solid rgba(0, 198, 255, 0.55);
+    background: rgba(0, 114, 255, 0.12);
     color: #b2eaff;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 0.9em;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+}
+.music-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.2);
+}
+.music-toggle:focus-visible {
+    outline: 2px solid rgba(0, 198, 255, 0.7);
+    outline-offset: 2px;
+}
+.music-toggle.active {
+    background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+    color: #fff;
+    border-color: transparent;
+}
+.credits-toggle {
+    margin: 12px auto 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(178, 234, 255, 0.5);
+    background: rgba(0, 0, 0, 0.22);
+    color: #b2eaff;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 0.82em;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+}
+.credits-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.2);
+}
+.credits-toggle:focus-visible {
+    outline: 2px solid rgba(0, 198, 255, 0.7);
+    outline-offset: 2px;
+}
+.credits-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(8, 10, 14, 0.72);
+    backdrop-filter: blur(6px);
+    z-index: 9998;
+}
+.credits-modal.is-open {
+    display: flex;
+}
+.credits-modal__panel {
+    width: min(520px, 90vw);
+    background: rgba(17, 20, 26, 0.96);
+    border: 1px solid rgba(0, 198, 255, 0.35);
+    border-radius: 20px;
+    padding: 26px 26px 22px 26px;
+    color: #d6f2ff;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+.credits-modal__panel h2 {
+    margin: 0 0 14px 0;
+    color: #b2eaff;
+    font-size: 1.3em;
+    letter-spacing: 0.3px;
+}
+.credits-modal__panel p {
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+    font-size: 0.98em;
+}
+.credits-modal__panel a {
+    color: #00c6ff;
     text-decoration: underline;
-    opacity: 0.92;
+}
+.credits-modal__close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    border: 1px solid rgba(178, 234, 255, 0.35);
+    background: rgba(0, 0, 0, 0.2);
+    color: #b2eaff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 700;
+    cursor: pointer;
+}
+.credits-modal__close:hover {
+    background: rgba(0, 114, 255, 0.2);
 }
 #joseppy-home-btn {
   position: fixed;

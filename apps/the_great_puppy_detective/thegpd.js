@@ -23,9 +23,10 @@ const LEADERBOARD_API = getLeaderboardApiBase();
 let sessionToken = null;
 let correctSfx = null;
 let wrongSfx = null;
+let sfxEnabled = true;
 
 function playSfx(audioEl) {
-  if (!audioEl) return;
+  if (!audioEl || !sfxEnabled) return;
   try {
     audioEl.currentTime = 0;
     audioEl.play();
@@ -597,7 +598,7 @@ function checkUserAnswer(selectedOption, btn) {
     if (ddText) ddText.style.display = 'none';
   } else {
     playSfx(wrongSfx);
-    if (window.gpdStopMusic) window.gpdStopMusic();
+    if (window.gpdPauseMusic) window.gpdPauseMusic();
     const finalScore = score;
     document.getElementById('result').innerHTML = `Oops! The answer was: ${accepted[0]}.<br>Your streak was ${score}.`;
     if (endlessMode) {
@@ -676,6 +677,7 @@ function checkUserAnswer(selectedOption, btn) {
             if (!token) setLeaderboardStatus("Leaderboard unavailable");
           });
         }
+        if (window.gpdSetSceneMusic) window.gpdSetSceneMusic('game', { reset: true });
         nextRound();
       };
     } else {
@@ -737,6 +739,7 @@ function checkUserAnswer(selectedOption, btn) {
             setLeaderboardStatus("Leaderboard unavailable");
           }
         }
+        if (window.gpdSetSceneMusic) window.gpdSetSceneMusic('game', { reset: true });
         nextRound();
       };
     }
@@ -768,8 +771,22 @@ window.onload = async () => {
   wrongSfx = new Audio('sfx/meow.mp3');
   correctSfx.preload = 'auto';
   wrongSfx.preload = 'auto';
-  correctSfx.volume = 0.6;
-  wrongSfx.volume = 0.6;
+  correctSfx.volume = 0.5;
+  wrongSfx.volume = 0.5;
+  const sfxToggle = document.getElementById('sfx-toggle');
+  const setSfxState = (isOn) => {
+    sfxEnabled = isOn;
+    if (!sfxToggle) return;
+    sfxToggle.textContent = `SFX: ${isOn ? 'On' : 'Off'}`;
+    sfxToggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+    sfxToggle.classList.toggle('active', isOn);
+  };
+  setSfxState(true);
+  if (sfxToggle) {
+    sfxToggle.addEventListener('click', () => {
+      setSfxState(!sfxEnabled);
+    });
+  }
   const tagInput = document.getElementById("player-tag-input");
   if (tagInput) {
     const last = localStorage.getItem("gpd_player_name") || "";
@@ -882,7 +899,7 @@ window.onload = async () => {
   if (musicToggles.length && bgMusic) {
     const menuTrack = bgMusic.dataset.menuSrc || 'sfx/Trouble Makers (Loopable).wav';
     const gameTrack = bgMusic.dataset.gameSrc || 'sfx/Deliciously Sour.mp3';
-    const defaultVolume = 0.35;
+    const defaultVolume = 0.3;
     let musicEnabled = true;
     let activeScene = 'menu';
     let fadeToken = 0;
@@ -915,11 +932,11 @@ window.onload = async () => {
       });
     };
 
-    const setTrack = async (nextSrc, shouldPlay) => {
+    const setTrack = async (nextSrc, shouldPlay, reset = false) => {
       const encoded = encodeSrc(nextSrc);
       const current = bgMusic.getAttribute('data-current-src');
       const wasPlaying = !bgMusic.paused;
-      if (current !== encoded) {
+      if (current !== encoded || reset) {
         if (wasPlaying) await fadeTo(0, 140);
         bgMusic.src = encoded;
         bgMusic.setAttribute('data-current-src', encoded);
@@ -928,6 +945,7 @@ window.onload = async () => {
       bgMusic.volume = defaultVolume;
       if (shouldPlay) {
         try {
+          if (reset) bgMusic.currentTime = 0;
           bgMusic.volume = 0;
           await bgMusic.play();
           await fadeTo(defaultVolume, 120);
@@ -943,19 +961,18 @@ window.onload = async () => {
       }
     };
 
-    const setSceneMusic = async (scene) => {
+    const setSceneMusic = async (scene, options = {}) => {
       activeScene = scene;
       const track = scene === 'game' ? gameTrack : menuTrack;
-      await setTrack(track, musicEnabled);
+      await setTrack(track, musicEnabled, Boolean(options.reset));
     };
 
     window.gpdSetSceneMusic = setSceneMusic;
-    window.gpdStopMusic = () => {
-      fadeToken += 1;
+    window.gpdPauseMusic = async () => {
+      if (bgMusic.paused) return;
+      await fadeTo(0, 140);
       bgMusic.pause();
       bgMusic.volume = defaultVolume;
-      setMusicState(false);
-      musicEnabled = false;
     };
 
     bgMusic.volume = defaultVolume;

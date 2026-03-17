@@ -764,8 +764,8 @@ document.addEventListener('visibilitychange', function() {
 });
 
 window.onload = async () => {
-  correctSfx = new Audio('dog_bark.mp3');
-  wrongSfx = new Audio('meow.mp3');
+  correctSfx = new Audio('sfx/dog_bark.mp3');
+  wrongSfx = new Audio('sfx/meow.mp3');
   correctSfx.preload = 'auto';
   wrongSfx.preload = 'auto';
   correctSfx.volume = 0.6;
@@ -880,8 +880,8 @@ window.onload = async () => {
   const musicToggles = Array.from(document.querySelectorAll('.music-toggle'));
   const bgMusic = document.getElementById('bg-music');
   if (musicToggles.length && bgMusic) {
-    const menuTrack = bgMusic.dataset.menuSrc || 'Trouble Makers (Loopable).wav';
-    const gameTrack = bgMusic.dataset.gameSrc || 'Deliciously Sour.mp3';
+    const menuTrack = bgMusic.dataset.menuSrc || 'sfx/Trouble Makers (Loopable).wav';
+    const gameTrack = bgMusic.dataset.gameSrc || 'sfx/Deliciously Sour.mp3';
     const defaultVolume = 0.35;
     let musicEnabled = true;
     let activeScene = 'menu';

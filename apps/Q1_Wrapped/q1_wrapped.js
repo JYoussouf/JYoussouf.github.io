@@ -226,9 +226,15 @@ const quarterData = [
     }
 ];
 
+const pageShellEl = document.querySelector(".page-shell");
 const slidesEl = document.getElementById("slides");
 const slides = [...document.querySelectorAll(".slide")];
 const topbarEl = document.querySelector(".topbar");
+const ambientNextEls = {
+    a: document.querySelector(".ambient-a-next"),
+    b: document.querySelector(".ambient-b-next"),
+    c: document.querySelector(".ambient-c-next")
+};
 const railDotsEl = document.getElementById("railDots");
 const prevButton = document.getElementById("prevSlide");
 const nextButton = document.getElementById("nextSlide");
@@ -255,8 +261,147 @@ let tacoBurstAnimationId = null;
 let mobileViewportFitFrame = null;
 let audioUnlocked = false;
 let autoplayRetryIds = [];
+let ambientFadeTimeoutId = null;
+let hasInitializedBackgroundGrade = false;
 
 const MOBILE_BREAKPOINT = 760;
+const backgroundGrades = [
+    {
+        light: 0.2,
+        dark: 0.28,
+        radialA: "rgba(255, 170, 120, 0.56)",
+        radialB: "rgba(255, 90, 170, 0.4)",
+        radialC: "rgba(120, 170, 255, 0.2)",
+        linearStart: "#2a1022",
+        linearMid: "#4b1f4b",
+        linearEnd: "#1a274c",
+        gradeA: "rgba(255, 170, 120, 0.48)",
+        gradeB: "rgba(255, 110, 170, 0.34)",
+        gradeC: "rgba(255, 240, 220, 0.16)",
+        shadowA: "rgba(36, 10, 34, 0.42)",
+        shadowB: "rgba(18, 8, 28, 0.42)"
+    },
+    {
+        light: 0.3,
+        dark: 0.14,
+        radialA: "rgba(124, 216, 255, 0.58)",
+        radialB: "rgba(146, 126, 240, 0.42)",
+        radialC: "rgba(118, 232, 214, 0.28)",
+        linearStart: "#091a34",
+        linearMid: "#1b3d78",
+        linearEnd: "#0a4e63",
+        gradeA: "rgba(120, 225, 255, 0.54)",
+        gradeB: "rgba(140, 120, 255, 0.34)",
+        gradeC: "rgba(220, 245, 255, 0.18)",
+        shadowA: "rgba(10, 24, 52, 0.3)",
+        shadowB: "rgba(10, 20, 38, 0.28)"
+    },
+    {
+        light: 0.22,
+        dark: 0.26,
+        radialA: "rgba(80, 245, 255, 0.48)",
+        radialB: "rgba(80, 150, 255, 0.34)",
+        radialC: "rgba(90, 255, 205, 0.22)",
+        linearStart: "#041a2b",
+        linearMid: "#0d355f",
+        linearEnd: "#0a243e",
+        gradeA: "rgba(110, 245, 255, 0.46)",
+        gradeB: "rgba(100, 170, 255, 0.3)",
+        gradeC: "rgba(220, 250, 255, 0.12)",
+        shadowA: "rgba(8, 28, 44, 0.42)",
+        shadowB: "rgba(8, 16, 34, 0.42)"
+    },
+    {
+        light: 0.34,
+        dark: 0.12,
+        radialA: "rgba(255, 214, 84, 0.82)",
+        radialB: "rgba(255, 242, 92, 0.72)",
+        radialC: "rgba(255, 184, 96, 0.42)",
+        linearStart: "#38120f",
+        linearMid: "#7a2a24",
+        linearEnd: "#5d2f12",
+        gradeA: "rgba(255, 150, 125, 0.52)",
+        gradeB: "rgba(255, 210, 120, 0.4)",
+        gradeC: "rgba(255, 246, 214, 0.2)",
+        shadowA: "rgba(58, 22, 14, 0.3)",
+        shadowB: "rgba(30, 14, 12, 0.28)"
+    },
+    {
+        light: 0.14,
+        dark: 0.34,
+        radialA: "rgba(210, 0, 18, 0.42)",
+        radialB: "rgba(92, 245, 222, 0.24)",
+        radialC: "rgba(145, 100, 255, 0.2)",
+        linearStart: "#090d2b",
+        linearMid: "#171f58",
+        linearEnd: "#0b2236",
+        gradeA: "rgba(90, 120, 255, 0.34)",
+        gradeB: "rgba(100, 245, 225, 0.22)",
+        gradeC: "rgba(220, 230, 255, 0.1)",
+        shadowA: "rgba(8, 12, 44, 0.5)",
+        shadowB: "rgba(5, 8, 24, 0.5)"
+    },
+    {
+        light: 0.32,
+        dark: 0.14,
+        radialA: "rgba(92, 255, 84, 0.78)",
+        radialB: "rgba(136, 255, 110, 0.62)",
+        radialC: "rgba(98, 255, 182, 0.34)",
+        linearStart: "#132614",
+        linearMid: "#295428",
+        linearEnd: "#123342",
+        gradeA: "rgba(200, 255, 120, 0.46)",
+        gradeB: "rgba(110, 255, 210, 0.34)",
+        gradeC: "rgba(245, 255, 220, 0.18)",
+        shadowA: "rgba(16, 42, 22, 0.3)",
+        shadowB: "rgba(8, 24, 16, 0.28)"
+    },
+    {
+        light: 0.18,
+        dark: 0.3,
+        radialA: "rgba(255, 250, 242, 0.82)",
+        radialB: "rgba(255, 244, 232, 0.68)",
+        radialC: "rgba(255, 255, 255, 0.42)",
+        linearStart: "#26170d",
+        linearMid: "#5c2818",
+        linearEnd: "#3a190f",
+        gradeA: "rgba(255, 248, 236, 0.42)",
+        gradeB: "rgba(255, 255, 255, 0.24)",
+        gradeC: "rgba(255, 250, 245, 0.18)",
+        shadowA: "rgba(34, 20, 12, 0.32)",
+        shadowB: "rgba(18, 12, 10, 0.3)"
+    },
+    {
+        light: 0.36,
+        dark: 0.1,
+        radialA: "rgba(255, 142, 220, 0.7)",
+        radialB: "rgba(168, 136, 255, 0.6)",
+        radialC: "rgba(132, 236, 255, 0.34)",
+        linearStart: "#221033",
+        linearMid: "#5d2e83",
+        linearEnd: "#273a71",
+        gradeA: "rgba(255, 130, 210, 0.48)",
+        gradeB: "rgba(145, 120, 255, 0.4)",
+        gradeC: "rgba(255, 230, 250, 0.2)",
+        shadowA: "rgba(36, 10, 48, 0.24)",
+        shadowB: "rgba(20, 8, 30, 0.22)"
+    },
+    {
+        light: 0.28,
+        dark: 0.16,
+        radialA: "rgba(255, 186, 98, 0.52)",
+        radialB: "rgba(96, 235, 255, 0.36)",
+        radialC: "rgba(255, 120, 145, 0.18)",
+        linearStart: "#22161a",
+        linearMid: "#5c3256",
+        linearEnd: "#1f4250",
+        gradeA: "rgba(255, 190, 125, 0.42)",
+        gradeB: "rgba(120, 235, 255, 0.3)",
+        gradeC: "rgba(255, 248, 230, 0.18)",
+        shadowA: "rgba(20, 24, 38, 0.3)",
+        shadowB: "rgba(10, 14, 24, 0.28)"
+    }
+];
 
 const soundtrack = {
     intro: {
@@ -264,7 +409,7 @@ const soundtrack = {
         src: "artifacts/mondamusic-lofi-beats-499181.mp3",
         audio: new Audio("artifacts/mondamusic-lofi-beats-499181.mp3")
     },
-    scoreboard: {
+    summary: {
         label: "Paul Winter",
         src: "artifacts/kaazoom-chill-lofi-18528.mp3",
         audio: new Audio("artifacts/kaazoom-chill-lofi-18528.mp3"),
@@ -527,9 +672,9 @@ function renderTeamsSection() {
 function buildDots() {
     const railPreviewCopy = {
         Start: "Q1 kickoff",
-        Scoreboard: "wins and totals",
+        Summary: "Totals",
         Volume: "epic workload",
-        Points: "tracked effort",
+        "Story Points": "tracked effort",
         Priority: "urgency mix",
         Teams: "who worked where",
         "Open Work": "what rolls forward",
@@ -634,7 +779,7 @@ function getTrackKeyForSlide(index) {
     }
 
     if (trackKey === "outro" && soundtrack.outro.missing) {
-        return "scoreboard";
+        return "summary";
     }
 
     if (index === 0) {
@@ -644,9 +789,9 @@ function getTrackKeyForSlide(index) {
         return "mid";
     }
     if (index === slides.length - 1) {
-        return soundtrack.outro.missing ? "scoreboard" : "outro";
+        return soundtrack.outro.missing ? "summary" : "outro";
     }
-    return "scoreboard";
+    return "summary";
 }
 
 function playTrackForSlide(index) {
@@ -718,6 +863,7 @@ function scrollToSlide(index) {
 
     isTransitioning = true;
     slidesEl.classList.add("is-transitioning");
+    pageShellEl?.classList.add("is-transitioning");
     currentSlideIndex = boundedIndex;
     updateActiveSlide();
     playTrackForSlide(currentSlideIndex);
@@ -730,6 +876,7 @@ function scrollToSlide(index) {
     transitionResetId = window.setTimeout(() => {
         isTransitioning = false;
         slidesEl.classList.remove("is-transitioning");
+        pageShellEl?.classList.remove("is-transitioning");
         transitionResetId = null;
     }, transitionDuration);
 }
@@ -748,7 +895,67 @@ function updateActiveSlide() {
 
     prevButton.disabled = currentSlideIndex === 0;
     nextButton.disabled = currentSlideIndex === slides.length - 1;
+    updateBackgroundGrade();
     scheduleMobileViewportFit();
+}
+
+function updateBackgroundGrade() {
+    const grade = backgroundGrades[currentSlideIndex] || backgroundGrades[0];
+    const rootStyle = document.documentElement.style;
+
+    if (!hasInitializedBackgroundGrade) {
+        rootStyle.setProperty("--ambient-a-color", grade.radialA);
+        rootStyle.setProperty("--ambient-b-color", grade.radialB);
+        rootStyle.setProperty("--ambient-c-color", grade.radialC);
+        rootStyle.setProperty("--bg-light-opacity", grade.light.toFixed(2));
+        rootStyle.setProperty("--bg-dark-opacity", grade.dark.toFixed(2));
+        rootStyle.setProperty("--bg-grade-a", grade.gradeA);
+        rootStyle.setProperty("--bg-grade-b", grade.gradeB);
+        rootStyle.setProperty("--bg-grade-c", grade.gradeC);
+        rootStyle.setProperty("--bg-shadow-a", grade.shadowA);
+        rootStyle.setProperty("--bg-shadow-b", grade.shadowB);
+        hasInitializedBackgroundGrade = true;
+        return;
+    }
+
+    if (ambientFadeTimeoutId) {
+        window.clearTimeout(ambientFadeTimeoutId);
+        ambientFadeTimeoutId = null;
+    }
+
+    if (ambientNextEls.a) {
+        ambientNextEls.a.style.background = `radial-gradient(circle, ${grade.radialA}, rgba(255, 132, 72, 0))`;
+        ambientNextEls.b.style.background = `radial-gradient(circle, ${grade.radialB}, rgba(92, 235, 255, 0))`;
+        ambientNextEls.c.style.background = `radial-gradient(circle, ${grade.radialC}, rgba(210, 255, 95, 0))`;
+
+        ambientNextEls.a.classList.remove("is-visible");
+        ambientNextEls.b.classList.remove("is-visible");
+        ambientNextEls.c.classList.remove("is-visible");
+
+        void ambientNextEls.a.offsetWidth;
+
+        ambientNextEls.a.classList.add("is-visible");
+        ambientNextEls.b.classList.add("is-visible");
+        ambientNextEls.c.classList.add("is-visible");
+    }
+
+    ambientFadeTimeoutId = window.setTimeout(() => {
+        rootStyle.setProperty("--ambient-a-color", grade.radialA);
+        rootStyle.setProperty("--ambient-b-color", grade.radialB);
+        rootStyle.setProperty("--ambient-c-color", grade.radialC);
+        ambientNextEls.a?.classList.remove("is-visible");
+        ambientNextEls.b?.classList.remove("is-visible");
+        ambientNextEls.c?.classList.remove("is-visible");
+        ambientFadeTimeoutId = null;
+    }, 2900);
+
+    rootStyle.setProperty("--bg-light-opacity", grade.light.toFixed(2));
+    rootStyle.setProperty("--bg-dark-opacity", grade.dark.toFixed(2));
+    rootStyle.setProperty("--bg-grade-a", grade.gradeA);
+    rootStyle.setProperty("--bg-grade-b", grade.gradeB);
+    rootStyle.setProperty("--bg-grade-c", grade.gradeC);
+    rootStyle.setProperty("--bg-shadow-a", grade.shadowA);
+    rootStyle.setProperty("--bg-shadow-b", grade.shadowB);
 }
 
 function clearMobileViewportFit() {

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2P0ML7J3T8"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-2P0ML7J3T8');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A Spotify-Wrapped-inspired recap of quarter 1 delivery results.">
+    <title>AAE Squad - Q1 Wrapped</title>
+    <link rel="icon" type="image/x-icon" href="../portfolio/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="q1_wrapped.css">
+</head>
+<body>
+    <div class="page-shell">
+        <div class="ambient ambient-a"></div>
+        <div class="ambient ambient-b"></div>
+        <div class="ambient ambient-c"></div>
+
+        <header class="topbar">
+            <a class="brand">AAE Squad</a>
+            <div class="topbar-actions">
+                <a class="ghost-link" href="https://docs.google.com/spreadsheets/d/1vhr6yt8veQa4yQpZ75KgDQvyNh9npcJ3nj_EYiwZ4Ws/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer">Quarter data</a>
+                <a class="ghost-link" href="https://odentechnologies.atlassian.net/jira/software/c/projects/AAE/list?assignee=712020%3Afb08c377-3dde-47a1-96a3-459831cf0c75&direction=DESC&filter=type%20%3D%20%22Epic%22&sortBy=parent" target="_blank" rel="noopener noreferrer">JIRA</a>
+                <div class="volume-control">
+                    <button class="mute-button" id="muteToggle" type="button" aria-label="Mute music" aria-pressed="false">Mute</button>
+                    <label for="volumeSlider">
+                    <span id="volumeLabel">Music: 20%</span>
+                    <input id="volumeSlider" type="range" min="0" max="100" value="20" aria-label="Music volume">
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <nav class="rail" aria-label="Slide navigation">
+            <button class="rail-button" id="prevSlide" type="button" aria-label="Previous slide">↑</button>
+            <div class="rail-dots" id="railDots"></div>
+            <button class="rail-button" id="nextSlide" type="button" aria-label="Next slide">↓</button>
+        </nav>
+
+        <main class="slides" id="slides">
+            <section class="slide slide-hero theme-sunrise" data-title="Start">
+                <div class="slide-card hero-card">
+                    <p class="eyebrow">2026 - Quarter 1 Wrapped</p>
+                    <h1>One quarter.<br><br>Fourteen epics.<br><br>AAE Squad.</h1>
+                    <p class="lede">
+                        A recap of Q1 delivery.
+                    </p>
+                    <div class="hero-stats" id="heroStats"></div>
+                    <div class="hero-actions">
+                        <button class="primary-button" id="startWrapped" type="button">Start the recap</button>
+                        <p class="microcopy">Scroll, swipe, or use the arrows to move between cards.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="slide theme-glow" data-title="Scoreboard">
+                <div class="slide-card">
+                    <p class="eyebrow">Scoreboard</p>
+                    <div class="headline-row">
+                        <h2>Q1 finished with a strong close.</h2>
+                    </div>
+                    <div class="metric-grid" id="metricGrid"></div>
+                    <div class="fact-strip" id="factStrip"></div>
+                </div>
+            </section>
+
+            <section class="slide theme-ocean" data-title="Volume">
+                <div class="slide-card">
+                    <p class="eyebrow">Delivery Volume</p>
+                    <div class="headline-row">
+                        <h2>Ticket Distribution by Epic.</h2>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <span>Top epics by total tickets</span>
+                            <span id="ticketChartCaption"></span>
+                        </div>
+                        <div class="bar-chart" id="ticketChart"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="slide theme-coral" data-title="Points">
+                <div class="slide-card split-layout">
+                    <div>
+                        <p class="eyebrow">Story Points</p>
+                        <h2>Story point tracking is an area of improvement for future quarters.</h2>
+                        <div class="storypoint-callout" id="storypointCallout"></div>
+                    </div>
+                    <div class="chart-card compact">
+                        <div class="chart-header">
+                            <span>Top epics by story points</span>
+                        </div>
+                        <div class="bar-chart points-chart" id="pointsChart"></div>
+                        <p class="storypoint-legend">
+                            <span class="legend-chip reliable"></span> Reliable estimate
+                            <span class="legend-chip unreliable"></span> Missing or inconsistent tracking
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="slide theme-night" data-title="Priority">
+                <div class="slide-card split-layout">
+                    <div>
+                        <p class="eyebrow">Priority Mix</p>
+                        <h2>Medium-priority work dominated the quarter.</h2>
+                        <p class="support-copy">
+                            This points to a steadier, more deliberate delivery pattern, with fewer surges of high- and critical-priority interrupt work while still preserving the ability to respond when those tickets appear.
+                        </p>
+                        <div class="priority-legend" id="priorityLegend"></div>
+                    </div>
+                    <div class="donut-wrap">
+                        <div class="donut-chart" id="priorityDonut" aria-label="Priority breakdown chart"></div>
+                        <div class="donut-center">
+                            <span id="priorityTotal"></span>
+                            <small>prioritized tickets</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="slide theme-lime teams-slide" data-title="Teams">
+                <div class="slide-card">
+                    <p class="eyebrow">Where The Work Landed</p>
+                    <div class="headline-row">
+                        <h2>Each delivery lane had its own cast.</h2>
+                    </div>
+                    <div class="insight-grid">
+                        <div class="chart-card compact crew-card-wrap">
+                            <div class="chart-header">
+                                <span>Who worked where</span>
+                                <span>Contributors by delivery lane</span>
+                            </div>
+                            <div class="crew-map" id="groupList"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="slide theme-lime open-work-slide" data-title="Open Work" data-track="openWork">
+                <div class="slide-card">
+                    <p class="eyebrow">Open Work</p>
+                    <div class="headline-row">
+                        <h2>Three epics to watch in early Q2.</h2>
+                    </div>
+                    <div class="chart-card compact">
+                        <div class="chart-header">
+                            <span>Still not at 100%</span>
+                            <span>Remaining tickets by epic</span>
+                        </div>
+                        <div class="watch-list" id="watchList"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="slide award-slide theme-violet" data-title="Awards" data-track="mid">
+                <div class="slide-card award-card">
+                    <p class="eyebrow">AAE Squad Awards</p>
+                    <div class="headline-row">
+                        <h2>Roll out the Red Carpet!</h2>
+                    </div>
+                    <p class="award-instruction">Click a card to reveal the award!</p>
+                    <div class="award-pill-list">
+                        <div class="award-pill is-concealed" style="--award-accent:#c7ff63;" role="button" tabindex="0" aria-pressed="false">
+                            <span class="award-pill-label">Robert Sunderhaft</span>
+                            <strong>The Good Greif Award</strong>
+                            <small>Expertly Juggled 3 Greif lines in one quarter!</small>
+                        </div>
+                        <div class="award-pill is-concealed" style="--award-accent:#7ee7ff;" role="button" tabindex="0" aria-pressed="false">
+                            <span class="award-pill-label">Paige Carlson</span>
+                            <strong>The Renewable Energy Award</strong>
+                            <small>Turbine Turbine Turbine! From OQL to Metrics to Stability Improvements!</small>
+                        </div>
+                        <div class="award-pill is-concealed" style="--award-accent:#ff8a47;" role="button" tabindex="0" aria-pressed="false">
+                            <span class="award-pill-label">Josha Thomas</span>
+                            <strong>The Double Agent Award</strong>
+                            <small>Shipped two EDA agents in one quarter!</small>
+                        </div>
+                        <div class="award-pill is-concealed" style="--award-accent:#67e8c8;" role="button" tabindex="0" aria-pressed="false">
+                            <span class="award-pill-label">Russ Frank</span>
+                            <strong>The Agg Award</strong>
+                            <small>Aggregates, Aggressive Caching, Agg!!.</small>
+                        </div>
+                        <div class="award-pill is-concealed" style="--award-accent:#ffd166;" role="button" tabindex="0" aria-pressed="false">
+                            <span class="award-pill-label">Jack Byers</span>
+                            <strong>The CFR Whisperer Award</strong>
+                            <small>Most CFRs and bugs (AAE-Squad) delivered in the quarter!</small>
+                        </div>
+                        <div class="award-pill is-concealed" style="--award-accent:#5cebcf;" role="button" tabindex="0" aria-pressed="false">
+                            <span class="award-pill-label">Joe Youssouf</span>
+                            <strong>The Onsite Award</strong>
+                            <small>Most AAE-Squad onsites in one quarter! (6)</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="slide slide-outro theme-sunrise" data-title="Finish" data-track="outro">
+                <div class="slide-card hero-card outro-card">
+                    <p class="eyebrow">That was Q1!</p>
+                    <h2>More Exciting Things in Q2</h2>
+                    <p class="lede">
+                        Thank you all for the great quarter and for the work, care, and momentum that made it happen.
+                    </p>
+                    <div class="hero-actions">
+                        <button class="primary-button taco-button" id="tacoBurst" type="button">Tacos?</button>
+                        <button class="secondary-button" id="restartWrapped" type="button">Replay</button>
+                    </div>
+                    <div class="music-credit">
+                        <p>Music credits: soundtrack selections by MondaMusic, Paul Winter, VibeHorn, PhantasticBeats, and prettyjohn1 via Pixabay.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="q1_wrapped.js"></script>
+</body>
+</html>

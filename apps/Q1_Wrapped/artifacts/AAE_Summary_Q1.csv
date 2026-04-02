@@ -1,0 +1,16 @@
+Group,Epic Key,Epic,Total Tickets,Done Tickets,Contributors,Number of Contributors,Remaining Tickets,Progress %,Priority Breakdown,Story Points,Missing Story Point Tickets,Story Point Tracking
+DS Direct Customer Delivery,AAE-75,Q1 Greif MKE PAI PM1 Deploy,16,16,Robert Sunderhaft,1,5,100,"High: 6, Medium: 4, Low: 6",3.5,16,Story Points Not Tracked Reliably
+DS Direct Customer Delivery,AAE-163,Q1 Greif Austell Anomaly Detection,14,14,Robert Sunderhaft,1,1,100,"Critical: 3, High: 3, Medium: 5, Low: 3",0,14,Story Points Not Tracked Reliably
+DS Direct Customer Delivery,AAE-74,Q1 Greif Austell & Taylors DS Maintenance,7,7,"Josha Thomas, Robert Sunderhaft",2,0,100,"Critical: 1, Medium: 2, Low: 4",0,7,Story Points Not Tracked Reliably
+DS Direct Customer Delivery,AAE-83,Q1 Canpack BM Scaling and Validation,37,37,"Joe Youssouf, Josha Thomas",2,1,100,"High: 15, Medium: 12, Low: 10",16,23,Story Points Not Tracked Reliably
+DS Direct Customer Delivery,AAE-76,Q1 Copperworks Reverb Furnace PAI Sign Off,7,7,Joe Youssouf,1,0,100,"High: 3, Medium: 1, Low: 3",17.5,0,
+DS Process Definition and Internal Planning,AAE-85,Q1 Expert-Led Anomaly Detection Framework,5,5,Joe Youssouf,1,0,100,"High: 3, Medium: 2",8,0,
+Alert Engine Core Enablement,AAE-104,Q1 Recommendations as Metrics,9,9,"Alice Rottersman, Jack Byers",2,0,100,"Medium: 7, Low: 2",0,9,Story Points Not Tracked Reliably
+Alert Engine Core Enablement,AAE-165,Q1 OQL Aggressive Cacher,8,2,Russ Frank,1,6,25,"High: 1, Medium: 7",0,8,Story Points Not Tracked Reliably
+Alert Engine Core Enablement,AAE-178,Q1 OQL->Metrics via Turbine,15,12,Paige Carlson,1,3,80,"High: 1, Medium: 12, Low: 2",26.5,0,
+Alert Engine Core Enablement,AAE-261,Q1 Data Availability Agent,12,11,Josha Thomas,1,1,91.7,"High: 2, Medium: 5, Low: 5",6.5,7,Story Points Not Tracked Reliably
+Alert Engine Core Enablement,AAE-84,Q1 Pattern Detection Product Development,2,2,Paige Carlson,1,0,100,Medium: 2,7,0,
+Alert Engine Core Enablement,n/a,Q1 OQL Windowed Functions,0,0,Jack Byers,1,0,0,Deprioritized,0,0,-
+DS R&D,AAE-156,Q1 Columbia Capstone Project Management,7,7,"Joe Youssouf, Robert Sunderhaft",2,1,100,"High: 2, Medium: 3, Low: 2",4.5,0,
+Code Maintenance,AAE-255,Q1 Bug and CFR Delivery,18,18,"Jack Byers, Josha Thomas, Paige Carlson, Russ Frank",4,0,100,"High: 2, Medium: 10, Low: 6",0,18,Story Points Not Tracked Reliably
+Code Maintenance,AAE-80,Q1 Tech Debt - AAE,15,15,"Jack Byers, Joe Youssouf, Josha Thomas, Robert Sunderhaft",4,1,100,"Critical: 1, High: 1, Medium: 10, Low: 2, Very Low: 1",8.5,7,Story Points Not Tracked Reliably

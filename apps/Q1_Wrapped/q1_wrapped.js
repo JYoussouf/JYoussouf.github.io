@@ -253,6 +253,8 @@ let lastScrollNavigationAt = 0;
 let activeTacoBursts = [];
 let tacoBurstAnimationId = null;
 let mobileViewportFitFrame = null;
+let audioUnlocked = false;
+let autoplayRetryIds = [];
 
 const MOBILE_BREAKPOINT = 760;
 
@@ -575,21 +577,29 @@ async function fadeToTrack(nextKey) {
     const previousKey = activeTrackKey;
     const previousTrack = previousKey ? soundtrack[previousKey] : null;
 
-    if (previousKey === nextKey) {
+    if (previousKey === nextKey && !nextTrack.audio.paused) {
         updateVolumeLabel();
         return;
     }
 
-    activeTrackKey = nextKey;
     nextTrack.audio.currentTime = previousKey === nextKey ? nextTrack.audio.currentTime : (nextTrack.startTime || 0);
 
     try {
         await nextTrack.audio.play();
     } catch {
+        if (previousKey !== nextKey) {
+            activeTrackKey = previousKey || null;
+        }
+        if (!audioUnlocked) {
+            updateVolumeLabel();
+            return;
+        }
         isAudioEnabled = false;
         updateVolumeLabel();
         return;
     }
+
+    activeTrackKey = nextKey;
 
     const steps = 10;
     const stepDuration = 60;
@@ -647,6 +657,41 @@ function playTrackForSlide(index) {
     fadeToTrack(getTrackKeyForSlide(index));
 }
 
+function clearAutoplayRetries() {
+    autoplayRetryIds.forEach((retryId) => {
+        window.clearTimeout(retryId);
+    });
+    autoplayRetryIds = [];
+}
+
+function retryAutoplayIfNeeded() {
+    if (!isAudioEnabled) {
+        return;
+    }
+
+    const trackKey = getTrackKeyForSlide(currentSlideIndex);
+    const track = soundtrack[trackKey];
+    if (!track || track.missing) {
+        return;
+    }
+
+    if (activeTrackKey === trackKey && !track.audio.paused) {
+        return;
+    }
+
+    playTrackForSlide(currentSlideIndex);
+}
+
+function scheduleAutoplayRetries() {
+    clearAutoplayRetries();
+    [350, 1200, 2600].forEach((delayMs) => {
+        const retryId = window.setTimeout(() => {
+            retryAutoplayIfNeeded();
+        }, delayMs);
+        autoplayRetryIds.push(retryId);
+    });
+}
+
 function pauseAllTracks() {
     Object.values(soundtrack).forEach((track) => {
         track.audio.pause();
@@ -676,6 +721,7 @@ function scrollToSlide(index) {
     currentSlideIndex = boundedIndex;
     updateActiveSlide();
     playTrackForSlide(currentSlideIndex);
+    scheduleAutoplayRetries();
 
     const transitionDuration = document.body.classList.contains("reduced-motion") ? 80 : 760;
     if (transitionResetId) {
@@ -896,15 +942,35 @@ function wireNavigation() {
 
 function wireAudioUnlock() {
     const unlockAudio = () => {
+        audioUnlocked = true;
         primeAudio();
         if (!isAudioEnabled) {
             return;
         }
         playTrackForSlide(currentSlideIndex);
+        clearAutoplayRetries();
         window.removeEventListener("pointerdown", unlockAudio);
     };
 
     window.addEventListener("pointerdown", unlockAudio, { passive: true });
+}
+
+function wireAutoplayRetry() {
+    scheduleAutoplayRetries();
+
+    window.addEventListener("pageshow", () => {
+        scheduleAutoplayRetries();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            retryAutoplayIfNeeded();
+        }
+    });
+
+    window.addEventListener("focus", () => {
+        retryAutoplayIfNeeded();
+    });
 }
 
 function updateTacoBursts(now) {
@@ -1087,6 +1153,7 @@ function init() {
     renderPrioritySection();
     renderTeamsSection();
     wireNavigation();
+    wireAutoplayRetry();
     wireMobileViewportFit();
     wireAudioUnlock();
     wireVolumeSlider();

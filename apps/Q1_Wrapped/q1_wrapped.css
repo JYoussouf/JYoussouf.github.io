@@ -110,8 +110,9 @@ button {
     z-index: 1;
     transform-origin: center;
     animation:
-        drift 14s ease-in-out infinite,
-        ambient-breathe 18s ease-in-out infinite;
+        drift var(--ambient-drift-duration, 14s) ease-in-out infinite,
+        ambient-breathe var(--ambient-breathe-duration, 18s) ease-in-out infinite;
+    animation-delay: var(--ambient-drift-delay, 0s), var(--ambient-breathe-delay, 0s);
     transition:
         filter 760ms cubic-bezier(0.22, 1, 0.36, 1),
         opacity 760ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -127,14 +128,12 @@ button {
     top: 28vh;
     left: -12vw;
     background: radial-gradient(circle, var(--ambient-b-color), rgba(92, 235, 255, 0));
-    animation-delay: -4s, -7s;
 }
 
 .ambient-c {
     bottom: -12vw;
     right: 8vw;
     background: radial-gradient(circle, var(--ambient-c-color), rgba(210, 255, 95, 0));
-    animation-delay: -9s, -12s;
 }
 
 .ambient-next {
@@ -1433,13 +1432,19 @@ h2 {
         transform: translate3d(0, 0, 0) scale(1);
     }
     25% {
-        transform: translate3d(-6vw, 4vw, 0) scale(1.14);
+        transform:
+            translate3d(var(--ambient-x-1, -6vw), var(--ambient-y-1, 4vw), 0)
+            scale(var(--ambient-scale-1, 1.14));
     }
     50% {
-        transform: translate3d(5vw, -6vw, 0) scale(1.24);
+        transform:
+            translate3d(var(--ambient-x-2, 5vw), var(--ambient-y-2, -6vw), 0)
+            scale(var(--ambient-scale-2, 1.24));
     }
     75% {
-        transform: translate3d(-4vw, -5vw, 0) scale(1.15);
+        transform:
+            translate3d(var(--ambient-x-3, -4vw), var(--ambient-y-3, -5vw), 0)
+            scale(var(--ambient-scale-3, 1.15));
     }
 }
 

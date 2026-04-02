@@ -235,6 +235,11 @@ const ambientNextEls = {
     b: document.querySelector(".ambient-b-next"),
     c: document.querySelector(".ambient-c-next")
 };
+const ambientBaseEls = {
+    a: document.querySelector(".ambient-a"),
+    b: document.querySelector(".ambient-b"),
+    c: document.querySelector(".ambient-c")
+};
 const railDotsEl = document.getElementById("railDots");
 const prevButton = document.getElementById("prevSlide");
 const nextButton = document.getElementById("nextSlide");
@@ -1352,6 +1357,56 @@ function wireAwardReveal() {
     });
 }
 
+function randomInRange(min, max) {
+    return min + (Math.random() * (max - min));
+}
+
+function applyAmbientMotionPair(key) {
+    const baseEl = ambientBaseEls[key];
+    const nextEl = ambientNextEls[key];
+    if (!baseEl || !nextEl) {
+        return;
+    }
+
+    const config = {
+        x1: `${randomInRange(-7, 7).toFixed(2)}vw`,
+        y1: `${randomInRange(-6, 6).toFixed(2)}vw`,
+        x2: `${randomInRange(-7, 7).toFixed(2)}vw`,
+        y2: `${randomInRange(-7, 7).toFixed(2)}vw`,
+        x3: `${randomInRange(-6, 6).toFixed(2)}vw`,
+        y3: `${randomInRange(-6, 6).toFixed(2)}vw`,
+        scale1: randomInRange(1.08, 1.18).toFixed(3),
+        scale2: randomInRange(1.16, 1.28).toFixed(3),
+        scale3: randomInRange(1.1, 1.2).toFixed(3),
+        driftDuration: `${randomInRange(12.5, 17.5).toFixed(2)}s`,
+        breatheDuration: `${randomInRange(16, 21).toFixed(2)}s`,
+        driftDelay: `${randomInRange(-10, 0).toFixed(2)}s`,
+        breatheDelay: `${randomInRange(-14, 0).toFixed(2)}s`
+    };
+
+    [baseEl, nextEl].forEach((el) => {
+        el.style.setProperty("--ambient-x-1", config.x1);
+        el.style.setProperty("--ambient-y-1", config.y1);
+        el.style.setProperty("--ambient-x-2", config.x2);
+        el.style.setProperty("--ambient-y-2", config.y2);
+        el.style.setProperty("--ambient-x-3", config.x3);
+        el.style.setProperty("--ambient-y-3", config.y3);
+        el.style.setProperty("--ambient-scale-1", config.scale1);
+        el.style.setProperty("--ambient-scale-2", config.scale2);
+        el.style.setProperty("--ambient-scale-3", config.scale3);
+        el.style.setProperty("--ambient-drift-duration", config.driftDuration);
+        el.style.setProperty("--ambient-breathe-duration", config.breatheDuration);
+        el.style.setProperty("--ambient-drift-delay", config.driftDelay);
+        el.style.setProperty("--ambient-breathe-delay", config.breatheDelay);
+    });
+}
+
+function initializeAmbientMotion() {
+    ["a", "b", "c"].forEach((key) => {
+        applyAmbientMotionPair(key);
+    });
+}
+
 function init() {
     renderHeroStats();
     renderMetricGrid();
@@ -1359,6 +1414,7 @@ function init() {
     renderStoryPointsSection();
     renderPrioritySection();
     renderTeamsSection();
+    initializeAmbientMotion();
     wireNavigation();
     wireAutoplayRetry();
     wireMobileViewportFit();

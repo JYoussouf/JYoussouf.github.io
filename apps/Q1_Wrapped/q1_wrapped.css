@@ -1489,23 +1489,11 @@ h2 {
     }
 
     .rail {
-        right: 14px;
-        bottom: 16px;
-        top: auto;
-        transform: none;
-        flex-direction: row;
-        gap: 10px;
-    }
-
-    .rail-dots {
-        flex-direction: row;
-        max-width: 42vw;
-        flex-wrap: wrap;
-        justify-content: center;
+        display: none;
     }
 
     .slide {
-        padding: 86px 16px 84px;
+        padding: 86px 16px 24px;
     }
 
     .slide-card,

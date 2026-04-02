@@ -16,6 +16,9 @@
     --danger: #ff5a5f;
     --font-display: "Space Grotesk", sans-serif;
     --font-serif: "Instrument Serif", serif;
+    --mobile-header-bottom: 0px;
+    --mobile-slide-gap: 8px;
+    --mobile-bottom-gap: 8px;
 }
 
 * {
@@ -50,6 +53,7 @@ button {
 .page-shell {
     position: relative;
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .ambient {
@@ -270,6 +274,7 @@ button {
     position: relative;
     z-index: 1;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     isolation: isolate;
 }
@@ -278,6 +283,7 @@ button {
     position: absolute;
     inset: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 112px 96px 72px;
     display: grid;
     place-items: center;
@@ -1470,14 +1476,8 @@ h2 {
 }
 
 @media (max-width: 760px) {
-    :root {
-        --mobile-card-scale: 0.8;
-        --mobile-card-scale-before: 0.76;
-        --mobile-card-scale-after: 0.74;
-    }
-
     .topbar {
-        padding: 16px;
+        padding: 12px 14px 8px;
     }
 
     .topbar-actions {
@@ -1499,46 +1499,53 @@ h2 {
     }
 
     .slide {
-        padding: 86px 16px 24px;
+        padding:
+            calc(var(--mobile-header-bottom) + var(--mobile-slide-gap))
+            8px
+            var(--mobile-bottom-gap);
+        place-items: start center;
     }
 
     .slide-card,
     .hero-card {
-        width: min(112%, 980px);
-        padding: 18px;
-        border-radius: 20px;
+        width: min(154%, 980px);
+        max-height: none;
+        overflow: hidden;
+        padding: 14px;
+        border-radius: 18px;
+        transform-origin: top center;
     }
 
     .slide.is-active .slide-card {
-        transform: scale(var(--mobile-card-scale));
+        transform: scale(var(--slide-fit-scale, 0.69));
     }
 
     .slide.is-before .slide-card {
-        transform: scale(var(--mobile-card-scale-before));
+        transform: scale(var(--slide-fit-scale-before, 0.65));
     }
 
     .slide.is-after .slide-card {
-        transform: scale(var(--mobile-card-scale-after));
+        transform: scale(var(--slide-fit-scale-after, 0.63));
     }
 
     h1 {
-        font-size: clamp(1.7rem, 8vw, 2.4rem);
+        font-size: clamp(1.3rem, 6.3vw, 1.8rem);
     }
 
     h2 {
-        font-size: clamp(1.4rem, 6.8vw, 2rem);
+        font-size: clamp(1.08rem, 5vw, 1.5rem);
     }
 
     .lede,
     .support-copy,
     .microcopy {
-        font-size: 0.88rem;
-        line-height: 1.32;
+        font-size: 0.72rem;
+        line-height: 1.18;
     }
 
     .eyebrow {
-        margin-bottom: 10px;
-        font-size: 0.7rem;
+        margin-bottom: 6px;
+        font-size: 0.58rem;
     }
 
     .stat-pill,
@@ -1560,19 +1567,19 @@ h2 {
     .watch-item,
     .priority-pill,
     .award-pill {
-        padding: 12px 14px;
+        padding: 9px 10px;
     }
 
     .storypoint-callout,
     .chart-card {
-        padding: 14px;
+        padding: 10px;
     }
 
     .stat-pill strong,
     .metric-card strong,
     .storypoint-callout strong,
     .donut-center span {
-        font-size: clamp(1.8rem, 7vw, 2.7rem);
+        font-size: clamp(1.22rem, 5vw, 1.8rem);
     }
 
     .chart-header,
@@ -1580,7 +1587,14 @@ h2 {
     .stack-item small,
     .watch-item small,
     .storypoint-legend {
-        font-size: 0.74rem;
+        font-size: 0.62rem;
+    }
+
+    .award-pill strong,
+    .stack-item strong,
+    .watch-item strong,
+    .fact-item strong {
+        font-size: 0.8rem;
     }
 
     .hero-stats,
@@ -1596,21 +1610,21 @@ h2 {
     }
 
     .headline-row .support-copy {
-        margin-top: 16px;
+        margin-top: 10px;
     }
 
     .bar-row {
         grid-template-columns: 1fr;
-        gap: 8px;
+        gap: 6px;
     }
 
     .bar-label,
     .bar-value {
-        font-size: 0.82rem;
+        font-size: 0.68rem;
     }
 
     .bar-track {
-        height: 12px;
+        height: 10px;
     }
 
     .bar-value {
@@ -1629,13 +1643,176 @@ h2 {
         grid-template-columns: 1fr;
     }
 
+    .theme-ocean .slide-card {
+        padding-top: 10px;
+    }
+
+    .theme-ocean .eyebrow {
+        margin-bottom: 4px;
+    }
+
+    .theme-ocean h2 {
+        font-size: clamp(1rem, 4.7vw, 1.4rem);
+        line-height: 0.94;
+    }
+
+    .theme-ocean .headline-row {
+        margin-bottom: 8px;
+    }
+
+    .theme-ocean .chart-card {
+        padding-top: 10px;
+    }
+
+    .theme-ocean .chart-header {
+        margin-bottom: 8px;
+    }
+
     .donut-wrap {
-        width: min(250px, 100%);
+        width: min(190px, 100%);
     }
 
     .primary-button,
     .secondary-button {
-        min-height: 44px;
-        padding: 0 16px;
+        min-height: 34px;
+        padding: 0 12px;
+        font-size: 0.72rem;
+    }
+
+    .hero-actions,
+    .hero-stats,
+    .metric-grid,
+    .fact-strip,
+    .priority-legend,
+    .award-pill-list,
+    .watch-list,
+    .stack-list,
+    .bar-chart {
+        gap: 8px;
+    }
+
+    .headline-row {
+        margin-bottom: 12px;
+    }
+
+    .fact-strip {
+        margin-top: 12px;
+    }
+
+    .slide-hero .hero-stats {
+        margin-top: 12px;
+    }
+
+    .hero-actions {
+        margin-top: 12px;
+    }
+}
+
+@media (max-width: 760px) and (max-height: 780px) {
+    .topbar {
+        padding: 10px 12px 6px;
+    }
+
+    .slide {
+        padding:
+            calc(var(--mobile-header-bottom) + var(--mobile-slide-gap))
+            6px
+            var(--mobile-bottom-gap);
+    }
+
+    .slide-card,
+    .hero-card {
+        width: min(166%, 980px);
+        max-height: none;
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    h1 {
+        font-size: clamp(1.14rem, 5.6vw, 1.55rem);
+    }
+
+    h2 {
+        font-size: clamp(0.96rem, 4.4vw, 1.28rem);
+    }
+
+    .lede,
+    .support-copy,
+    .microcopy,
+    .chart-header,
+    .award-pill small,
+    .stack-item small,
+    .watch-item small,
+    .storypoint-legend,
+    .bar-label,
+    .bar-value {
+        font-size: 0.58rem;
+        line-height: 1.14;
+    }
+
+    .eyebrow {
+        margin-bottom: 5px;
+        font-size: 0.52rem;
+    }
+
+    .theme-ocean .slide-card {
+        padding-top: 8px;
+    }
+
+    .theme-ocean h2 {
+        font-size: clamp(0.9rem, 4vw, 1.18rem);
+    }
+
+    .theme-ocean .headline-row {
+        margin-bottom: 6px;
+    }
+
+    .theme-ocean .chart-card {
+        padding-top: 8px;
+    }
+
+    .theme-ocean .chart-header {
+        margin-bottom: 6px;
+    }
+
+    .stat-pill,
+    .metric-card,
+    .fact-item,
+    .stack-item,
+    .watch-item,
+    .priority-pill,
+    .award-pill,
+    .storypoint-callout,
+    .chart-card {
+        padding: 8px 9px;
+        border-radius: 16px;
+    }
+
+    .stat-pill strong,
+    .metric-card strong,
+    .storypoint-callout strong,
+    .donut-center span {
+        font-size: clamp(1rem, 4.2vw, 1.45rem);
+        margin-bottom: 4px;
+    }
+
+    .award-pill strong,
+    .stack-item strong,
+    .watch-item strong,
+    .fact-item strong {
+        font-size: 0.72rem;
+        margin-bottom: 4px;
+    }
+
+    .hero-actions,
+    .hero-stats,
+    .metric-grid,
+    .fact-strip,
+    .priority-legend,
+    .award-pill-list,
+    .watch-list,
+    .stack-list,
+    .bar-chart {
+        gap: 6px;
     }
 }

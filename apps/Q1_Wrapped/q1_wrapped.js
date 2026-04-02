@@ -228,6 +228,7 @@ const quarterData = [
 
 const slidesEl = document.getElementById("slides");
 const slides = [...document.querySelectorAll(".slide")];
+const topbarEl = document.querySelector(".topbar");
 const railDotsEl = document.getElementById("railDots");
 const prevButton = document.getElementById("prevSlide");
 const nextButton = document.getElementById("nextSlide");
@@ -251,6 +252,9 @@ let transitionResetId = null;
 let lastScrollNavigationAt = 0;
 let activeTacoBursts = [];
 let tacoBurstAnimationId = null;
+let mobileViewportFitFrame = null;
+
+const MOBILE_BREAKPOINT = 760;
 
 const soundtrack = {
     intro: {
@@ -698,6 +702,91 @@ function updateActiveSlide() {
 
     prevButton.disabled = currentSlideIndex === 0;
     nextButton.disabled = currentSlideIndex === slides.length - 1;
+    scheduleMobileViewportFit();
+}
+
+function clearMobileViewportFit() {
+    document.documentElement.style.removeProperty("--mobile-header-bottom");
+    document.documentElement.style.removeProperty("--mobile-slide-gap");
+    document.documentElement.style.removeProperty("--mobile-bottom-gap");
+    slides.forEach((slide) => {
+        slide.style.removeProperty("--slide-fit-scale");
+        slide.style.removeProperty("--slide-fit-scale-before");
+        slide.style.removeProperty("--slide-fit-scale-after");
+    });
+}
+
+function fitSlideToViewport(slide, headerBottom, topGap, bottomGap, sideGap) {
+    const card = slide.querySelector(".slide-card");
+    if (!card) {
+        return;
+    }
+
+    const availableWidth = Math.max(window.innerWidth - (sideGap * 2), 1);
+    const availableHeight = Math.max(window.innerHeight - headerBottom - topGap - bottomGap, 1);
+    const naturalWidth = card.offsetWidth;
+    const naturalHeight = card.offsetHeight;
+
+    if (!naturalWidth || !naturalHeight) {
+        return;
+    }
+
+    const fitScale = Math.min(availableWidth / naturalWidth, availableHeight / naturalHeight, 1);
+    const activeScale = Math.max(fitScale, 0.38);
+    const beforeScale = Math.max(activeScale - 0.04, 0.34);
+    const afterScale = Math.max(activeScale - 0.06, 0.32);
+
+    slide.style.setProperty("--slide-fit-scale", activeScale.toFixed(4));
+    slide.style.setProperty("--slide-fit-scale-before", beforeScale.toFixed(4));
+    slide.style.setProperty("--slide-fit-scale-after", afterScale.toFixed(4));
+}
+
+function applyMobileViewportFit() {
+    mobileViewportFitFrame = null;
+
+    if (window.innerWidth > MOBILE_BREAKPOINT) {
+        clearMobileViewportFit();
+        return;
+    }
+
+    const shortViewport = window.innerHeight <= 780;
+    const headerBottom = Math.ceil(topbarEl?.getBoundingClientRect().bottom || 0);
+    const topGap = shortViewport ? 6 : 8;
+    const bottomGap = shortViewport ? 6 : 8;
+    const sideGap = shortViewport ? 6 : 8;
+
+    document.documentElement.style.setProperty("--mobile-header-bottom", `${headerBottom}px`);
+    document.documentElement.style.setProperty("--mobile-slide-gap", `${topGap}px`);
+    document.documentElement.style.setProperty("--mobile-bottom-gap", `${bottomGap}px`);
+
+    slides.forEach((slide) => {
+        fitSlideToViewport(slide, headerBottom, topGap, bottomGap, sideGap);
+    });
+}
+
+function scheduleMobileViewportFit() {
+    if (mobileViewportFitFrame !== null) {
+        window.cancelAnimationFrame(mobileViewportFitFrame);
+    }
+
+    mobileViewportFitFrame = window.requestAnimationFrame(applyMobileViewportFit);
+}
+
+function wireMobileViewportFit() {
+    scheduleMobileViewportFit();
+    window.addEventListener("resize", scheduleMobileViewportFit);
+    window.addEventListener("orientationchange", scheduleMobileViewportFit);
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", scheduleMobileViewportFit);
+    }
+
+    if ("ResizeObserver" in window && topbarEl) {
+        const topbarObserver = new ResizeObserver(() => {
+            scheduleMobileViewportFit();
+        });
+        topbarObserver.observe(topbarEl);
+    }
 }
 
 function stepSlide(delta) {
@@ -998,6 +1087,7 @@ function init() {
     renderPrioritySection();
     renderTeamsSection();
     wireNavigation();
+    wireMobileViewportFit();
     wireAudioUnlock();
     wireVolumeSlider();
     wireMuteToggle();

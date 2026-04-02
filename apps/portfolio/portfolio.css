@@ -113,7 +113,7 @@ a {
 .photo-carousel__shell {
     position: relative;
     min-height: 450px;
-    overflow-x: hidden;
+    overflow-x: visible;
     overflow-y: visible;
     padding: 0.35rem 0 0;
     user-select: none;

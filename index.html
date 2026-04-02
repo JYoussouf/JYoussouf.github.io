@@ -96,31 +96,69 @@
     <!-- About Me section -->
     <section id="about_me" class="section">
         <div class="container">
-            <div>
-                <div class="centered-items fade-in" style="margin-top; text-align: center;">
-                    <caption style="display: block; font-size: 1.2em;"> ProcessAI at GDG 2024, representing Oden Technologies</caption>
-                    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7259986985165979656/"> <img src="apps/portfolio/images/me/gdg_devfest_2024.jpg" alt="" class="img-thumbnail fade-in"></a>
+            <div class="photo-carousel fade-in" id="photo-carousel" tabindex="0" aria-label="Photo highlights carousel">
+                <div class="photo-glide photo-embla" id="photo-glide">
+                    <div class="embla__viewport photo-carousel__shell">
+                        <div class="embla__container photo-carousel__track">
+                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="2026 BSCS Computer Science Career Panel" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7444428489061076993/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus 2026 BSCS Computer Science Career Panel">
+                                    <img src="apps/portfolio/images/me/bscs_panel.jpeg" alt="2026 BSCS Computer Science Career Panel" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="IEOM Society 2nd World Congress Panel - The Future of AI" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7423061230975795200/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus IEOM Society 2nd World Congress">
+                                    <img src="apps/portfolio/images/me/ieom_society_2nd_world_congress.jpeg" alt="IEOM Society 2nd World Congress" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="Oden Forge and MCP at GDG 2025" data-url="https://www.linkedin.com/posts/kayode-babalola-5a8304109_windsorgdg2025-ai-machinelearning-activity-7393791535739252736-MX0y/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus Oden Forge and MCP at GDG 2025">
+                                    <img src="apps/portfolio/images/me/oden_forge_gdg_2025.jpg" alt="Oden Forge and MCP at GDG 2025" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="ProcessAI at GDG 2024, representing Oden Technologies" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7259986985165979656/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus ProcessAI at GDG 2024, representing Oden Technologies">
+                                    <img src="apps/portfolio/images/me/gdg_devfest_2024.jpg" alt="ProcessAI at GDG 2024, representing Oden Technologies" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="1" data-caption="The Logic's 2024 Panel Discussion on Responsible AI in Toronto" data-url="https://www.linkedin.com/posts/the-logic_last-night-the-logic-convened-subscribers-activity-7192256992453824512-iFOe/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus The Logic's 2024 Panel Discussion on Responsible AI in Toronto">
+                                    <img src="apps/portfolio/images/me/thelogic_conference_2024.jpg" alt="The Logic's 2024 Panel Discussion on Responsible AI in Toronto" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="2" data-caption="Delegate for the 2023 CUTA Young Leaders Summit" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7129889897162670080/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus Delegate for the 2023 CUTA Young Leaders Summit">
+                                    <img src="apps/portfolio/images/me/yls_2023.jpg" alt="Delegate for the 2023 CUTA Young Leaders Summit" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="3" data-caption="Google Developers Group DevFest 2023" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7128048902661931008/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus Google Developers Group DevFest 2023">
+                                    <img src="apps/portfolio/images/me/gdg_devfest_crowd_2023.jpg" alt="Google Developers Group DevFest 2023" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="4" data-caption="The Preteckt Data Science team at ODSC West 2023" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7128046865287184384/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus The Preteckt Data Science team at ODSC West 2023">
+                                    <img src="apps/portfolio/images/me/odsc_west_2023.jpg" alt="The Preteckt Data Science team at ODSC West 2023" class="photo-slide__image">
+                                </button>
+                            </article>
+                            <article class="embla__slide photo-slide" data-photo-index="5" data-caption="Google Developers Group DevFest 2022" data-url="https://www.linkedin.com/feed/update/urn:li:activity:6997615522980790272/">
+                                <button class="photo-slide__button" type="button" aria-label="Focus Google Developers Group DevFest 2022">
+                                    <img src="apps/portfolio/images/me/gdg_devfest_clustering_2022.jpg" alt="Google Developers Group DevFest 2022" class="photo-slide__image">
+                                </button>
+                            </article>
+                        </div>
+                    </div>
+                    <div class="photo-carousel__controls">
+                        <button class="photo-carousel__control" type="button" data-carousel-dir="prev" aria-label="Previous photo">
+                            <i class="bi bi-arrow-left"></i>
+                        </button>
+                        <button class="photo-carousel__control" type="button" data-carousel-dir="next" aria-label="Next photo">
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="centered-items fade-in" style="margin-top: 40px;">
-                    <a href="https://www.linkedin.com/posts/the-logic_last-night-the-logic-convened-subscribers-activity-7192256992453824512-iFOe/"><img src="apps/portfolio/images/me/thelogic_conference_2024.jpg" alt="" class="img-thumbnail fade-in"></a>
-                    <caption> The Logic's 2024 Panel Discussion on Responsible AI in Toronto</caption>
-                </div>
-                <div class="centered-items fade-in" style="margin-top: 40px; gap: 18px;">
-                    <caption> Delegate for the 2023 CUTA Young Leaders Summit </caption>
-                    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7129889897162670080/"><img src="apps/portfolio/images/me/yls_2023.jpg" alt="" class="img-thumbnail fade-in"></a>
-                </div>
-                <div class="centered-items fade-in" style="margin-top: 40px;">
-                    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7128048902661931008/"><img src="apps/portfolio/images/me/gdg_devfest_crowd_2023.jpg" alt="" class="img-thumbnail fade-in"></a>
-                    <caption> Google Developers Group DevFest 2023 </caption>
-                </div>
-                <div class="centered-items fade-in" style="margin-top: 40px; gap: 18px;">
-                    <caption style="margin-right: 10px;"> The Preteckt Data Science team at ODSC West 2023 </caption>
-                    <a href="https://www.linkedin.com/feed/update/urn:li:activity:7128046865287184384/"><img src="apps/portfolio/images/me/odsc_west_2023.jpg" alt="" class="img-thumbnail fade-in"></a>
-                </div>
-                <div class="centered-items fade-in" style="margin-top: 40px;">
-                    <a href="https://www.linkedin.com/feed/update/urn:li:activity:6997615522980790272/"><img src="apps/portfolio/images/me/gdg_devfest_clustering_2022.jpg" alt="" class="img-thumbnail fade-in"></a>
-                    <caption>Google Developers Group DevFest 2023 </caption>
-                </div>
+                <p class="photo-carousel__caption" id="photo-carousel-caption" aria-live="polite">
+                    ProcessAI at GDG 2024, representing Oden Technologies
+                </p>
             </div>
         </div>
     </section>
@@ -201,6 +239,7 @@
     <!-- End of page footer -->
 
     <!-- custom js -->
+    <script src="https://unpkg.com/embla-carousel/embla-carousel.umd.js"></script>
     <script src="apps/portfolio/portfolio.js"></script>
 
 </body>

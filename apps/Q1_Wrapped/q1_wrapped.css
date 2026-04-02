@@ -1470,6 +1470,12 @@ h2 {
 }
 
 @media (max-width: 760px) {
+    :root {
+        --mobile-card-scale: 0.8;
+        --mobile-card-scale-before: 0.76;
+        --mobile-card-scale-after: 0.74;
+    }
+
     .topbar {
         padding: 16px;
     }
@@ -1498,10 +1504,84 @@ h2 {
 
     .slide-card,
     .hero-card {
-        padding: 24px;
-        border-radius: 24px;
+        width: min(112%, 980px);
+        padding: 18px;
+        border-radius: 20px;
     }
 
+    .slide.is-active .slide-card {
+        transform: scale(var(--mobile-card-scale));
+    }
+
+    .slide.is-before .slide-card {
+        transform: scale(var(--mobile-card-scale-before));
+    }
+
+    .slide.is-after .slide-card {
+        transform: scale(var(--mobile-card-scale-after));
+    }
+
+    h1 {
+        font-size: clamp(1.7rem, 8vw, 2.4rem);
+    }
+
+    h2 {
+        font-size: clamp(1.4rem, 6.8vw, 2rem);
+    }
+
+    .lede,
+    .support-copy,
+    .microcopy {
+        font-size: 0.88rem;
+        line-height: 1.32;
+    }
+
+    .eyebrow {
+        margin-bottom: 10px;
+        font-size: 0.7rem;
+    }
+
+    .stat-pill,
+    .metric-card,
+    .fact-item,
+    .stack-item,
+    .watch-item,
+    .priority-pill,
+    .storypoint-callout,
+    .award-pill,
+    .chart-card {
+        border-radius: 18px;
+    }
+
+    .stat-pill,
+    .metric-card,
+    .fact-item,
+    .stack-item,
+    .watch-item,
+    .priority-pill,
+    .award-pill {
+        padding: 12px 14px;
+    }
+
+    .storypoint-callout,
+    .chart-card {
+        padding: 14px;
+    }
+
+    .stat-pill strong,
+    .metric-card strong,
+    .storypoint-callout strong,
+    .donut-center span {
+        font-size: clamp(1.8rem, 7vw, 2.7rem);
+    }
+
+    .chart-header,
+    .award-pill small,
+    .stack-item small,
+    .watch-item small,
+    .storypoint-legend {
+        font-size: 0.74rem;
+    }
 
     .hero-stats,
     .metric-grid,
@@ -1524,6 +1604,15 @@ h2 {
         gap: 8px;
     }
 
+    .bar-label,
+    .bar-value {
+        font-size: 0.82rem;
+    }
+
+    .bar-track {
+        height: 12px;
+    }
+
     .bar-value {
         text-align: left;
     }
@@ -1538,5 +1627,15 @@ h2 {
 
     .theme-lime .crew-map {
         grid-template-columns: 1fr;
+    }
+
+    .donut-wrap {
+        width: min(250px, 100%);
+    }
+
+    .primary-button,
+    .secondary-button {
+        min-height: 44px;
+        padding: 0 16px;
     }
 }

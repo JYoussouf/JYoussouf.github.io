@@ -249,6 +249,8 @@ let masterVolume = 0.2;
 let lastNonZeroVolume = 0.2;
 let transitionResetId = null;
 let lastScrollNavigationAt = 0;
+let activeTacoBursts = [];
+let tacoBurstAnimationId = null;
 
 const soundtrack = {
     intro: {
@@ -627,9 +629,6 @@ function getTrackKeyForSlide(index) {
     if (index >= 1 && index <= 3) {
         return "mid";
     }
-    if (index === 5) {
-        return "openWork";
-    }
     if (index === slides.length - 1) {
         return soundtrack.outro.missing ? "scoreboard" : "outro";
     }
@@ -819,6 +818,43 @@ function wireAudioUnlock() {
     window.addEventListener("pointerdown", unlockAudio, { passive: true });
 }
 
+function updateTacoBursts(now) {
+    activeTacoBursts = activeTacoBursts.filter((burst) => {
+        const elapsed = now - burst.launchedAt;
+        const progress = Math.min(elapsed / burst.duration, 1);
+        const inverse = 1 - progress;
+        const x = (inverse * inverse * burst.startX)
+            + (2 * inverse * progress * burst.controlX)
+            + (progress * progress * burst.endX);
+        const y = (inverse * inverse * burst.startY)
+            + (2 * inverse * progress * burst.controlY)
+            + (progress * progress * burst.endY);
+        const tangentX = 2 * inverse * (burst.controlX - burst.startX) + 2 * progress * (burst.endX - burst.controlX);
+        const tangentY = 2 * inverse * (burst.controlY - burst.startY) + 2 * progress * (burst.endY - burst.controlY);
+        const pathAngle = Math.atan2(tangentY, tangentX) * (180 / Math.PI);
+        const extraSpin = burst.spin * progress;
+        const scale = burst.baseScale + (Math.sin(progress * Math.PI) * 0.12);
+        const opacity = progress < 0.82 ? 1 : 1 - ((progress - 0.82) / 0.18);
+
+        burst.element.style.opacity = `${Math.max(opacity, 0)}`;
+        burst.element.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${pathAngle + extraSpin}deg) scale(${scale})`;
+
+        if (progress < 1) {
+            return true;
+        }
+
+        burst.element.remove();
+        return false;
+    });
+
+    if (activeTacoBursts.length > 0) {
+        tacoBurstAnimationId = window.requestAnimationFrame(updateTacoBursts);
+        return;
+    }
+
+    tacoBurstAnimationId = null;
+}
+
 function launchTacoBurst() {
     if (!tacoBurstButton) {
         return;
@@ -845,48 +881,30 @@ function launchTacoBurst() {
 
         taco.className = "taco-burst";
         taco.textContent = "🌮";
-        taco.style.left = `${startX + spreadX}px`;
-        taco.style.top = `${startY + spreadY}px`;
+        taco.style.left = "0";
+        taco.style.top = "0";
         taco.style.fontSize = `${1.5 + Math.random() * 1.6}rem`;
         taco.style.opacity = "1";
-        taco.style.transform = `translate3d(0, 0, 0) rotate(${startRotation}deg) scale(${baseScale})`;
+        taco.style.transform = `translate3d(${startX + spreadX}px, ${startY + spreadY}px, 0) translate(-50%, -50%) rotate(${startRotation}deg) scale(${baseScale})`;
 
         document.body.appendChild(taco);
-        const launchedAt = performance.now();
-        const actualStartX = startX + spreadX;
-        const actualStartY = startY + spreadY;
+        activeTacoBursts.push({
+            element: taco,
+            launchedAt: performance.now(),
+            duration,
+            startX: startX + spreadX,
+            startY: startY + spreadY,
+            controlX,
+            controlY,
+            endX,
+            endY,
+            spin,
+            baseScale
+        });
+    }
 
-        const animate = (now) => {
-            const elapsed = now - launchedAt;
-            const progress = Math.min(elapsed / duration, 1);
-            const inverse = 1 - progress;
-            const x = (inverse * inverse * actualStartX)
-                + (2 * inverse * progress * controlX)
-                + (progress * progress * endX);
-            const y = (inverse * inverse * actualStartY)
-                + (2 * inverse * progress * controlY)
-                + (progress * progress * endY);
-            const tangentX = 2 * inverse * (controlX - actualStartX) + 2 * progress * (endX - controlX);
-            const tangentY = 2 * inverse * (controlY - actualStartY) + 2 * progress * (endY - controlY);
-            const pathAngle = Math.atan2(tangentY, tangentX) * (180 / Math.PI);
-            const extraSpin = spin * progress;
-            const scale = baseScale + (Math.sin(progress * Math.PI) * 0.12);
-            const opacity = progress < 0.82 ? 1 : 1 - ((progress - 0.82) / 0.18);
-
-            taco.style.left = `${x}px`;
-            taco.style.top = `${y}px`;
-            taco.style.opacity = `${Math.max(opacity, 0)}`;
-            taco.style.transform = `translate3d(-50%, -50%, 0) rotate(${pathAngle + extraSpin}deg) scale(${scale})`;
-
-            if (progress < 1) {
-                window.requestAnimationFrame(animate);
-                return;
-            }
-
-            taco.remove();
-        };
-
-        window.requestAnimationFrame(animate);
+    if (!tacoBurstAnimationId) {
+        tacoBurstAnimationId = window.requestAnimationFrame(updateTacoBursts);
     }
 }
 

@@ -96,6 +96,155 @@ a {
     align-items: center;
 }
 
+.photo-carousel {
+    width: min(1100px, calc(100vw - 2rem));
+    max-width: 100%;
+    margin: 0 auto;
+    outline: none;
+    overflow-x: clip;
+}
+
+.photo-glide {
+    width: 100%;
+    overflow-x: clip;
+    overflow-y: visible;
+}
+
+.photo-carousel__shell {
+    position: relative;
+    min-height: 450px;
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding: 0.35rem 0 0;
+    user-select: none;
+    perspective: 1800px;
+    perspective-origin: center center;
+    cursor: grab;
+}
+
+.photo-carousel__shell::before,
+.photo-carousel__shell::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: clamp(2.5rem, 6vw, 5rem);
+    pointer-events: none;
+    z-index: 12;
+}
+
+.photo-carousel__shell::before {
+    left: 0;
+    background: linear-gradient(90deg, #ffffff 10%, rgba(255, 255, 255, 0));
+}
+
+.photo-carousel__shell::after {
+    right: 0;
+    background: linear-gradient(270deg, #ffffff 10%, rgba(255, 255, 255, 0));
+}
+
+.photo-carousel__shell.is-dragging {
+    cursor: grabbing;
+}
+
+.photo-carousel__track {
+    display: flex;
+    min-height: 395px;
+    overflow: visible;
+    align-items: center;
+    gap: 0.8rem;
+    will-change: transform;
+}
+
+.photo-slide {
+    flex: 0 0 min(15vw, 214px);
+    min-width: 0;
+}
+
+.photo-glide .photo-slide {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    filter: blur(8px) saturate(0.68) brightness(0.8);
+    transform: perspective(1800px) translate3d(0, 12px, -360px) rotateY(62deg) scale(0.48);
+    transform-origin: center center;
+    overflow: visible;
+    will-change: transform, filter, opacity;
+    pointer-events: auto;
+}
+
+.photo-slide__button {
+    width: min(15vw, 214px);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 1.75rem;
+    background: transparent;
+    box-shadow: none;
+    overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    pointer-events: auto;
+}
+
+.photo-slide__button:focus-visible {
+    outline: 3px solid rgba(246, 108, 176, 0.65);
+    outline-offset: 6px;
+}
+
+.photo-slide__button:hover {
+    transform: translateY(-6px);
+    box-shadow: none;
+}
+
+.photo-slide__image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.photo-carousel__controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.85rem;
+    margin-top: -0.85rem;
+}
+
+.photo-carousel__control {
+    width: 46px;
+    height: 46px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.08);
+    color: #18212f;
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.photo-carousel__control:hover {
+    transform: translateY(-2px);
+    background: rgba(246, 108, 176, 0.18);
+    color: #111827;
+}
+
+.photo-carousel__caption {
+    width: min(640px, 100%);
+    margin: 0.3rem auto 0;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #18212f;
+    min-height: 3rem;
+}
+
+.photo-carousel__hint {
+    margin: 0.2rem auto 0;
+    text-align: center;
+    color: rgba(24, 33, 47, 0.72);
+    font-size: 0.95rem;
+}
+
 .skills-logos {
     padding: 10px;
     transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -394,6 +543,14 @@ a {
         font-size: 25px;
         border-radius: 50%;
     }
+
+    .photo-carousel__shell {
+        min-height: 500px;
+    }
+
+    .photo-carousel__track {
+        min-height: 430px;
+    }
 }
 
 @media (min-width: 992px) and (max-width: 1200px) {
@@ -406,6 +563,43 @@ a {
     .grid_profile_picture::before {
         width: 95%;
         height: 95%;
+    }
+}
+
+@media (max-width: 766px) {
+    .photo-carousel__shell {
+        min-height: 390px;
+        padding-top: 1rem;
+    }
+
+    .photo-carousel {
+        width: min(100%, calc(100vw - 1rem));
+    }
+
+    .photo-carousel__track {
+        min-height: 320px;
+    }
+
+    .photo-slide {
+        flex-basis: min(19vw, 132px);
+    }
+
+    .photo-slide__button {
+        width: 100%;
+        border-radius: 1.25rem;
+    }
+
+    .photo-carousel__caption {
+        font-size: 1rem;
+        min-height: 2.5rem;
+    }
+
+    .photo-carousel__hint {
+        font-size: 0.85rem;
+    }
+
+    .photo-glide .photo-slide {
+        will-change: transform, filter, opacity;
     }
 }
 

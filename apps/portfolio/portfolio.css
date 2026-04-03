@@ -113,6 +113,24 @@ h1 {
     font-weight: bold;
 }
 
+h2,
+h5,
+p,
+a,
+button,
+li,
+.btn,
+.nav-link,
+.photo-carousel__caption,
+.photo-carousel__hint {
+    font-family: inherit;
+}
+
+h5 {
+    font-weight: 400;
+    letter-spacing: normal;
+}
+
 h1,
 h2,
 h5,
@@ -349,8 +367,11 @@ body[data-theme="light"] .photo-carousel__shell::after {
     width: min(640px, 100%);
     margin: 0.3rem auto 0;
     text-align: center;
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 400;
+    font-family: inherit;
+    letter-spacing: normal;
+    line-height: 1.5;
     color: var(--carousel-caption);
     min-height: 3rem;
 }

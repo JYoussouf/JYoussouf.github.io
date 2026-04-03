@@ -1,3 +1,38 @@
+const STORAGE_THEME_KEY = 'portfolio-theme';
+const themeToggle = document.getElementById('theme-toggle');
+
+function applyTheme(theme) {
+  const resolvedTheme = theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = resolvedTheme;
+
+  if (!themeToggle) return;
+
+  const isDark = resolvedTheme === 'dark';
+  themeToggle.setAttribute('aria-pressed', String(!isDark));
+  themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+
+  const icon = themeToggle.querySelector('i');
+  if (icon) {
+    icon.classList.toggle('bi-sun-fill', isDark);
+    icon.classList.toggle('bi-moon-stars-fill', !isDark);
+  }
+}
+
+function initializeTheme() {
+  const storedTheme = window.localStorage.getItem(STORAGE_THEME_KEY);
+  const initialTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+  applyTheme(initialTheme);
+
+  if (!themeToggle) return;
+  themeToggle.addEventListener('click', () => {
+    const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+    window.localStorage.setItem(STORAGE_THEME_KEY, nextTheme);
+    applyTheme(nextTheme);
+  });
+}
+
+initializeTheme();
+
 // Fade-In Animation
 const sections = document.querySelectorAll('.section, .solid-line');
 

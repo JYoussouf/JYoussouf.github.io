@@ -764,6 +764,16 @@ body[data-theme="light"] .photo-carousel__shell::after {
     }
 }
 
+@media (min-width: 992px) {
+    .photo-slide {
+        flex-basis: min(14vw, 196px);
+    }
+
+    .photo-slide__button {
+        width: min(14vw, 196px);
+    }
+}
+
 @media (max-width: 766px) {
     .photo-carousel__shell {
         min-height: 390px;

@@ -565,14 +565,20 @@ body[data-theme="light"] .photo-carousel__shell::after {
 .social-item {
     width: 55px;
     height: 55px;
-    line-height: 50px;
+    line-height: 1;
     font-size: 35px;
     margin-right: 5px;
     border-radius: 50%;
-    border: 2px solid var(--accent-primary);
-    color: var(--accent-primary);
+    border: 2px solid var(--text-primary);
+    color: var(--text-primary);
     display: flex;
     justify-content: center;
+    align-items: center;
+}
+
+.social-item i {
+    display: block;
+    line-height: 1;
 }
 
 .social-item-sm {
@@ -588,11 +594,17 @@ body[data-theme="light"] .photo-carousel__shell::after {
 
 }
 
-.social-item-sm:hover,
-.social-item:hover {
+.social-item-sm:hover {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
     color: #ffffff;
+    transition: all 0.1s ease-in-out;
+}
+
+.social-item:hover {
+    background-color: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--page-bg);
     transition: all 0.1s ease-in-out;
 }
 

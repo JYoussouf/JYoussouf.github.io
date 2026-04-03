@@ -1,4 +1,3 @@
-const STORAGE_THEME_KEY = 'portfolio-theme';
 const themeToggle = document.getElementById('theme-toggle');
 
 function applyTheme(theme) {
@@ -19,14 +18,13 @@ function applyTheme(theme) {
 }
 
 function initializeTheme() {
-  const storedTheme = window.localStorage.getItem(STORAGE_THEME_KEY);
-  const initialTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const initialTheme = prefersDark ? 'dark' : 'light';
   applyTheme(initialTheme);
 
   if (!themeToggle) return;
   themeToggle.addEventListener('click', () => {
     const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
-    window.localStorage.setItem(STORAGE_THEME_KEY, nextTheme);
     applyTheme(nextTheme);
   });
 }

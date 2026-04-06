@@ -71,9 +71,12 @@ if (photoCarousel && typeof EmblaCarousel === 'function') {
 
   const slides = Array.from(photoEmbla.querySelectorAll('.photo-slide'));
   const controls = Array.from(photoEmbla.querySelectorAll('.photo-carousel__control'));
-  const uniqueImageSources = [...new Set(slides
+  const baseImageSources = baseSlides
     .map((slide) => slide.querySelector('.photo-slide__image')?.getAttribute('src'))
-    .filter(Boolean))];
+    .filter(Boolean);
+  const preloadRadius = 50;
+  const preloadedImageSources = new Set();
+  const preloadedImageCache = new Map();
   let tweenFrame = null;
   let suppressClickUntil = 0;
 
@@ -88,14 +91,26 @@ if (photoCarousel && typeof EmblaCarousel === 'function') {
     startIndex: baseSlides.length * centerGroupIndex
   });
 
-  function preloadCarouselImages() {
-    uniqueImageSources.forEach((src) => {
-      const image = new Image();
-      image.decoding = 'async';
-      image.loading = 'eager';
-      image.src = src;
-      if (image.decode) image.decode().catch(() => {});
-    });
+  function preloadImageSource(src) {
+    if (!src || preloadedImageSources.has(src)) return;
+
+    const image = new Image();
+    image.decoding = 'async';
+    image.loading = 'eager';
+    image.src = src;
+    preloadedImageSources.add(src);
+    preloadedImageCache.set(src, image);
+    if (image.decode) image.decode().catch(() => {});
+  }
+
+  function preloadAroundSnap(snapIndex) {
+    if (!baseImageSources.length) return;
+
+    const centerIndex = ((snapIndex % baseImageSources.length) + baseImageSources.length) % baseImageSources.length;
+    for (let offset = -preloadRadius; offset <= preloadRadius; offset += 1) {
+      const sourceIndex = ((centerIndex + offset) % baseImageSources.length + baseImageSources.length) % baseImageSources.length;
+      preloadImageSource(baseImageSources[sourceIndex]);
+    }
   }
 
   function updateCaptionAndLabels() {
@@ -236,20 +251,25 @@ if (photoCarousel && typeof EmblaCarousel === 'function') {
   }
 
   embla.on('init', () => {
+    preloadAroundSnap(embla.selectedScrollSnap());
     updateCaptionAndLabels();
     scheduleTween();
   });
   embla.on('reInit', () => {
+    preloadAroundSnap(embla.selectedScrollSnap());
     updateCaptionAndLabels();
     scheduleTween();
   });
-  embla.on('select', updateCaptionAndLabels);
+  embla.on('select', () => {
+    preloadAroundSnap(embla.selectedScrollSnap());
+    updateCaptionAndLabels();
+  });
   embla.on('scroll', scheduleTween);
   embla.on('settle', scheduleTween);
   embla.on('resize', scheduleTween);
 
   document.addEventListener('keydown', handleCarouselKeydown);
-  preloadCarouselImages();
+  preloadAroundSnap(embla.selectedScrollSnap());
   updateCaptionAndLabels();
   scheduleTween();
 }

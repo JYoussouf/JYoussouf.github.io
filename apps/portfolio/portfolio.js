@@ -79,6 +79,7 @@ if (photoCarousel && typeof EmblaCarousel === 'function') {
   const preloadedImageCache = new Map();
   let tweenFrame = null;
   let suppressClickUntil = 0;
+  let sharpButton = null;
 
   const embla = EmblaCarousel(viewport, {
     loop: true,
@@ -264,8 +265,18 @@ if (photoCarousel && typeof EmblaCarousel === 'function') {
     preloadAroundSnap(embla.selectedScrollSnap());
     updateCaptionAndLabels();
   });
-  embla.on('scroll', scheduleTween);
-  embla.on('settle', scheduleTween);
+  embla.on('scroll', () => {
+    if (sharpButton) { sharpButton.style.willChange = ''; sharpButton = null; }
+    scheduleTween();
+  });
+  embla.on('settle', () => {
+    tweenSlides();
+    requestAnimationFrame(() => {
+      tweenSlides();
+      const btn = slides[embla.selectedScrollSnap()]?.querySelector('.photo-slide__button');
+      if (btn) { btn.style.willChange = 'transform'; sharpButton = btn; }
+    });
+  });
   embla.on('resize', scheduleTween);
 
   document.addEventListener('keydown', handleCarouselKeydown);

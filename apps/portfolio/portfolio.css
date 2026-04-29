@@ -336,6 +336,7 @@ body[data-theme="light"] .photo-carousel__shell::after {
     width: 100%;
     aspect-ratio: 4 / 3;
     object-fit: cover;
+    image-rendering: high-quality;
 }
 
 .photo-carousel__controls {
@@ -806,9 +807,6 @@ body[data-theme="light"] .photo-carousel__shell::after {
         font-size: 0.85rem;
     }
 
-    .photo-glide .photo-slide {
-        will-change: transform, filter, opacity;
-    }
 }
 
 /* Animations */

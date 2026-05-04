@@ -70,7 +70,6 @@ if (photoCarousel && typeof EmblaCarousel === 'function') {
   ).join('');
 
   const slides = Array.from(photoEmbla.querySelectorAll('.photo-slide'));
-  const controls = Array.from(photoEmbla.querySelectorAll('.photo-carousel__control'));
   const baseImageSources = baseSlides
     .map((slide) => slide.querySelector('.photo-slide__image')?.getAttribute('src'))
     .filter(Boolean);
@@ -171,16 +170,6 @@ if (photoCarousel && typeof EmblaCarousel === 'function') {
   function scrollPrev() {
     embla.scrollPrev();
   }
-
-  controls.forEach((control) => {
-    control.addEventListener('click', () => {
-      if (control.dataset.carouselDir === 'next') {
-        scrollNext();
-      } else {
-        scrollPrev();
-      }
-    });
-  });
 
   photoEmbla.addEventListener('click', (event) => {
     if (Date.now() < suppressClickUntil) {

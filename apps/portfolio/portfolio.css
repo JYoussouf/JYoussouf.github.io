@@ -339,31 +339,6 @@ body[data-theme="light"] .photo-carousel__shell::after {
     image-rendering: high-quality;
 }
 
-.photo-carousel__controls {
-    display: flex;
-    justify-content: center;
-    gap: 0.85rem;
-    margin-top: -0.85rem;
-}
-
-.photo-carousel__control {
-    width: 46px;
-    height: 46px;
-    border: 0;
-    border-radius: 999px;
-    background: var(--carousel-control-bg);
-    color: var(--carousel-control-color);
-    backdrop-filter: blur(8px);
-    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
-}
-
-.photo-carousel__control:hover {
-    transform: translateY(-2px);
-    background: var(--carousel-control-hover-bg);
-    color: var(--carousel-control-hover-color);
-}
-
 .photo-carousel__caption {
     width: min(640px, 100%);
     margin: 0.3rem auto 0;

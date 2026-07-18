@@ -1,315 +1,429 @@
-const themeToggle = document.getElementById('theme-toggle');
+/* =============================================================
+   Scroll-reveal for sections
+   ============================================================= */
+const sections = document.querySelectorAll('.section');
 
-function applyTheme(theme) {
-  const resolvedTheme = theme === 'light' ? 'light' : 'dark';
-  document.body.dataset.theme = resolvedTheme;
-
-  if (!themeToggle) return;
-
-  const isDark = resolvedTheme === 'dark';
-  themeToggle.setAttribute('aria-pressed', String(!isDark));
-  themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
-
-  const icon = themeToggle.querySelector('i');
-  if (icon) {
-    icon.classList.toggle('bi-sun-fill', isDark);
-    icon.classList.toggle('bi-moon-stars-fill', !isDark);
-  }
-}
-
-function initializeTheme() {
-  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initialTheme = prefersDark ? 'dark' : 'light';
-  applyTheme(initialTheme);
-
-  if (!themeToggle) return;
-  themeToggle.addEventListener('click', () => {
-    const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(nextTheme);
-  });
-}
-
-initializeTheme();
-
-// Fade-In Animation
-const sections = document.querySelectorAll('.section, .solid-line');
-
-const observer = new IntersectionObserver(entries => {
+const revealObserver = new IntersectionObserver(entries => {
   entries.forEach(entry => {
-	if (entry.isIntersecting) {
-	  entry.target.classList.add('fade-in');
-	  observer.unobserve(entry.target); // Stop observing once faded in
-	}
+    if (entry.isIntersecting) {
+      entry.target.classList.add('fade-in');
+      revealObserver.unobserve(entry.target);
+    }
   });
 }, {
-  threshold: 0.08 // Adjust this threshold value as needed
+  threshold: 0.08
 });
 
-sections.forEach(section => {
-  observer.observe(section);
-});
+sections.forEach(section => revealObserver.observe(section));
 
-const photoCarousel = document.getElementById('photo-carousel');
+/* =============================================================
+   Navigation: scroll shadow + mobile menu
+   ============================================================= */
+const nav = document.getElementById('nav');
+const navBurger = document.getElementById('nav-burger');
+const navLinks = document.getElementById('nav-links');
 
-if (photoCarousel && typeof EmblaCarousel === 'function') {
-  const photoEmbla = document.getElementById('photo-glide');
-  const viewport = photoEmbla.querySelector('.embla__viewport');
-  const shell = photoEmbla.querySelector('.photo-carousel__shell');
-  const caption = document.getElementById('photo-carousel-caption');
-  const track = photoEmbla.querySelector('.photo-carousel__track');
-  const baseSlides = Array.from(photoEmbla.querySelectorAll('.photo-slide'));
-  const duplicateGroups = 31;
-  const centerGroupIndex = Math.floor(duplicateGroups / 2);
-  track.innerHTML = Array.from({ length: duplicateGroups }, (_, groupIndex) =>
-    baseSlides.map((slide) => {
-      const clone = slide.cloneNode(true);
-      clone.dataset.groupIndex = String(groupIndex);
-      clone.dataset.sourceIndex = slide.dataset.photoIndex || '';
-      return clone.outerHTML;
-    }).join('')
-  ).join('');
+if (nav) {
+  const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 10);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
 
-  const slides = Array.from(photoEmbla.querySelectorAll('.photo-slide'));
-  const baseImageSources = baseSlides
-    .map((slide) => slide.querySelector('.photo-slide__image')?.getAttribute('src'))
-    .filter(Boolean);
-  const preloadRadius = 50;
-  const preloadedImageSources = new Set();
-  const preloadedImageCache = new Map();
-  let tweenFrame = null;
-  let suppressClickUntil = 0;
-  let sharpButton = null;
+if (navBurger && navLinks) {
+  navBurger.addEventListener('click', () => {
+    const open = navLinks.classList.toggle('is-open');
+    navBurger.setAttribute('aria-expanded', String(open));
+  });
+  navLinks.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      navLinks.classList.remove('is-open');
+      navBurger.setAttribute('aria-expanded', 'false');
+    });
+  });
+}
 
-  const embla = EmblaCarousel(viewport, {
-    loop: true,
-    align: 'center',
-    containScroll: false,
-    duration: 28,
-    dragFree: false,
-    skipSnaps: true,
-    watchDrag: true,
-    startIndex: baseSlides.length * centerGroupIndex
+/* =============================================================
+   Accent rail: thin gradient bar on the right bezel. Click to
+   expand (liquid-glass morph) into a hue track with two
+   draggable dots; the dots' positions pick the two accent
+   colours used everywhere. Click anywhere outside to collapse.
+   ============================================================= */
+(function initAccentRail() {
+  const rail = document.getElementById('accent-rail');
+  const bar = document.getElementById('accent-bar');
+  const panel = document.getElementById('accent-panel');
+  const closeBtn = document.getElementById('accent-close');
+  const track = document.getElementById('accent-track');
+  const handleA = document.getElementById('accent-handle-a');
+  const handleB = document.getElementById('accent-handle-b');
+  if (!rail || !bar || !panel || !track || !handleA || !handleB) return;
+
+  // Positions along the track (0..1). 0 = white, 1 = black, spectrum between.
+  const state = { a: 0, b: 1 };
+
+  function hslToHex(h, s, l) {
+    const k = (n) => (n + h / 30) % 12;
+    const f = (n) => l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    const to255 = (v) => Math.round(v * 255).toString(16).padStart(2, '0');
+    return `#${to255(f(0))}${to255(f(8))}${to255(f(4))}`;
+  }
+
+  // White at the very top, black at the very bottom, hues in between,
+  // easing through light tints / dark shades near the ends.
+  function posToColor(pos) {
+    if (pos <= 0.03) return '#ffffff';
+    if (pos >= 0.97) return '#000000';
+    const t = (pos - 0.03) / 0.94;
+    const hue = t * 360;
+    let saturation = 0.85;
+    let lightness = 0.62;
+    if (t < 0.1) {
+      const k = t / 0.1;
+      lightness = 0.95 - (0.95 - 0.62) * k;
+      saturation = 0.85 * k;
+    } else if (t > 0.9) {
+      const k = (1 - t) / 0.1;
+      lightness = 0.62 * k + 0.06 * (1 - k);
+      saturation = 0.85 * k + 0.3 * (1 - k);
+    }
+    return hslToHex(hue, saturation, lightness);
+  }
+
+  // Paint the track to exactly match the pos -> colour mapping
+  const trackStops = [];
+  for (let i = 0; i <= 20; i += 1) {
+    const p = i / 20;
+    trackStops.push(`${posToColor(p)} ${Math.round(p * 100)}%`);
+  }
+  track.style.background = `linear-gradient(180deg, ${trackStops.join(', ')})`;
+
+  function render() {
+    const colorA = posToColor(state.a);
+    const colorB = posToColor(state.b);
+    document.documentElement.style.setProperty('--accent-a', colorA);
+    document.documentElement.style.setProperty('--accent-b', colorB);
+    handleA.style.top = `${state.a * 100}%`;
+    handleB.style.top = `${state.b * 100}%`;
+    handleA.style.background = colorA;
+    handleB.style.background = colorB;
+    document.dispatchEvent(new CustomEvent('accentchange'));
+  }
+
+  function setOpen(open) {
+    rail.classList.toggle('is-open', open);
+    bar.setAttribute('aria-expanded', String(open));
+  }
+
+  bar.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setOpen(true);
+  });
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setOpen(false);
+    });
+  }
+
+  // Click anywhere outside the rail collapses it
+  document.addEventListener('click', (event) => {
+    if (rail.classList.contains('is-open') && !rail.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setOpen(false);
   });
 
-  function preloadImageSource(src) {
-    if (!src || preloadedImageSources.has(src)) return;
-
-    const image = new Image();
-    image.decoding = 'async';
-    image.loading = 'eager';
-    image.src = src;
-    preloadedImageSources.add(src);
-    preloadedImageCache.set(src, image);
-    if (image.decode) image.decode().catch(() => {});
-  }
-
-  function preloadAroundSnap(snapIndex) {
-    if (!baseImageSources.length) return;
-
-    const centerIndex = ((snapIndex % baseImageSources.length) + baseImageSources.length) % baseImageSources.length;
-    for (let offset = -preloadRadius; offset <= preloadRadius; offset += 1) {
-      const sourceIndex = ((centerIndex + offset) % baseImageSources.length + baseImageSources.length) % baseImageSources.length;
-      preloadImageSource(baseImageSources[sourceIndex]);
-    }
-  }
-
-  function updateCaptionAndLabels() {
-    const selectedIndex = embla.selectedScrollSnap();
-    const selectedSlide = slides[selectedIndex];
-    caption.textContent = selectedSlide?.dataset.caption || '';
-
-    slides.forEach((slide, index) => {
-      const button = slide.querySelector('.photo-slide__button');
-      if (!button) return;
-      button.setAttribute('aria-label', `${index === selectedIndex ? 'Open' : 'Focus'} ${slide.dataset.caption || 'photo'}`);
-    });
-  }
-
-  function tweenSlides() {
-    const viewportRect = viewport.getBoundingClientRect();
-    const viewportCenter = viewportRect.left + viewportRect.width / 2;
-    const normalizer = Math.max(viewportRect.width * 0.18, 1);
-
-    slides.forEach((slide) => {
-      const slideRect = slide.getBoundingClientRect();
-      const slideCenter = slideRect.left + slideRect.width / 2;
-      const distance = (slideCenter - viewportCenter) / normalizer;
-      const absDistance = Math.abs(distance);
-      const sign = distance === 0 ? 0 : distance > 0 ? 1 : -1;
-
-      const translateX = sign * Math.min(absDistance * 10, 38);
-      const translateY = Math.min(absDistance * 6, 18);
-      const translateZ = -Math.min(absDistance * 82, 300);
-      const rotateY = -sign * Math.min(absDistance * 14, 56);
-      const scale = Math.max(0.68, 2.72 - absDistance * 0.78);
-      const blur = absDistance < 0.55 ? absDistance * 1.1 : 0.6 + (absDistance - 0.55) * 3.4;
-      const opacity = Math.max(0.08, 1 - absDistance * 0.3);
-      const saturate = Math.max(0.68, 1 - absDistance * 0.08);
-      const brightness = Math.max(0.78, 1 - absDistance * 0.09);
-      const zIndex = String(Math.max(1, 100 - Math.round(absDistance * 16)));
-
-      slide.style.transform = `perspective(1800px) translate3d(${translateX}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
-      slide.style.filter = `blur(${blur}px) saturate(${saturate}) brightness(${brightness})`;
-      slide.style.opacity = String(opacity);
-      slide.style.zIndex = zIndex;
-    });
-  }
-
-  function scheduleTween() {
-    if (tweenFrame !== null) cancelAnimationFrame(tweenFrame);
-    tweenFrame = requestAnimationFrame(() => {
-      tweenFrame = null;
-      tweenSlides();
-    });
-  }
-
-  function scrollNext() {
-    embla.scrollNext();
-  }
-
-  function scrollPrev() {
-    embla.scrollPrev();
-  }
-
-  photoEmbla.addEventListener('click', (event) => {
-    if (Date.now() < suppressClickUntil) {
+  function startDrag(handle, key) {
+    handle.addEventListener('pointerdown', (event) => {
       event.preventDefault();
-      return;
-    }
+      handle.setPointerCapture(event.pointerId);
 
-    const button = event.target.closest('.photo-slide__button');
-    if (!button) return;
-    const slide = button.closest('.photo-slide');
-    if (!slide) return;
-
-    const selectedIndex = embla.selectedScrollSnap();
-    const targetIndex = slides.indexOf(slide);
-
-    if (targetIndex === selectedIndex) {
-      const targetUrl = slide.dataset.url;
-      if (targetUrl) window.open(targetUrl, '_blank', 'noopener');
-      return;
-    }
-
-    embla.scrollTo(targetIndex);
-  });
-
-  photoEmbla.querySelectorAll('.photo-slide__button, .photo-slide__image').forEach((element) => {
-    element.setAttribute('draggable', 'false');
-  });
-
-  shell.addEventListener('dragstart', (event) => {
-    event.preventDefault();
-  });
-
-  shell.addEventListener('pointerdown', () => {
-    shell.classList.add('is-dragging');
-  });
-
-  function finishPointer() {
-    shell.classList.remove('is-dragging');
-    suppressClickUntil = Date.now() + 120;
+      const move = (ev) => {
+        const rect = track.getBoundingClientRect();
+        state[key] = Math.min(1, Math.max(0, (ev.clientY - rect.top) / rect.height));
+        render();
+      };
+      const up = () => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        handle.removeEventListener('pointercancel', up);
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+      handle.addEventListener('pointercancel', up);
+    });
   }
 
-  shell.addEventListener('pointerup', finishPointer);
-  shell.addEventListener('pointercancel', finishPointer);
-  shell.addEventListener('pointerleave', finishPointer);
+  startDrag(handleA, 'a');
+  startDrag(handleB, 'b');
 
-  function handleCarouselKeydown(event) {
+  // Clicking the track jumps the nearest dot there
+  track.addEventListener('pointerdown', (event) => {
+    if (event.target === handleA || event.target === handleB) return;
+    const rect = track.getBoundingClientRect();
+    const pos = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    const key = Math.abs(pos - state.a) <= Math.abs(pos - state.b) ? 'a' : 'b';
+    state[key] = pos;
+    render();
+  });
+
+  render();
+})();
+
+/* =============================================================
+   Gallery slideshow: one full-res photo at a time with an
+   auto-advance timer, prev/next arrows, and dots.
+   ============================================================= */
+(function initSlideshow() {
+  const image = document.getElementById('slideshow-image');
+  const link = document.getElementById('slideshow-link');
+  const caption = document.getElementById('slideshow-caption');
+  const progressBar = document.getElementById('slideshow-progress-bar');
+  const prevBtn = document.getElementById('slideshow-prev');
+  const nextBtn = document.getElementById('slideshow-next');
+  const dotsEl = document.getElementById('slideshow-dots');
+  const slideshow = document.getElementById('slideshow');
+  if (!image || !link || !caption || !slideshow) return;
+
+  const PHOTOS = [
+    { src: 'apps/portfolio/images/me/bscs_panel.jpeg', caption: '2026 BSCS Computer Science Career Panel', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7444428489061076993/' },
+    { src: 'apps/portfolio/images/me/ieom_society_2nd_world_congress.jpeg', caption: 'IEOM Society 2nd World Congress Panel - The Future of AI', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7423061230975795200/' },
+    { src: 'apps/portfolio/images/me/oden_forge_gdg_2025.jpg', caption: 'Oden Forge and MCP at GDG 2025', url: 'https://www.linkedin.com/posts/kayode-babalola-5a8304109_windsorgdg2025-ai-machinelearning-activity-7393791535739252736-MX0y/' },
+    { src: 'apps/portfolio/images/me/gdg_devfest_2024.jpg', caption: 'ProcessAI at GDG 2024, representing Oden Technologies', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7259986985165979656/' },
+    { src: 'apps/portfolio/images/me/thelogic_conference_2024.jpg', caption: "The Logic's 2024 Panel Discussion on Responsible AI in Toronto", url: 'https://www.linkedin.com/posts/the-logic_last-night-the-logic-convened-subscribers-activity-7192256992453824512-iFOe/' },
+    { src: 'apps/portfolio/images/me/yls_2023.jpg', caption: 'Delegate for the 2023 CUTA Young Leaders Summit', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7129889897162670080/' },
+    { src: 'apps/portfolio/images/me/gdg_devfest_crowd_2023.jpg', caption: 'Google Developers Group DevFest 2023', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7128048902661931008/' },
+    { src: 'apps/portfolio/images/me/odsc_west_2023.jpg', caption: 'The Preteckt Data Science team at ODSC West 2023', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7128046865287184384/' },
+    { src: 'apps/portfolio/images/me/gdg_devfest_clustering_2022.jpg', caption: 'Google Developers Group DevFest 2022', url: 'https://www.linkedin.com/feed/update/urn:li:activity:6997615522980790272/' }
+  ];
+
+  const DELAY_MS = 12000;
+  document.documentElement.style.setProperty('--slideshow-delay', `${DELAY_MS}ms`);
+
+  let index = 0;
+  let timer = null;
+  let paused = false;
+  let fadeToken = 0;
+  const FADE_MS = 600; // keep in sync with .slideshow__image transition
+
+  // Second stacked image layer for true crossfades
+  const imageB = image.cloneNode(false);
+  imageB.removeAttribute('id');
+  imageB.style.opacity = '0';
+  image.insertAdjacentElement('afterend', imageB);
+  let front = image; // currently visible layer
+  let back = imageB; // hidden layer the next photo loads into
+
+  // Build dots
+  const dots = PHOTOS.map((photo, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.setAttribute('aria-label', `Show photo ${i + 1}: ${photo.caption}`);
+    dot.addEventListener('click', () => show(i, true));
+    dotsEl.appendChild(dot);
+    return dot;
+  });
+
+  function restartProgress() {
+    if (!progressBar) return;
+    progressBar.classList.remove('is-running');
+    // Force a reflow so the animation restarts from zero
+    void progressBar.offsetWidth;
+    if (!paused) progressBar.classList.add('is-running');
+  }
+
+  function scheduleNext() {
+    if (timer) clearTimeout(timer);
+    timer = paused ? null : setTimeout(() => show(index + 1), DELAY_MS);
+    restartProgress();
+  }
+
+  function show(nextIndex, fromUser) {
+    index = ((nextIndex % PHOTOS.length) + PHOTOS.length) % PHOTOS.length;
+    const photo = PHOTOS[index];
+
+    // Crossfade: load the photo into the hidden layer, then dissolve it
+    // in on top of the current one
+    fadeToken += 1;
+    const token = fadeToken;
+    const incoming = back;
+    const outgoing = front;
+    incoming.src = photo.src;
+    incoming.alt = photo.caption;
+
+    const decoded = incoming.decode ? incoming.decode().catch(() => {}) : Promise.resolve();
+    decoded.then(() => {
+      if (token !== fadeToken) return; // superseded by a newer transition
+      incoming.style.zIndex = '2';
+      outgoing.style.zIndex = '1';
+      requestAnimationFrame(() => {
+        if (token !== fadeToken) return;
+        incoming.style.opacity = '1';
+        setTimeout(() => {
+          if (token !== fadeToken) return;
+          // Crossfade complete: the incoming layer fully covers the old one
+          outgoing.style.opacity = '0';
+          front = incoming;
+          back = outgoing;
+        }, FADE_MS);
+      });
+    });
+
+    link.href = photo.url;
+    caption.textContent = photo.caption;
+    dots.forEach((dot, i) => dot.classList.toggle('is-active', i === index));
+
+    // Preload the following image
+    const upcoming = new Image();
+    upcoming.src = PHOTOS[(index + 1) % PHOTOS.length].src;
+
+    if (fromUser || !paused) scheduleNext();
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', () => show(index - 1, true));
+  if (nextBtn) nextBtn.addEventListener('click', () => show(index + 1, true));
+
+  // Pause while hovering, while the tab is hidden, or when off-screen
+  function setPaused(next) {
+    if (next === paused) return;
+    paused = next;
+    if (paused) {
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (progressBar) progressBar.classList.remove('is-running');
+    } else {
+      scheduleNext();
+    }
+  }
+
+  slideshow.addEventListener('mouseenter', () => setPaused(true));
+  slideshow.addEventListener('mouseleave', () => setPaused(false));
+  document.addEventListener('visibilitychange', () => setPaused(document.hidden));
+  new IntersectionObserver((entries) => {
+    setPaused(!entries.some((entry) => entry.isIntersecting) || document.hidden);
+  }).observe(slideshow);
+
+  document.addEventListener('keydown', (event) => {
     const tagName = document.activeElement?.tagName;
-    const isTypingTarget =
-      tagName === 'INPUT' ||
-      tagName === 'TEXTAREA' ||
-      document.activeElement?.isContentEditable;
+    if (tagName === 'INPUT' || tagName === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+    if (event.key === 'ArrowRight') show(index + 1, true);
+    else if (event.key === 'ArrowLeft') show(index - 1, true);
+  });
 
-    if (isTypingTarget) return;
+  show(0);
+})();
 
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      scrollNext();
-    } else if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      scrollPrev();
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      const selectedIndex = embla.selectedScrollSnap();
-      const targetUrl = slides[selectedIndex]?.dataset.url;
-      if (targetUrl) {
-        event.preventDefault();
-        window.open(targetUrl, '_blank', 'noopener');
-      }
-    }
+/* =============================================================
+   GitHub contributions: interactive per-year graph in GitHub's
+   own green palette. Years run from 2021 through the current
+   year (auto-updates); click a year to see its grid and total.
+   ============================================================= */
+(function initGitHubGraph() {
+  const yearsEl = document.getElementById('gh-years');
+  const totalEl = document.getElementById('gh-total');
+  const graphEl = document.getElementById('gh-graph');
+  if (!yearsEl || !totalEl || !graphEl) return;
+
+  const USERNAME = 'JYoussouf';
+  const START_YEAR = 2021;
+  const currentYear = new Date().getFullYear();
+  let data = null;
+  let selectedYear = currentYear;
+
+  const years = [];
+  for (let y = currentYear; y >= START_YEAR; y -= 1) years.push(y);
+
+  const yearButtons = new Map();
+  years.forEach((year) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = String(year);
+    btn.setAttribute('role', 'tab');
+    btn.addEventListener('click', () => select(year));
+    yearsEl.appendChild(btn);
+    yearButtons.set(year, btn);
+  });
+
+  // GitHub-style hover tooltip
+  const tooltip = document.createElement('div');
+  tooltip.className = 'gh-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  tooltip.hidden = true;
+  graphEl.parentElement.appendChild(tooltip);
+
+  function tooltipLabel(dateString, count) {
+    const date = new Date(`${dateString}T00:00:00`);
+    const month = date.toLocaleDateString('en-US', { month: 'long' });
+    const dayNum = date.getDate();
+    const mod10 = dayNum % 10;
+    const mod100 = dayNum % 100;
+    const suffix = mod100 >= 11 && mod100 <= 13 ? 'th' : mod10 === 1 ? 'st' : mod10 === 2 ? 'nd' : mod10 === 3 ? 'rd' : 'th';
+    const lead = count === 0 ? 'No contributions' : count === 1 ? '1 contribution' : `${count.toLocaleString()} contributions`;
+    return `${lead} on ${month} ${dayNum}${suffix}.`;
   }
 
-  embla.on('init', () => {
-    preloadAroundSnap(embla.selectedScrollSnap());
-    updateCaptionAndLabels();
-    scheduleTween();
+  graphEl.addEventListener('mouseover', (event) => {
+    const cell = event.target.closest('.gh-cell');
+    if (!cell || cell.classList.contains('gh-cell--pad') || !cell.dataset.date) return;
+    tooltip.textContent = tooltipLabel(cell.dataset.date, Number(cell.dataset.count));
+    tooltip.hidden = false;
+    const wrapRect = graphEl.parentElement.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    const half = tooltip.offsetWidth / 2;
+    const x = cellRect.left - wrapRect.left + cellRect.width / 2;
+    tooltip.style.left = `${Math.min(Math.max(x, half), wrapRect.width - half)}px`;
+    tooltip.style.top = `${cellRect.top - wrapRect.top}px`;
   });
-  embla.on('reInit', () => {
-    preloadAroundSnap(embla.selectedScrollSnap());
-    updateCaptionAndLabels();
-    scheduleTween();
-  });
-  embla.on('select', () => {
-    preloadAroundSnap(embla.selectedScrollSnap());
-    updateCaptionAndLabels();
-  });
-  embla.on('scroll', () => {
-    if (sharpButton) { sharpButton.style.willChange = ''; sharpButton = null; }
-    scheduleTween();
-  });
-  embla.on('settle', () => {
-    tweenSlides();
-    requestAnimationFrame(() => {
-      tweenSlides();
-      const btn = slides[embla.selectedScrollSnap()]?.querySelector('.photo-slide__button');
-      if (btn) { btn.style.willChange = 'transform'; sharpButton = btn; }
+  graphEl.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+
+  function renderYear(year) {
+    const days = data.contributions.filter((day) => day.date.startsWith(`${year}-`));
+    const total = data.total[year] ?? days.reduce((sum, day) => sum + day.count, 0);
+
+    totalEl.textContent = `${total.toLocaleString()} contributions in ${year}`;
+
+    graphEl.innerHTML = '';
+    tooltip.hidden = true;
+    // Pad the first week so days land on the right row (Sun = row 0)
+    const firstDay = new Date(`${year}-01-01T00:00:00`).getDay();
+    // Fluid columns: the grid always stretches the full width of the card
+    const weeks = Math.ceil((firstDay + days.length) / 7);
+    graphEl.style.gridTemplateColumns = `repeat(${weeks}, 1fr)`;
+    for (let i = 0; i < firstDay; i += 1) {
+      const pad = document.createElement('span');
+      pad.className = 'gh-cell gh-cell--pad';
+      graphEl.appendChild(pad);
+    }
+    days.forEach((day) => {
+      const cell = document.createElement('span');
+      cell.className = 'gh-cell';
+      cell.dataset.level = String(day.level);
+      cell.dataset.date = day.date;
+      cell.dataset.count = String(day.count);
+      graphEl.appendChild(cell);
     });
-  });
-  embla.on('resize', scheduleTween);
-
-  document.addEventListener('keydown', handleCarouselKeydown);
-  preloadAroundSnap(embla.selectedScrollSnap());
-  updateCaptionAndLabels();
-  scheduleTween();
-}
-
-
-// Helper: scroll so the solid line is at the very top when navigating to a section
-function scrollToSectionWithLine(sectionId) {
-  const section = document.getElementById(sectionId);
-  if (!section) return;
-  // Find the first .solid-line inside or before this section
-  let line = section.querySelector('.solid-line');
-  if (!line) {
-    // Look for previous sibling .solid-line
-    let prev = section.previousElementSibling;
-    while (prev && !prev.classList.contains('solid-line')) prev = prev.previousElementSibling;
-    line = prev;
   }
-  if (line) {
-    // Account for fixed navbar height if present
-    const navbar = document.querySelector('.navbar.fixed-top');
-    const navHeight = navbar ? navbar.offsetHeight : 0;
-    const y = line.getBoundingClientRect().top + window.scrollY - navHeight;
-    window.scrollTo({ top: y, behavior: 'smooth' });
-  } else {
-    // Fallback: scroll to section top
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-}
 
-// Intercept navbar clicks to use custom scroll
-let navbar = document.querySelector("#home");
-navbar.addEventListener("click", (e) => {
-  if (e.target.classList.length === 1 && e.target.classList.contains("nav-link")) {
-    navbar.querySelectorAll(".nav-link.selected").forEach((item) => item.classList.remove("selected"));
-    e.target.classList.add("selected");
-    const href = e.target.getAttribute('href');
-    if (href && href.startsWith('#')) {
-      e.preventDefault();
-      const sectionId = href.slice(1);
-      scrollToSectionWithLine(sectionId);
-    }
+  function select(year) {
+    selectedYear = year;
+    yearButtons.forEach((btn, y) => {
+      btn.classList.toggle('is-active', y === year);
+      btn.setAttribute('aria-selected', String(y === year));
+    });
+    if (data) renderYear(year);
   }
-});
+
+  select(currentYear);
+
+  fetch(`https://github-contributions-api.jogruber.de/v4/${USERNAME}?y=all`)
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    })
+    .then((json) => {
+      data = json;
+      renderYear(selectedYear);
+    })
+    .catch(() => {
+      totalEl.textContent = 'Contribution data is unavailable right now.';
+    });
+})();

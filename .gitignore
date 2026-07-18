@@ -8,6 +8,11 @@
 .dev.vars
 .secrets*
 
+# Oden demo HTML is private: bundled into the oden-demo worker at deploy time,
+# never published via GitHub Pages (the whole repo root is served publicly).
+workers/oden/demo.html
+apps/OdenProStudios/
+
 # Private key material
 *.pem
 *.key

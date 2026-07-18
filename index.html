@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-	
+
 <head>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2P0ML7J3T8"></script>
@@ -8,236 +8,224 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-2P0ML7J3T8');
     </script>
 
-	<!-- Meta Data -->
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="description" content="Data Scientist">
-	<meta name="author" content="Joe Youssouf">
-	<title>Joe Youssouf, Data Scientist</title>
+    <!-- Meta Data -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Joe Youssouf - Data Scientist at Oden Technologies, based in Toronto.">
+    <meta name="author" content="Joe Youssouf">
+    <meta name="theme-color" content="#0a0a0b">
+    <title>Joe Youssouf - Data Scientist</title>
 
-	<!-- Favicon -->
-	<link rel="icon" type="image/x-icon" href="apps/portfolio/images/favicon.ico">
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="apps/portfolio/images/joseppy-mark.ico?f=ab">
 
-	<!-- Bootstrap Core CSS 5.3.2 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
     <!-- Icons -->
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
 
-	<!-- Stylesheet File -->
-	<link href="apps/portfolio/portfolio.css" rel="stylesheet">
+    <!-- Stylesheet File -->
+    <link href="apps/portfolio/portfolio.css" rel="stylesheet">
 </head>
 
-<body id="home">
-    <!-- Bootstrap Navigation Bar -->
-    <nav class="navbar navbar-expand-lg fixed-top">
-        <div class="container" style="flex-direction: row;">
-        <!--Site Logo-->
-        <a class="navbar-brand" href="#home"><img src="apps/portfolio/images/logos/joseppy_logo.png" alt=""></a>
-        <!--Hamburger Menu-->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <!--Nav Headers-->
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
-            <li>
-                <a class="nav-link" href="#home">Home</a>
-            </li>
-            <li>
-                <a class="nav-link" href="apps/portfolio/cv/JoeYoussouf-CV.pdf">CV</a>
-            </li>
-            <li>
-                <a class="nav-link" href="#about_me">About Me</a>
-            </li>
-            <li>
-                <a class="nav-link" href="#games">Games</a>
-            </li>  
-            <!-- <li>
-                <a class="nav-link" href="#profile_of_skills">Profile of Skills</a>
-            </li> -->
-            <li>
-                <a class="nav-link btn btn-primary" href=#home style="font-weight: 10;">joseppy</a>
-            </li>
-            <li>
-                <button class="theme-toggle btn" type="button" id="theme-toggle" aria-label="Switch to light mode" aria-pressed="false">
-                    <i class="bi bi-sun-fill" aria-hidden="true"></i>
-                </button>
-            </li>
-          </ul>
-        </div>
-        </div>
-    </nav>
+<body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
 
-    <!-- Page Header -->
-    <header id="home" class="section">
-        <div class="container grid-container">
-                <!-- Profile Picture -->
-                <div class="grid-item grid_profile_picture">
-                    <img src="apps/portfolio/images/me/joe_youssouf_linkedin.jpg" alt=""></img>
-                </div>
-                <div class="grid-item grid_profile_info">
-                    <h1>Joe Youssouf</h1>
-                    <h5>Data Scientist at Oden Technologies</h5>
-                    <div class="button-container">
-                        <a class="btn btn-primary rounded" href="https://www.linkedin.com/in/joeyoussouf/overlay/contact-info/">Contact</a>
-                        <a class="btn btn-dark rounded" href="apps/portfolio/cv/JoeYoussouf-CV.pdf">Download CV</a>
-                    </div>
-                </div>
-                <div class="grid-item grid_social_links">
-                    <a class="social-item" href="https://linkedin.com/in/joeyoussouf" title="LinkedIn" target="_blank"><i class="bi bi-linkedin" alt=""></i></a>
-                    <a class="social-item" href="https://github.com/JYoussouf" title="GitHub" target="_blank"><i class="bi bi-github" alt=""></i></a>
-                    <a class="social-item" href="https://stackoverflow.com/users/20719929/joseppy" title="Stack Overflow" target="_blank"><i class="bi bi-stack-overflow" alt=""></i></a>
-                </div> 
-            </div>              
-        </div>  
+    <!-- Navigation -->
+    <header class="nav" id="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="#top" aria-label="Home">
+                <svg class="logo-badge" viewBox="0 0 40 40" aria-hidden="true">
+                    <mask id="logo-cut-nav">
+                        <rect width="40" height="40" fill="white"/>
+                        <text x="20" y="27.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="black">J</text>
+                    </mask>
+                    <circle cx="20" cy="20" r="19" fill="#181717" mask="url(#logo-cut-nav)"/>
+                </svg>
+            </a>
+            <nav class="nav__links" id="nav-links" aria-label="Primary">
+                <a href="#gallery">Gallery</a>
+                <a href="#projects">Projects</a>
+                <a class="nav__cta" href="apps/portfolio/cv/JoeYoussouf-CV.pdf" target="_blank" rel="noopener">CV <i class="bi bi-arrow-up-right"></i></a>
+            </nav>
+            <div class="nav__actions">
+                <button class="nav__burger" type="button" id="nav-burger" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
     </header>
-    <!-- End of Page Header -->
-    <div class="solid-line"></div>
-    <!-- About Me section -->
-    <section id="about_me" class="section">
-        <div class="container">
-            <div class="photo-carousel fade-in" id="photo-carousel" tabindex="0" aria-label="Photo highlights carousel">
-                <div class="photo-glide photo-embla" id="photo-glide">
-                    <div class="embla__viewport photo-carousel__shell">
-                        <div class="embla__container photo-carousel__track">
-                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="2026 BSCS Computer Science Career Panel" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7444428489061076993/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus 2026 BSCS Computer Science Career Panel">
-                                    <img src="apps/portfolio/images/me/bscs_panel.jpeg" alt="2026 BSCS Computer Science Career Panel" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="IEOM Society 2nd World Congress Panel - The Future of AI" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7423061230975795200/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus IEOM Society 2nd World Congress">
-                                    <img src="apps/portfolio/images/me/ieom_society_2nd_world_congress.jpeg" alt="IEOM Society 2nd World Congress" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="Oden Forge and MCP at GDG 2025" data-url="https://www.linkedin.com/posts/kayode-babalola-5a8304109_windsorgdg2025-ai-machinelearning-activity-7393791535739252736-MX0y/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus Oden Forge and MCP at GDG 2025">
-                                    <img src="apps/portfolio/images/me/oden_forge_gdg_2025.jpg" alt="Oden Forge and MCP at GDG 2025" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="0" data-caption="ProcessAI at GDG 2024, representing Oden Technologies" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7259986985165979656/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus ProcessAI at GDG 2024, representing Oden Technologies">
-                                    <img src="apps/portfolio/images/me/gdg_devfest_2024.jpg" alt="ProcessAI at GDG 2024, representing Oden Technologies" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="1" data-caption="The Logic's 2024 Panel Discussion on Responsible AI in Toronto" data-url="https://www.linkedin.com/posts/the-logic_last-night-the-logic-convened-subscribers-activity-7192256992453824512-iFOe/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus The Logic's 2024 Panel Discussion on Responsible AI in Toronto">
-                                    <img src="apps/portfolio/images/me/thelogic_conference_2024.jpg" alt="The Logic's 2024 Panel Discussion on Responsible AI in Toronto" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="2" data-caption="Delegate for the 2023 CUTA Young Leaders Summit" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7129889897162670080/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus Delegate for the 2023 CUTA Young Leaders Summit">
-                                    <img src="apps/portfolio/images/me/yls_2023.jpg" alt="Delegate for the 2023 CUTA Young Leaders Summit" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="3" data-caption="Google Developers Group DevFest 2023" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7128048902661931008/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus Google Developers Group DevFest 2023">
-                                    <img src="apps/portfolio/images/me/gdg_devfest_crowd_2023.jpg" alt="Google Developers Group DevFest 2023" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="4" data-caption="The Preteckt Data Science team at ODSC West 2023" data-url="https://www.linkedin.com/feed/update/urn:li:activity:7128046865287184384/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus The Preteckt Data Science team at ODSC West 2023">
-                                    <img src="apps/portfolio/images/me/odsc_west_2023.jpg" alt="The Preteckt Data Science team at ODSC West 2023" class="photo-slide__image">
-                                </button>
-                            </article>
-                            <article class="embla__slide photo-slide" data-photo-index="5" data-caption="Google Developers Group DevFest 2022" data-url="https://www.linkedin.com/feed/update/urn:li:activity:6997615522980790272/">
-                                <button class="photo-slide__button" type="button" aria-label="Focus Google Developers Group DevFest 2022">
-                                    <img src="apps/portfolio/images/me/gdg_devfest_clustering_2022.jpg" alt="Google Developers Group DevFest 2022" class="photo-slide__image">
-                                </button>
-                            </article>
+
+    <!-- Accent rail: thin gradient bar on the right bezel, expands into a colour picker -->
+    <div class="accent-rail" id="accent-rail">
+        <button class="accent-rail__bar" id="accent-bar" type="button" aria-label="Customize accent gradient" aria-expanded="false"></button>
+        <div class="accent-rail__panel" id="accent-panel" role="dialog" aria-label="Accent gradient picker">
+            <button class="accent-rail__close" id="accent-close" type="button" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+            <div class="accent-rail__track" id="accent-track">
+                <button class="accent-rail__handle" id="accent-handle-a" type="button" aria-label="First colour"></button>
+                <button class="accent-rail__handle" id="accent-handle-b" type="button" aria-label="Second colour"></button>
+            </div>
+        </div>
+    </div>
+
+    <main id="main">
+        <!-- Hero -->
+        <section class="hero" aria-label="Introduction">
+            <div class="hero__bg" id="hero-bg" aria-hidden="true"></div>
+            <div class="hero__grain" aria-hidden="true"></div>
+            <div class="hero__content">
+                <img class="hero__avatar" src="apps/portfolio/images/me/joe_youssouf_linkedin.jpg" alt="Joe Youssouf">
+                <h1 class="hero__title">Joe Youssouf</h1>
+                <p class="hero__sub">Data Scientist</p>
+                <div class="hero__socials" aria-label="Social links">
+                    <a class="social-item" href="https://linkedin.com/in/joeyoussouf" title="LinkedIn" target="_blank" rel="noopener"><i class="bi bi-linkedin"></i></a>
+                    <a class="social-item" href="https://github.com/JYoussouf" title="GitHub" target="_blank" rel="noopener"><i class="bi bi-github"></i></a>
+                </div>
+            </div>
+
+            <div class="hero__meta">
+                <span>[ Windsor, Canada ]</span>
+                <a href="https://oden.io" target="_blank" rel="noopener">[ Oden Technologies ]</a>
+                <span>[ joseppy.ca ]</span>
+            </div>
+        </section>
+
+        <!-- Gallery -->
+        <section class="section" id="gallery">
+            <div class="section__head">
+                <h2 class="section__title">Gallery</h2>
+                <p class="section__sub">A few talks, panels, and conferences over the years. Click a photo to open the post.</p>
+            </div>
+            <div class="slideshow" id="slideshow" aria-roledescription="carousel" aria-label="Photo gallery">
+                <div class="slideshow__stage">
+                    <button class="slideshow__arrow slideshow__arrow--prev" id="slideshow-prev" type="button" aria-label="Previous photo">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <a class="slideshow__frame" id="slideshow-link" href="#" target="_blank" rel="noopener">
+                        <img class="slideshow__image" id="slideshow-image" src="apps/portfolio/images/me/bscs_panel.jpeg" alt="">
+                        <div class="slideshow__progress"><span id="slideshow-progress-bar"></span></div>
+                    </a>
+                    <button class="slideshow__arrow slideshow__arrow--next" id="slideshow-next" type="button" aria-label="Next photo">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+                <p class="slideshow__caption" id="slideshow-caption" aria-live="polite"></p>
+                <div class="slideshow__dots" id="slideshow-dots" role="tablist" aria-label="Choose photo"></div>
+            </div>
+        </section>
+
+        <!-- Projects -->
+        <section class="section" id="projects">
+            <div class="section__head">
+                <h2 class="section__title">Projects</h2>
+            </div>
+
+            <!-- Companies -->
+            <div class="work-block">
+                <h3 class="work-block__title">Major Projects</h3>
+                <div class="company-grid">
+                    <a class="company" href="https://oden.io/" target="_blank" rel="noopener">
+                        <img class="company__logo" src="apps/portfolio/images/logos/Oden.svg" alt="Oden Technologies">
+                        <h4 class="company__role">Data Scientist</h4>
+                        <p class="company__blurb">Oden helps factories catch production problems early by making sense of their machines' sensor data.</p>
+                    </a>
+                    <a class="company" href="https://preteckt.com/" target="_blank" rel="noopener">
+                        <img class="company__logo" src="apps/portfolio/images/logos/preteckt_logo.png" alt="Preteckt">
+                        <h4 class="company__role">Data Scientist <span class="company__note">· Acquired by Diesel Laptops / Snap-on</span></h4>
+                        <p class="company__blurb">Preteckt predicts when trucks and buses will need repairs, before they break down on the road.</p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Apps -->
+            <div class="work-block">
+                <h3 class="work-block__title">Apps</h3>
+                <div class="card-grid card-grid--apps">
+                    <a class="card card--app" href="https://apps.apple.com/ca/app/sushi-party/id6782783583" target="_blank" rel="noopener">
+                        <img class="card--app__icon" src="apps/portfolio/images/apps/sushi_party.jpg" alt="Sushi Party app icon">
+                        <div class="card--app__body">
+                            <h4>Sushi Party</h4>
+                            <p>A simple scoreboard for all-you-can-eat sushi: count plates and keep track of who ate what.</p>
+                            <span class="card__meta"><i class="bi bi-apple"></i> App Store · Free</span>
+                            <div class="card__tags"><span>iOS</span><span>Food &amp; Drink</span></div>
+                        </div>
+                        <i class="bi bi-arrow-up-right card__go"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Games -->
+            <div class="work-block">
+                <h3 class="work-block__title">Web games</h3>
+                <div class="card-grid card-grid--games">
+                    <a class="card card--game" href="apps/northern_eh/">
+                        <img src="apps/northern_eh/northern_eh_logo.png" alt="Northern Eh" class="card--game__art">
+                        <span class="card__go-pill">Play <i class="bi bi-arrow-right"></i></span>
+                    </a>
+                    <a class="card card--game" href="apps/the_great_puppy_detective/">
+                        <img src="apps/the_great_puppy_detective/thegpd_logo.png" alt="The Great Puppy Detective" class="card--game__art">
+                        <span class="card__go-pill">Play <i class="bi bi-arrow-right"></i></span>
+                    </a>
+                    <a class="card card--game card--game--text" href="apps/spotify_venn/">
+                        <div class="card--game__gradient">
+                            <div class="card--game__label">Spotify Venn</div>
+                            <div class="card--game__desc">Compare listening overlap</div>
+                        </div>
+                        <span class="card__go-pill">Open <i class="bi bi-arrow-right"></i></span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- GitHub -->
+            <div class="work-block">
+                <h3 class="work-block__title">On GitHub</h3>
+                <div class="gh-layout">
+                    <div class="github-card">
+                        <div class="github-card__head">
+                            <a href="https://github.com/JYoussouf" target="_blank" rel="noopener"><i class="bi bi-github"></i> @JYoussouf</a>
+                            <a class="github-card__go" href="https://github.com/JYoussouf" target="_blank" rel="noopener">View profile <i class="bi bi-arrow-up-right"></i></a>
+                        </div>
+                        <p class="gh-total" id="gh-total">Loading contributions…</p>
+                        <div class="gh-graph-wrap">
+                            <div class="gh-graph" id="gh-graph" aria-label="Contribution graph"></div>
                         </div>
                     </div>
+                    <div class="gh-years" id="gh-years" role="tablist" aria-label="Contribution years"></div>
                 </div>
-                <p class="photo-carousel__caption" id="photo-carousel-caption" aria-live="polite">
-                    ProcessAI at GDG 2024, representing Oden Technologies
-                </p>
             </div>
-        </div>
-    </section>
-	<!-- End of About Me Section -->
-    <div class="solid-line"></div>
-    <!-- Games Section -->
-    <section id="games" class="section" style="padding: 10px 0 8px 0;">
-        <div class="container">
-            <h2 style="text-align: margin-bottom: 20px;">Games</h2>
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 32px;">
-                <a href="apps/northern_eh/" style="display:inline-block; text-decoration:none;">
-                    <img src="apps/northern_eh/northern_eh_logo.png" alt="Northern Eh App Logo" class="img-thumbnail fade-in" style="max-width:520px; max-height:260px; border-radius:1.25rem; margin:0;" />
-                </a>
-                <a href="apps/the_great_puppy_detective" style="display:inline-block; text-decoration:none;">
-                    <img src="apps/the_great_puppy_detective/thegpd_logo.png" alt="The Great Puppy Detective Logo" class="img-thumbnail fade-in" style="max-width:520px; max-height:260px; border-radius:1.25rem; margin:0;" />
-                </a>
-                <a href="apps/spotify_venn/" style="display:inline-block; text-decoration:none;">
-                    <div class="img-thumbnail fade-in" style="width:340px; height:220px; border-radius:1.25rem; margin:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:linear-gradient(135deg, #1b1f27 0%, #1db954 100%); color:#ffffff; border:none;">
-                        <div style="font-size:1.85rem; font-weight:700; letter-spacing:0.2px;">Spotify Venn</div>
-                        <div style="font-size:1.02rem; margin-top:8px; opacity:0.95; text-align:center; max-width:80%;">Compare listening overlap (WIP)</div>
-                    </div>
-                </a>
-            </div>
-        </div>
-    </section>
-    <!-- <div class="solid-line" style="margin-top: 10px; margin-bottom: 10px;"></div> -->
-    <!-- Profile of Skills -->
-    <!-- <section id="profile_of_skills" class="section">
-        <div class="container">
-            <div>
-                <h2></h2>
-            </div>
-            <div style="display: flex; justify-content: center; align-items: center; gap: 80px; margin-bottom: 40px;">
-                <a href="https://oden.io/">
-                    <img src="apps/portfolio/images/logos/Oden.svg" class="img-header img-fluid" style="width: 500px; height: auto;" alt="">
-                </a>
-                <a href="https://preteckt.com/">
-                    <img src="apps/portfolio/images/logos/preteckt_letterhead.png" class="img-header img-fluid" style="width: 500px; height: auto;" alt="">
-                </a>
-            </div>
-            <div>
-                <h2>My Favourite Tools</h2>           
-            </div>
-            <div class="centered-items">
-                <a href="https://www.python.org/"><img src="apps/portfolio/images/logos/python_logo.png" style="width:200px; margin-left:10px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://pandas.pydata.org/"><img src="apps/portfolio/images/logos/pandas_logo.png" style="width:300px;margin-left:10px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://numpy.org/"><img src="apps/portfolio/images/logos/numpy_logo.png" style="width:200px; margin-left:10px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://scikit-learn.org/stable/"><img src="apps/portfolio/images/logos/scitkit_learn_logo.png" style="width:300px; margin-left:10px;" class="skills-logos img-fluid" alt=""></a>
-            </div>
-            <div class="centered-items">
-                <a href="https://matplotlib.org/"><img src="apps/portfolio/images/logos/matplotlib_logo.png" style="width:180px;margin-right:30px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://www.djangoproject.com/"><img src="apps/portfolio/images/logos/django_logo.png" style="width:180px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://dagster.io/"><img src="apps/portfolio/images/logos/dagster_logo.png" style="width: 300px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://www.postgresql.org/"><img src="apps/portfolio/images/logos/postgres_logo.png" style="width: 150px; margin-right:30px;" class="skills-logos img-fluid" alt=""></a>
-            </div>
-            <div class="centered-items">
-                <a href="https://jupyter.org/"><img src="apps/portfolio/images/logos/jupyter_logo.png" style="width:120px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://spark.apache.org/docs/latest/api/python/index.html"><img src="apps/portfolio/images/logos/apache_spark_logo.png" style="width:180px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://git-scm.com/"><img src="apps/portfolio/images/logos/git_logo.png" style="width:120px;" class="skills-logos img-fluid" alt=""></a>
-                <a href="https://ubuntu.com/"><img src="apps/portfolio/images/logos/ubuntu_logo.png" style="width:120px;" class="skills-logos img-fluid" alt=""></a>
-            </div>
-        </div>
-    </section> -->
-    <!-- End of Profile of Skills Section -->
-    <!-- Page Footer -->
+        </section>
+
+    </main>
+
+    <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <div class = "footer-text">
-                <p><i> 04-2026 Joe Youssouf</i></p>
+        <div class="footer__inner">
+            <div class="footer__brand">
+                <svg class="logo-badge logo-badge--sm" viewBox="0 0 40 40" aria-hidden="true">
+                    <mask id="logo-cut-footer">
+                        <rect width="40" height="40" fill="white"/>
+                        <text x="20" y="27.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="black">J</text>
+                    </mask>
+                    <circle cx="20" cy="20" r="19" fill="#181717" mask="url(#logo-cut-footer)"/>
+                </svg>
+                <span>Joe Youssouf</span>
             </div>
-			<div class="footer-socials">
-				<a class="social-item-sm" href="https://linkedin.com/in/joeyoussouf" title="LinkedIn" target="_blank"><i class="bi bi-linkedin" alt=""></i></a>
-				<a class="social-item-sm" href="https://github.com/JYoussouf" title="GitHub" target="_blank"><i class="bi bi-github" alt=""></i></a>
-				<a class="social-item-sm" href="https://stackoverflow.com/users/20719929/joseppy" title="Stack Overflow" target="_blank"><i class="bi bi-stack-overflow" alt=""></i></a>
-			</div>
+            <div class="footer__socials">
+                <a class="social-item-sm" href="https://linkedin.com/in/joeyoussouf" title="LinkedIn" target="_blank" rel="noopener"><i class="bi bi-linkedin"></i></a>
+                <a class="social-item-sm" href="https://github.com/JYoussouf" title="GitHub" target="_blank" rel="noopener"><i class="bi bi-github"></i></a>
+            </div>
+            <p class="footer__copy">© 2026 Joe Youssouf · joseppy.ca</p>
         </div>
-    </footer> 
-    <!-- End of page footer -->
+    </footer>
 
     <!-- custom js -->
-    <script src="https://unpkg.com/embla-carousel/embla-carousel.umd.js"></script>
     <script src="apps/portfolio/portfolio.js"></script>
-
+    <script type="module" src="apps/portfolio/hero-shader.js"></script>
 </body>
 </html>

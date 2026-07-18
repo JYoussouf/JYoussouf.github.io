@@ -366,11 +366,12 @@ if (navBurger && navLinks) {
     if (!cell || cell.classList.contains('gh-cell--pad') || !cell.dataset.date) return;
     tooltip.textContent = tooltipLabel(cell.dataset.date, Number(cell.dataset.count));
     tooltip.hidden = false;
-    const wrapRect = graphEl.parentElement.getBoundingClientRect();
+    const wrap = graphEl.parentElement;
+    const wrapRect = wrap.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
     const half = tooltip.offsetWidth / 2;
-    const x = cellRect.left - wrapRect.left + cellRect.width / 2;
-    tooltip.style.left = `${Math.min(Math.max(x, half), wrapRect.width - half)}px`;
+    const x = cellRect.left - wrapRect.left + wrap.scrollLeft + cellRect.width / 2;
+    tooltip.style.left = `${Math.min(Math.max(x, wrap.scrollLeft + half), wrap.scrollLeft + wrapRect.width - half)}px`;
     tooltip.style.top = `${cellRect.top - wrapRect.top}px`;
   });
   graphEl.addEventListener('mouseleave', () => { tooltip.hidden = true; });

@@ -654,7 +654,7 @@ p { margin: 0; }
     color: var(--accent-ink);
 }
 .gh-total { font-size: 0.92rem; color: var(--text-muted); margin-bottom: 1rem; }
-.gh-graph-wrap { position: relative; }
+.gh-graph-wrap { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .gh-graph {
     display: grid;
     grid-auto-flow: column;
@@ -934,15 +934,21 @@ p { margin: 0; }
     .nav__links > a { padding: 0.85rem 0.5rem; font-size: 0.95rem; }
     .nav__cta { justify-content: center; margin-top: 0.4rem; }
 
-    .gh-layout { flex-direction: column; }
+    .nav__actions { margin-left: auto; }
+
+    .gh-layout { flex-direction: column; align-items: stretch; }
     .gh-years { flex-direction: row; flex-wrap: wrap; width: 100%; }
+    /* Keep contribution cells readable: pan the graph sideways instead
+       of crushing 53 weeks into a phone width */
+    .gh-graph { min-width: 620px; }
 
     .card--app { flex-direction: row; }
     .slideshow__arrow { width: 38px; height: 38px; font-size: 1rem; }
 }
 
 @media (max-width: 480px) {
-    .hero__title { font-size: clamp(3rem, 18vw, 4.5rem); }
+    .hero__title { font-size: clamp(2.2rem, 10.5vw, 2.9rem); }
+    .hero__sub { font-size: 1.25rem; }
     .card--app { flex-direction: column; text-align: center; align-items: flex-start; }
     .footer__socials { margin-left: 0; }
 }

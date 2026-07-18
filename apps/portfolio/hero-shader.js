@@ -50,7 +50,7 @@ function fallback() {
 
 if (host) {
   try {
-    const SPEED = 0.8;
+    const SPEED = 1.0;
     // A fresh pattern on every refresh: jitter the warp parameters and
     // start the animation at a random point in time
     const rand = (min, max) => min + Math.random() * (max - min);

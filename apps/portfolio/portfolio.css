@@ -41,7 +41,12 @@
 *::before,
 *::after { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+    scroll-behavior: smooth;
+    /* Stop iOS Safari from inflating heading text beyond the viewport */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
 
 :where(.section, .hero, .closer)[id],
 [id] { scroll-margin-top: calc(var(--nav-h) + 16px); }
@@ -105,7 +110,7 @@ p { margin: 0; }
     width: 100%;
     max-width: var(--maxw);
     margin: 0 auto;
-    padding: 0 var(--gutter);
+    padding: 0 max(var(--gutter), env(safe-area-inset-right)) 0 max(var(--gutter), env(safe-area-inset-left));
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -947,7 +952,7 @@ p { margin: 0; }
 }
 
 @media (max-width: 480px) {
-    .hero__title { font-size: clamp(2.2rem, 10.5vw, 2.9rem); }
+    .hero__title { font-size: clamp(2rem, 9.5vw, 2.7rem); white-space: nowrap; }
     .hero__sub { font-size: 1.25rem; }
     .card--app { flex-direction: column; text-align: center; align-items: flex-start; }
     .footer__socials { margin-left: 0; }

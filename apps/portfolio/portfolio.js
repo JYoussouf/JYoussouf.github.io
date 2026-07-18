@@ -343,12 +343,14 @@ if (navBurger && navLinks) {
     yearButtons.set(year, btn);
   });
 
-  // GitHub-style hover tooltip
+  // GitHub-style hover tooltip. Lives on the card (not the scrollable
+  // graph wrap) so it is never clipped by the pannable area.
+  const card = graphEl.closest('.github-card');
   const tooltip = document.createElement('div');
   tooltip.className = 'gh-tooltip';
   tooltip.setAttribute('role', 'tooltip');
   tooltip.hidden = true;
-  graphEl.parentElement.appendChild(tooltip);
+  card.appendChild(tooltip);
 
   function tooltipLabel(dateString, count) {
     const date = new Date(`${dateString}T00:00:00`);
@@ -366,15 +368,19 @@ if (navBurger && navLinks) {
     if (!cell || cell.classList.contains('gh-cell--pad') || !cell.dataset.date) return;
     tooltip.textContent = tooltipLabel(cell.dataset.date, Number(cell.dataset.count));
     tooltip.hidden = false;
-    const wrap = graphEl.parentElement;
-    const wrapRect = wrap.getBoundingClientRect();
+    // Position relative to the card using on-screen rects (scroll-proof)
+    const cardRect = card.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
     const half = tooltip.offsetWidth / 2;
-    const x = cellRect.left - wrapRect.left + wrap.scrollLeft + cellRect.width / 2;
-    tooltip.style.left = `${Math.min(Math.max(x, wrap.scrollLeft + half), wrap.scrollLeft + wrapRect.width - half)}px`;
-    tooltip.style.top = `${cellRect.top - wrapRect.top}px`;
+    const x = cellRect.left - cardRect.left + cellRect.width / 2;
+    tooltip.style.left = `${Math.min(Math.max(x, half + 4), cardRect.width - half - 4)}px`;
+    tooltip.style.top = `${cellRect.top - cardRect.top}px`;
   });
   graphEl.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+  graphEl.parentElement.addEventListener('scroll', () => { tooltip.hidden = true; }, { passive: true });
+  document.addEventListener('touchstart', (event) => {
+    if (!graphEl.contains(event.target)) tooltip.hidden = true;
+  }, { passive: true });
 
   function renderYear(year) {
     const days = data.contributions.filter((day) => day.date.startsWith(`${year}-`));

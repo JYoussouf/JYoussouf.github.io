@@ -225,6 +225,7 @@ async function submitLeaderboardScore(name, score) {
     if (resp.ok) {
       mergeLocalLeaderboard(name, score);
       sessionToken = null;
+      if (window.sa) window.sa.track("score_submit", name + ":" + score);
     } else if (resp.status === 403) {
       sessionToken = null;
     }

@@ -142,6 +142,10 @@
       <h2>Recent clicks</h2>
       <div id="recent-events-table"></div>
     </div>
+    <div class="card">
+      <h2>Puppy Detective leaderboard</h2>
+      <div id="leaderboard-table"></div>
+    </div>
   </div>
   <div class="card">
     <h2>Recent sessions</h2>
@@ -241,6 +245,7 @@
     renderEvents(data.events || []);
     renderRecentEvents(data.recentEvents || []);
     renderRecent(data.recent);
+    if (!leaderboardLoaded) { leaderboardLoaded = true; loadLeaderboard(); }
   }
 
   function renderRanges() {
@@ -445,7 +450,7 @@
     wrap.appendChild(table([{ label: "Country" }, { label: "Plays", num: 1 }, { label: "Time", num: 1 }], rows));
   }
 
-  var EVENT_LABELS = { cv_open: "CV opened", github_click: "GitHub visit", tierlistbot_click: "TierListBot visit" };
+  var EVENT_LABELS = { cv_open: "CV opened", github_click: "GitHub visit", tierlistbot_click: "TierListBot visit", score_submit: "Score submitted" };
   function eventLabel(name) { return EVENT_LABELS[name] || name; }
 
   function renderEvents(events) {
@@ -476,6 +481,30 @@
     });
     wrap.appendChild(table([{ label: "Event" }, { label: "Where" }, { label: "When", num: 1 }], rows));
   }
+
+  function loadLeaderboard() {
+    var wrap = document.getElementById("leaderboard-table");
+    fetch("https://gpd-leaderboard.joseppy-workers.workers.dev/api/leaderboard?limit=10")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var entries = data.entries || [];
+        wrap.textContent = "";
+        if (!entries.length) { wrap.appendChild(el("div", { class: "empty", text: "No scores yet." })); return; }
+        var rows = entries.map(function (entry, i) {
+          return el("tr", {}, [
+            el("td", { class: "num sub", text: String(i + 1) }),
+            el("td", { text: entry[0] }),
+            el("td", { class: "num", text: String(entry[1]) })
+          ]);
+        });
+        wrap.appendChild(table([{ label: "#", num: 1 }, { label: "Player" }, { label: "Score", num: 1 }], rows));
+      })
+      .catch(function () {
+        wrap.textContent = "";
+        wrap.appendChild(el("div", { class: "empty", text: "Leaderboard unavailable." }));
+      });
+  }
+  var leaderboardLoaded = false;
 
   function renderRecent(recent) {
     var wrap = document.getElementById("recent-table");

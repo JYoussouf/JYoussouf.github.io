@@ -46,6 +46,22 @@
     navigator.sendBeacon(ENDPOINT, JSON.stringify(payload));
   }
 
+  function track(name, meta) {
+    name = String(name || "").toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 40);
+    if (!name) return;
+    var payload = { app: app, sid: sid, event: "event", name: name };
+    if (meta) payload.meta = String(meta).slice(0, 120);
+    navigator.sendBeacon(ENDPOINT, JSON.stringify(payload));
+  }
+  window.sa = { track: track };
+
+  /* Any element with data-track="event_name" reports a click automatically.
+     sendBeacon survives the navigation, so outbound links need no delay. */
+  document.addEventListener("click", function (ev) {
+    var target = ev.target && ev.target.closest ? ev.target.closest("[data-track]") : null;
+    if (target) track(target.getAttribute("data-track"));
+  }, true);
+
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden") {
       send("ping");

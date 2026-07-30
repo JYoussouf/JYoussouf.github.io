@@ -133,6 +133,16 @@
       <div id="countries-table"></div>
     </div>
   </div>
+  <div class="cols">
+    <div class="card">
+      <h2>Clicks</h2>
+      <div id="events-table"></div>
+    </div>
+    <div class="card">
+      <h2>Recent clicks</h2>
+      <div id="recent-events-table"></div>
+    </div>
+  </div>
   <div class="card">
     <h2>Recent sessions</h2>
     <div id="recent-table"></div>
@@ -228,6 +238,8 @@
     renderChart(data);
     renderApps(data.apps);
     renderCountries(data.countries);
+    renderEvents(data.events || []);
+    renderRecentEvents(data.recentEvents || []);
     renderRecent(data.recent);
   }
 
@@ -431,6 +443,38 @@
       ]);
     });
     wrap.appendChild(table([{ label: "Country" }, { label: "Plays", num: 1 }, { label: "Time", num: 1 }], rows));
+  }
+
+  var EVENT_LABELS = { cv_open: "CV opened", github_click: "GitHub visit", tierlistbot_click: "TierListBot visit" };
+  function eventLabel(name) { return EVENT_LABELS[name] || name; }
+
+  function renderEvents(events) {
+    var wrap = document.getElementById("events-table");
+    wrap.textContent = "";
+    if (!events.length) { wrap.appendChild(el("div", { class: "empty", text: "No clicks yet." })); return; }
+    var rows = events.map(function (e) {
+      return el("tr", {}, [
+        el("td", { text: eventLabel(e.name) }),
+        el("td", { class: "num", text: String(e.count) })
+      ]);
+    });
+    wrap.appendChild(table([{ label: "Event" }, { label: "Count", num: 1 }], rows));
+  }
+
+  function renderRecentEvents(recentEvents) {
+    var wrap = document.getElementById("recent-events-table");
+    wrap.textContent = "";
+    if (!recentEvents.length) { wrap.appendChild(el("div", { class: "empty", text: "No clicks yet." })); return; }
+    var rows = recentEvents.map(function (e) {
+      var when = new Date(e.created_at);
+      var place = [e.city, e.region].filter(Boolean).join(", ") || countryName(e.country);
+      return el("tr", {}, [
+        el("td", { text: eventLabel(e.name) }),
+        el("td", { text: flag(e.country) + place }),
+        el("td", { class: "num sub", text: when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) })
+      ]);
+    });
+    wrap.appendChild(table([{ label: "Event" }, { label: "Where" }, { label: "When", num: 1 }], rows));
   }
 
   function renderRecent(recent) {

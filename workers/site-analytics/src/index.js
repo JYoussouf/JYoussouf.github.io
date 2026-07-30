@@ -4,6 +4,8 @@ const MAX_BODY_BYTES = 2048;
 const MAX_ACTIVE_SECONDS = 6 * 3600;
 const APP_RE = /^[a-z0-9_-]{1,40}$/;
 const SID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const EVENT_NAME_RE = /^[a-z0-9_.-]{1,40}$/;
+const MAX_META_CHARS = 120;
 const MAX_REFERRER_CHARS = 100;
 
 export default {
@@ -50,7 +52,7 @@ async function collect(request, env) {
 
   if (!APP_RE.test(app)) return json({ error: "invalid app" }, 400, request, env);
   if (!SID_RE.test(sid)) return json({ error: "invalid session" }, 400, request, env);
-  if (event !== "start" && event !== "ping") {
+  if (event !== "start" && event !== "ping" && event !== "event") {
     return json({ error: "invalid event" }, 400, request, env);
   }
 
@@ -81,6 +83,14 @@ async function collect(request, env) {
         active
       )
       .run();
+  } else if (event === "event") {
+    const name = String(body?.name || "");
+    if (!EVENT_NAME_RE.test(name)) return json({ error: "invalid event name" }, 400, request, env);
+    const meta = String(body?.meta || "").trim().slice(0, MAX_META_CHARS) || null;
+    await db
+      .prepare("INSERT INTO events (session_id, app, name, meta, created_at) VALUES (?1, ?2, ?3, ?4, ?5)")
+      .bind(sid, app, name, meta, now)
+      .run();
   } else {
     await db
       .prepare(
@@ -101,7 +111,7 @@ async function getStats(request, env, url) {
   const since = Date.now() - days * 86400000;
   const db = env.ANALYTICS_DB;
 
-  const [apps, countries, daily, recent, totals] = await db.batch([
+  const [apps, countries, daily, recent, totals, events, recentEvents] = await db.batch([
     db
       .prepare(
         `SELECT app, COUNT(*) AS plays, SUM(duration_s) AS total_s, CAST(AVG(duration_s) AS INTEGER) AS avg_s
@@ -137,6 +147,21 @@ async function getStats(request, env, url) {
          FROM sessions WHERE started_at >= ?1`
       )
       .bind(since),
+    db
+      .prepare(
+        `SELECT name, COUNT(*) AS count
+         FROM events WHERE created_at >= ?1
+         GROUP BY name ORDER BY count DESC LIMIT 50`
+      )
+      .bind(since),
+    db
+      .prepare(
+        `SELECT e.name, e.app, e.meta, e.created_at, s.country, s.region, s.city
+         FROM events e LEFT JOIN sessions s ON s.id = e.session_id
+         WHERE e.created_at >= ?1
+         ORDER BY e.created_at DESC LIMIT 30`
+      )
+      .bind(since),
   ]);
 
   return json(
@@ -147,6 +172,8 @@ async function getStats(request, env, url) {
       countries: countries.results || [],
       daily: daily.results || [],
       recent: recent.results || [],
+      events: events.results || [],
+      recentEvents: recentEvents.results || [],
     },
     200,
     request,

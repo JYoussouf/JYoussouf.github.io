@@ -450,7 +450,16 @@
     wrap.appendChild(table([{ label: "Country" }, { label: "Plays", num: 1 }, { label: "Time", num: 1 }], rows));
   }
 
-  var EVENT_LABELS = { cv_open: "CV opened", github_click: "GitHub visit", tierlistbot_click: "TierListBot visit", score_submit: "Score submitted" };
+  var EVENT_LABELS = {
+    cv_open: "CV opened",
+    github_click: "GitHub visit",
+    tierlistbot_click: "TierListBot visit",
+    score_submit: "Score submitted",
+    session_high_score: "Session high score",
+    outbound_click: "Outbound click",
+    form_start: "Form started",
+    file_download: "File download"
+  };
   function eventLabel(name) { return EVENT_LABELS[name] || name; }
 
   function renderEvents(events) {

@@ -1,21 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>joseppy.ca analytics</title>
+<title>Pulse · joseppy.ca</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#128200;</text></svg>">
 <style>
-  :root {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --surface-2: #222221;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+    --accent-soft: rgba(57, 135, 229, 0.14);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+  :root[data-theme="light"] {
     color-scheme: light;
     --page: #f9f9f7;
     --surface-1: #fcfcfb;
+    --surface-2: #f2f1ee;
     --text-primary: #0b0b0b;
     --text-secondary: #52514e;
     --muted: #898781;
     --grid: #e1e0d9;
     --baseline: #c3c2b7;
     --border: rgba(11, 11, 11, 0.10);
+    --accent: #2a78d6;
+    --accent-soft: rgba(42, 120, 214, 0.10);
     --series-1: #2a78d6;
     --series-2: #eb6834;
     --series-3: #1baf7a;
@@ -25,61 +51,83 @@
     --series-7: #4a3aa7;
     --series-8: #e34948;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color-scheme: dark;
-      --page: #0d0d0d;
-      --surface-1: #1a1a19;
-      --text-primary: #ffffff;
-      --text-secondary: #c3c2b7;
-      --muted: #898781;
-      --grid: #2c2c2a;
-      --baseline: #383835;
-      --border: rgba(255, 255, 255, 0.10);
-      --series-1: #3987e5;
-      --series-2: #d95926;
-      --series-3: #199e70;
-      --series-4: #c98500;
-      --series-5: #d55181;
-      --series-6: #008300;
-      --series-7: #9085e9;
-      --series-8: #e66767;
-    }
-  }
   * { box-sizing: border-box; margin: 0; }
   body {
     background: var(--page);
     color: var(--text-primary);
     font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-    padding: 24px;
+    padding: 0 24px 48px;
     max-width: 1080px;
     margin: 0 auto;
   }
-  h1 { font-size: 18px; font-weight: 650; }
-  .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-  .ranges { display: flex; gap: 4px; }
+  .head {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--page);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 18px 0 14px;
+    border-bottom: 1px solid var(--grid);
+    margin-bottom: 20px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand .sub { color: var(--muted); font-size: 13px; }
+  .controls { display: flex; align-items: center; gap: 8px; }
+  .ranges { display: flex; gap: 2px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 2px; }
   .ranges button {
-    font: inherit; color: var(--text-secondary); background: none;
-    border: 1px solid transparent; border-radius: 8px; padding: 4px 12px; cursor: pointer;
+    font: inherit; font-size: 13px; color: var(--text-secondary); background: none;
+    border: none; border-radius: 8px; padding: 4px 11px; cursor: pointer;
   }
-  .ranges button:hover { background: var(--surface-1); }
-  .ranges button[aria-pressed="true"] {
-    color: var(--text-primary); background: var(--surface-1);
-    border-color: var(--border); font-weight: 600;
+  .ranges button:hover { color: var(--text-primary); }
+  .ranges button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); font-weight: 600; }
+  .icon-btn {
+    font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+    background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
   }
+  .icon-btn:hover { color: var(--text-primary); }
+
+  .highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 13px; font-size: 13px; color: var(--text-secondary);
+  }
+  .chip strong { color: var(--text-primary); font-weight: 600; }
+  .chip.hot { background: var(--accent-soft); border-color: var(--accent); color: var(--text-primary); }
+  .chip.hot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+  .chip .up { color: #0ca30c; }
+  .chip .down { color: #e34948; }
+
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-  .tile .label { color: var(--text-secondary); font-size: 12px; }
-  .tile .value { font-size: 26px; font-weight: 650; margin-top: 2px; }
-  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-  .card h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+  .tile .label { color: var(--muted); font-size: 12px; }
+  .tile .value { font-size: 27px; font-weight: 650; margin-top: 2px; letter-spacing: -0.01em; }
+  .tile .delta { font-size: 12px; margin-top: 2px; color: var(--muted); }
+  .tile .delta .up { color: #0ca30c; }
+  .tile .delta .down { color: #e34948; }
+
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px; overflow: hidden; }
+  .card__head {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    font: inherit; background: none; border: none; color: inherit; cursor: pointer;
+    padding: 13px 16px; text-align: left;
+  }
+  .card__head h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.01em; }
+  .card__head .chev { color: var(--muted); font-size: 11px; transition: transform 0.15s; }
+  .card.collapsed .card__head .chev { transform: rotate(-90deg); }
+  .card__body { padding: 0 16px 16px; }
+  .card.collapsed .card__body { display: none; }
+
   .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
   .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-  .chart-wrap { overflow-x: auto; position: relative; }
+  .chart-wrap { overflow-x: auto; }
   svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .cols .card { margin-bottom: 16px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } body { padding: 0 14px 40px; } }
+
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; color: var(--muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
   td { padding: 6px 8px; border-bottom: 1px solid var(--grid); }
@@ -87,69 +135,86 @@
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 8px; vertical-align: 1px; }
   .sub { color: var(--muted); font-size: 12px; }
+  .show-more {
+    display: block; width: 100%; margin-top: 8px; padding: 6px;
+    font: inherit; font-size: 12px; color: var(--muted); background: none;
+    border: none; border-top: 1px dashed var(--grid); cursor: pointer;
+  }
+  .show-more:hover { color: var(--text-primary); }
+
   .tooltip {
     position: fixed; pointer-events: none; z-index: 10; display: none;
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); white-space: nowrap;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.28); white-space: nowrap;
   }
   .tooltip .t-day { font-weight: 600; margin-bottom: 4px; }
   .tooltip .t-row { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
-  #gate { max-width: 320px; margin: 15vh auto; text-align: center; }
+
+  #gate { max-width: 320px; margin: 18vh auto 0; text-align: center; }
+  #gate h1 { font-size: 22px; margin-bottom: 4px; }
   #gate input {
-    font: inherit; width: 100%; margin-top: 12px; padding: 8px 10px;
-    border: 1px solid var(--border); border-radius: 8px; background: var(--surface-1); color: var(--text-primary);
+    font: inherit; width: 100%; margin-top: 14px; padding: 9px 11px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); color: var(--text-primary);
   }
   #gate .err { color: #e34948; font-size: 12px; margin-top: 8px; min-height: 18px; }
-  .empty { color: var(--muted); text-align: center; padding: 24px 0; }
+  .empty { color: var(--muted); text-align: center; padding: 22px 0; font-size: 13px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <div id="gate" hidden>
-  <h1>Analytics</h1>
-  <p class="sub">Enter the dashboard key.</p>
+  <h1>Pulse</h1>
+  <p class="sub">joseppy.ca analytics · enter the key</p>
   <input id="key-input" type="password" autocomplete="off" placeholder="Dashboard key">
   <div class="err" id="gate-err"></div>
 </div>
 
 <div id="dash" hidden>
   <div class="head">
-    <h1>joseppy.ca analytics</h1>
-    <div class="ranges" id="ranges" role="group" aria-label="Date range"></div>
+    <div class="brand"><h1>Pulse</h1><span class="sub">joseppy.ca</span></div>
+    <div class="controls">
+      <div class="ranges" id="ranges" role="group" aria-label="Date range"></div>
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">&#9788;</button>
+    </div>
   </div>
+
+  <div class="highlights" id="highlights"></div>
   <div class="tiles" id="tiles"></div>
-  <div class="card">
-    <h2>Plays over time</h2>
-    <div class="legend" id="legend"></div>
-    <div class="chart-wrap"><div id="chart"></div></div>
+
+  <div class="card" data-card="chart">
+    <button class="card__head"><h2>Plays over time</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="legend" id="legend"></div>
+      <div class="chart-wrap"><div id="chart"></div></div>
+    </div>
   </div>
+
   <div class="cols">
-    <div class="card">
-      <h2>By game</h2>
-      <div id="apps-table"></div>
+    <div class="card" data-card="apps">
+      <button class="card__head"><h2>By game</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="apps-table"></div></div>
     </div>
-    <div class="card">
-      <h2>By country</h2>
-      <div id="countries-table"></div>
+    <div class="card" data-card="countries">
+      <button class="card__head"><h2>By country</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="countries-table"></div></div>
     </div>
-  </div>
-  <div class="cols">
-    <div class="card">
-      <h2>Clicks</h2>
-      <div id="events-table"></div>
+    <div class="card" data-card="events">
+      <button class="card__head"><h2>Clicks</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="events-table"></div></div>
     </div>
-    <div class="card">
-      <h2>Recent clicks</h2>
-      <div id="recent-events-table"></div>
+    <div class="card" data-card="recent-events">
+      <button class="card__head"><h2>Recent clicks</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="recent-events-table"></div></div>
     </div>
-    <div class="card">
-      <h2>Puppy Detective leaderboard</h2>
-      <div id="leaderboard-table"></div>
+    <div class="card" data-card="leaderboard">
+      <button class="card__head"><h2>Puppy Detective leaderboard</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="leaderboard-table"></div></div>
     </div>
   </div>
-  <div class="card">
-    <h2>Recent sessions</h2>
-    <div id="recent-table"></div>
+
+  <div class="card" data-card="recent">
+    <button class="card__head"><h2>Recent sessions</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body"><div id="recent-table"></div></div>
   </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
@@ -159,6 +224,9 @@
   "use strict";
   var API = "https://site-analytics.joseppy-workers.workers.dev";
   var KEY_STORAGE = "sa_dash_key";
+  var THEME_STORAGE = "sa_theme";
+  var COLLAPSE_STORAGE = "sa_collapsed";
+  var TABLE_LIMIT = 8;
   var RANGES = [{ d: 7, label: "7d" }, { d: 30, label: "30d" }, { d: 90, label: "90d" }, { d: 365, label: "1y" }, { d: 3650, label: "All" }];
   var APP_LABELS = {
     portfolio: "Portfolio",
@@ -167,10 +235,20 @@
     spotify_venn: "Spotify Venn",
     q1_wrapped: "Q1 Wrapped"
   };
-  // Fixed slot assignment so a game keeps its color regardless of rank or range.
   var APP_SLOTS = { portfolio: 1, northern_eh: 2, the_great_puppy_detective: 3, spotify_venn: 4 };
+  var EVENT_LABELS = {
+    cv_open: "CV opened",
+    github_click: "GitHub visit",
+    tierlistbot_click: "TierListBot visit",
+    score_submit: "Score submitted",
+    session_high_score: "Session high score",
+    outbound_click: "Outbound click",
+    form_start: "Form started",
+    file_download: "File download"
+  };
   var nextSlot = 5;
   var currentDays = 30;
+  var leaderboardLoaded = false;
 
   function slotFor(app) {
     if (!APP_SLOTS[app]) { APP_SLOTS[app] = nextSlot < 9 ? nextSlot++ : 8; }
@@ -178,6 +256,7 @@
   }
   function colorFor(app) { return "var(--series-" + slotFor(app) + ")"; }
   function labelFor(app) { return APP_LABELS[app] || app; }
+  function eventLabel(name) { return EVENT_LABELS[name] || name; }
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -210,6 +289,40 @@
     return String.fromCodePoint(0x1f1e6 + code.charCodeAt(0) - 65, 0x1f1e6 + code.charCodeAt(1) - 65) + " ";
   }
 
+  /* ---------- theme ---------- */
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.getElementById("theme-toggle").innerHTML = theme === "dark" ? "&#9788;" : "&#9789;";
+  }
+  try { applyTheme(localStorage.getItem(THEME_STORAGE) || "dark"); } catch (e) { applyTheme("dark"); }
+  document.getElementById("theme-toggle").addEventListener("click", function () {
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    try { localStorage.setItem(THEME_STORAGE, next); } catch (e) {}
+    applyTheme(next);
+  });
+
+  /* ---------- collapsible cards ---------- */
+  function collapsedSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_STORAGE) || "[]")); } catch (e) { return new Set(); }
+  }
+  function saveCollapsed(set) {
+    try { localStorage.setItem(COLLAPSE_STORAGE, JSON.stringify(Array.from(set))); } catch (e) {}
+  }
+  (function initCollapse() {
+    var collapsed = collapsedSet();
+    document.querySelectorAll(".card[data-card]").forEach(function (card) {
+      var id = card.getAttribute("data-card");
+      if (collapsed.has(id)) card.classList.add("collapsed");
+      card.querySelector(".card__head").addEventListener("click", function () {
+        card.classList.toggle("collapsed");
+        var set = collapsedSet();
+        if (card.classList.contains("collapsed")) set.add(id); else set.delete(id);
+        saveCollapsed(set);
+      });
+    });
+  })();
+
+  /* ---------- auth + fetch ---------- */
   function getKey() { try { return localStorage.getItem(KEY_STORAGE) || ""; } catch (e) { return ""; } }
   function setKey(v) { try { localStorage.setItem(KEY_STORAGE, v); } catch (e) {} }
 
@@ -225,8 +338,7 @@
     currentDays = days;
     fetch(API + "/api/stats?days=" + days, { headers: { "x-dash-key": getKey() } })
       .then(function (res) {
-        if (res.status === 401) { showGate(getKey() ? "Wrong key." : ""); throw new Error("unauthorized");
-        }
+        if (res.status === 401) { showGate(getKey() ? "Wrong key." : ""); throw new Error("unauthorized"); }
         if (!res.ok) throw new Error("request failed: " + res.status);
         return res.json();
       })
@@ -238,6 +350,7 @@
     document.getElementById("gate").hidden = true;
     document.getElementById("dash").hidden = false;
     renderRanges();
+    renderHighlights(data);
     renderTiles(data);
     renderChart(data);
     renderApps(data.apps);
@@ -258,25 +371,92 @@
     });
   }
 
+  /* ---------- highlights ---------- */
+  function chip(hot, parts) {
+    var c = el("span", { class: "chip" + (hot ? " hot" : "") });
+    parts.forEach(function (p) {
+      if (typeof p === "string") c.appendChild(document.createTextNode(p));
+      else c.appendChild(p);
+    });
+    return c;
+  }
+  function deltaNode(current, previous) {
+    if (!previous) return el("strong", { text: "new" });
+    var pct = Math.round(((current - previous) / previous) * 100);
+    if (pct === 0) return el("span", { class: "sub", text: "flat" });
+    var node = el("span", { class: pct > 0 ? "up" : "down" });
+    node.textContent = (pct > 0 ? "↑ " : "↓ ") + Math.abs(pct) + "%";
+    return node;
+  }
+
+  function renderHighlights(data) {
+    var wrap = document.getElementById("highlights");
+    wrap.textContent = "";
+    var ins = data.insights || {};
+    var week = ins.week || { plays: 0, total_s: 0 };
+    var prev = ins.prevWeek || { plays: 0, total_s: 0 };
+    var weekEvents = {};
+    (ins.weekEvents || []).forEach(function (e) { weekEvents[e.name] = e.count; });
+
+    if (week.plays > 0) {
+      var pct = prev.plays ? Math.abs(Math.round(((week.plays - prev.plays) / prev.plays) * 100)) : null;
+      var hot = !prev.plays || pct >= 25;
+      wrap.appendChild(chip(hot, [el("strong", { text: week.plays + (week.plays === 1 ? " play" : " plays") }), " this week ", deltaNode(week.plays, prev.plays)]));
+    } else if (prev.plays > 0) {
+      wrap.appendChild(chip(false, ["Quiet week: ", el("strong", { text: "0 plays" }), " (was " + prev.plays + ")"]));
+    }
+
+    (ins.newCountries || []).slice(0, 5).forEach(function (c) {
+      wrap.appendChild(chip(true, ["New country: ", el("strong", { text: flag(c.country) + countryName(c.country) })]));
+    });
+
+    if (weekEvents.cv_open) {
+      wrap.appendChild(chip(true, ["CV opened ", el("strong", { text: weekEvents.cv_open + "×" }), " this week"]));
+    }
+    if (weekEvents.score_submit) {
+      wrap.appendChild(chip(true, [el("strong", { text: weekEvents.score_submit + (weekEvents.score_submit === 1 ? " score" : " scores") }), " submitted this week"]));
+    }
+
+    if (ins.longest && ins.longest.duration_s >= 60) {
+      var where = ins.longest.city ? " from " + ins.longest.city : "";
+      wrap.appendChild(chip(false, ["Longest session: ", el("strong", { text: fmtDuration(ins.longest.duration_s) }), " on " + labelFor(ins.longest.app) + where]));
+    }
+    if (ins.busiest && ins.busiest.plays > 1) {
+      wrap.appendChild(chip(false, ["Busiest day: ", el("strong", { text: ins.busiest.day }), " (" + ins.busiest.plays + " plays)"]));
+    }
+    if (!wrap.childNodes.length) {
+      wrap.appendChild(chip(false, ["All quiet. Share a game link and watch this light up."]));
+    }
+  }
+
+  /* ---------- tiles ---------- */
   function renderTiles(data) {
     var t = data.totals || {};
+    var ins = data.insights || {};
     var avg = t.plays ? (t.total_s || 0) / t.plays : 0;
+    var wrap = document.getElementById("tiles");
+    wrap.textContent = "";
     var tiles = [
       { label: "Plays", value: String(t.plays || 0) },
       { label: "Time played", value: fmtDuration(t.total_s) },
       { label: "Avg session", value: fmtDuration(avg) },
       { label: "Countries", value: String(t.countries || 0) }
     ];
-    var wrap = document.getElementById("tiles");
-    wrap.textContent = "";
-    tiles.forEach(function (tile) {
-      wrap.appendChild(el("div", { class: "tile" }, [
+    tiles.forEach(function (tile, i) {
+      var node = el("div", { class: "tile" }, [
         el("div", { class: "label", text: tile.label }),
         el("div", { class: "value", text: tile.value })
-      ]));
+      ]);
+      if (i === 0 && ins.week) {
+        var delta = el("div", { class: "delta" }, [deltaNode(ins.week.plays || 0, (ins.prevWeek || {}).plays || 0)]);
+        delta.appendChild(document.createTextNode(" vs last week"));
+        node.appendChild(delta);
+      }
+      wrap.appendChild(node);
     });
   }
 
+  /* ---------- chart ---------- */
   function dayList(days) {
     var out = [];
     var d = new Date();
@@ -337,10 +517,10 @@
     }
 
     apps.forEach(function (app) {
-      var chip = el("span", {}, [el("i", {})]);
-      chip.firstChild.style.background = colorFor(app);
-      chip.appendChild(document.createTextNode(labelFor(app)));
-      legend.appendChild(chip);
+      var chipEl = el("span", {}, [el("i", {})]);
+      chipEl.firstChild.style.background = colorFor(app);
+      chipEl.appendChild(document.createTextNode(labelFor(app)));
+      legend.appendChild(chipEl);
     });
 
     var W = Math.max(640, wrap.clientWidth || 640);
@@ -377,8 +557,7 @@
         svg.appendChild(rect);
       });
       if (stack.length) {
-        var topY = yCursor;
-        var cap = svgEl("rect", { x: x, y: topY, width: barW, height: 3, rx: 1.5, fill: colorFor(stack[stack.length - 1].app) });
+        var cap = svgEl("rect", { x: x, y: yCursor, width: barW, height: 3, rx: 1.5, fill: colorFor(stack[stack.length - 1].app) });
         svg.appendChild(cap);
       }
       var hit = svgEl("rect", { x: padL + i * step, y: padT, width: step, height: plotH, fill: "transparent" });
@@ -410,6 +589,7 @@
     wrap.appendChild(svg);
   }
 
+  /* ---------- tables ---------- */
   function table(headers, rows) {
     var thead = el("thead", {}, [el("tr", {}, headers.map(function (h) {
       return el("th", { text: h.label, class: h.num ? "num" : "" });
@@ -418,77 +598,84 @@
     return el("table", {}, [thead, tbody]);
   }
 
-  function renderApps(apps) {
-    var wrap = document.getElementById("apps-table");
+  function limitedTable(wrap, headers, rows) {
     wrap.textContent = "";
-    if (!apps.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing yet." })); return; }
-    var rows = apps.map(function (a) {
-      var nameCell = el("td", {}, [el("i", { class: "dot" })]);
-      nameCell.firstChild.style.background = colorFor(a.app);
-      nameCell.appendChild(document.createTextNode(labelFor(a.app)));
-      return el("tr", {}, [
-        nameCell,
-        el("td", { class: "num", text: String(a.plays) }),
-        el("td", { class: "num", text: fmtDuration(a.total_s) }),
-        el("td", { class: "num", text: fmtDuration(a.avg_s) })
-      ]);
-    });
-    wrap.appendChild(table([{ label: "Game" }, { label: "Plays", num: 1 }, { label: "Time", num: 1 }, { label: "Avg", num: 1 }], rows));
+    if (!rows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing yet." })); return; }
+    function draw(showAll) {
+      wrap.textContent = "";
+      wrap.appendChild(table(headers, showAll ? rows : rows.slice(0, TABLE_LIMIT)));
+      if (rows.length > TABLE_LIMIT) {
+        var btn = el("button", { class: "show-more", text: showAll ? "Show less" : "Show all " + rows.length });
+        btn.addEventListener("click", function () { draw(!showAll); });
+        wrap.appendChild(btn);
+      }
+    }
+    draw(false);
+  }
+
+  function appCell(app) {
+    var cell = el("td", {}, [el("i", { class: "dot" })]);
+    cell.firstChild.style.background = colorFor(app);
+    cell.appendChild(document.createTextNode(labelFor(app)));
+    return cell;
+  }
+
+  function renderApps(apps) {
+    limitedTable(
+      document.getElementById("apps-table"),
+      [{ label: "Game" }, { label: "Plays", num: 1 }, { label: "Time", num: 1 }, { label: "Avg", num: 1 }],
+      (apps || []).map(function (a) {
+        return el("tr", {}, [
+          appCell(a.app),
+          el("td", { class: "num", text: String(a.plays) }),
+          el("td", { class: "num", text: fmtDuration(a.total_s) }),
+          el("td", { class: "num", text: fmtDuration(a.avg_s) })
+        ]);
+      })
+    );
   }
 
   function renderCountries(countries) {
-    var wrap = document.getElementById("countries-table");
-    wrap.textContent = "";
-    if (!countries.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing yet." })); return; }
-    var rows = countries.map(function (c) {
-      return el("tr", {}, [
-        el("td", { text: flag(c.country) + countryName(c.country) }),
-        el("td", { class: "num", text: String(c.plays) }),
-        el("td", { class: "num", text: fmtDuration(c.total_s) })
-      ]);
-    });
-    wrap.appendChild(table([{ label: "Country" }, { label: "Plays", num: 1 }, { label: "Time", num: 1 }], rows));
+    limitedTable(
+      document.getElementById("countries-table"),
+      [{ label: "Country" }, { label: "Plays", num: 1 }, { label: "Time", num: 1 }],
+      (countries || []).map(function (c) {
+        return el("tr", {}, [
+          el("td", { text: flag(c.country) + countryName(c.country) }),
+          el("td", { class: "num", text: String(c.plays) }),
+          el("td", { class: "num", text: fmtDuration(c.total_s) })
+        ]);
+      })
+    );
   }
 
-  var EVENT_LABELS = {
-    cv_open: "CV opened",
-    github_click: "GitHub visit",
-    tierlistbot_click: "TierListBot visit",
-    score_submit: "Score submitted",
-    session_high_score: "Session high score",
-    outbound_click: "Outbound click",
-    form_start: "Form started",
-    file_download: "File download"
-  };
-  function eventLabel(name) { return EVENT_LABELS[name] || name; }
-
   function renderEvents(events) {
-    var wrap = document.getElementById("events-table");
-    wrap.textContent = "";
-    if (!events.length) { wrap.appendChild(el("div", { class: "empty", text: "No clicks yet." })); return; }
-    var rows = events.map(function (e) {
-      return el("tr", {}, [
-        el("td", { text: eventLabel(e.name) }),
-        el("td", { class: "num", text: String(e.count) })
-      ]);
-    });
-    wrap.appendChild(table([{ label: "Event" }, { label: "Count", num: 1 }], rows));
+    limitedTable(
+      document.getElementById("events-table"),
+      [{ label: "Event" }, { label: "Count", num: 1 }],
+      events.map(function (e) {
+        return el("tr", {}, [
+          el("td", { text: eventLabel(e.name) }),
+          el("td", { class: "num", text: String(e.count) })
+        ]);
+      })
+    );
   }
 
   function renderRecentEvents(recentEvents) {
-    var wrap = document.getElementById("recent-events-table");
-    wrap.textContent = "";
-    if (!recentEvents.length) { wrap.appendChild(el("div", { class: "empty", text: "No clicks yet." })); return; }
-    var rows = recentEvents.map(function (e) {
-      var when = new Date(e.created_at);
-      var place = [e.city, e.region].filter(Boolean).join(", ") || countryName(e.country);
-      return el("tr", {}, [
-        el("td", { text: eventLabel(e.name) }),
-        el("td", { text: flag(e.country) + place }),
-        el("td", { class: "num sub", text: when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) })
-      ]);
-    });
-    wrap.appendChild(table([{ label: "Event" }, { label: "Where" }, { label: "When", num: 1 }], rows));
+    limitedTable(
+      document.getElementById("recent-events-table"),
+      [{ label: "Event" }, { label: "Where" }, { label: "When", num: 1 }],
+      recentEvents.map(function (e) {
+        var when = new Date(e.created_at);
+        var place = [e.city, e.region].filter(Boolean).join(", ") || countryName(e.country);
+        return el("tr", {}, [
+          el("td", { text: eventLabel(e.name) + (e.meta ? " (" + e.meta + ")" : "") }),
+          el("td", { text: flag(e.country) + place }),
+          el("td", { class: "num sub", text: when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) })
+        ]);
+      })
+    );
   }
 
   function loadLeaderboard() {
@@ -513,33 +700,27 @@
         wrap.appendChild(el("div", { class: "empty", text: "Leaderboard unavailable." }));
       });
   }
-  var leaderboardLoaded = false;
 
   function renderRecent(recent) {
-    var wrap = document.getElementById("recent-table");
-    wrap.textContent = "";
-    if (!recent.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing yet." })); return; }
-    var rows = recent.map(function (r) {
-      var when = new Date(r.started_at);
-      var place = [r.city, r.region].filter(Boolean).join(", ");
-      var nameCell = el("td", {}, [el("i", { class: "dot" })]);
-      nameCell.firstChild.style.background = colorFor(r.app);
-      nameCell.appendChild(document.createTextNode(labelFor(r.app)));
-      return el("tr", {}, [
-        nameCell,
-        el("td", { text: flag(r.country) + (place || countryName(r.country)) }),
-        el("td", { text: r.device || "" }),
-        el("td", { text: r.referrer || "direct" }),
-        el("td", { class: "num", text: fmtDuration(r.duration_s) }),
-        el("td", { class: "num sub", text: when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) })
-      ]);
-    });
-    wrap.appendChild(table(
+    limitedTable(
+      document.getElementById("recent-table"),
       [{ label: "Game" }, { label: "Where" }, { label: "Device" }, { label: "Referrer" }, { label: "Duration", num: 1 }, { label: "When", num: 1 }],
-      rows
-    ));
+      (recent || []).map(function (r) {
+        var when = new Date(r.started_at);
+        var place = [r.city, r.region].filter(Boolean).join(", ");
+        return el("tr", {}, [
+          appCell(r.app),
+          el("td", { text: flag(r.country) + (place || countryName(r.country)) }),
+          el("td", { text: r.device || "" }),
+          el("td", { text: r.referrer || "direct" }),
+          el("td", { class: "num", text: fmtDuration(r.duration_s) }),
+          el("td", { class: "num sub", text: when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) })
+        ]);
+      })
+    );
   }
 
+  /* ---------- init ---------- */
   document.getElementById("key-input").addEventListener("keydown", function (ev) {
     if (ev.key !== "Enter") return;
     setKey(ev.target.value.trim());
@@ -547,8 +728,7 @@
     load(currentDays);
   });
 
-  /* Magic-link support: /analytics/#key=... saves the key and scrubs it from the URL,
-     so a bookmark can carry the key without it ever being typed or sent to the server. */
+  /* Magic-link support: /analytics/#key=... saves the key and scrubs it from the URL. */
   var hashKey = location.hash.match(/^#key=(.+)$/);
   if (hashKey) {
     setKey(decodeURIComponent(hashKey[1]).trim());

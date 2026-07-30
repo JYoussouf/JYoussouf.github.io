@@ -108,10 +108,13 @@ async function collect(request, env) {
 
 async function getStats(request, env, url) {
   const days = clampInt(url.searchParams.get("days"), 30, 1, 3650);
-  const since = Date.now() - days * 86400000;
+  const now = Date.now();
+  const since = now - days * 86400000;
+  const weekAgo = now - 7 * 86400000;
+  const twoWeeksAgo = now - 14 * 86400000;
   const db = env.ANALYTICS_DB;
 
-  const [apps, countries, daily, recent, totals, events, recentEvents] = await db.batch([
+  const [apps, countries, daily, recent, totals, events, recentEvents, week, prevWeek, newCountries, weekEvents, longest, busiest] = await db.batch([
     db
       .prepare(
         `SELECT app, COUNT(*) AS plays, SUM(duration_s) AS total_s, CAST(AVG(duration_s) AS INTEGER) AS avg_s
@@ -162,6 +165,34 @@ async function getStats(request, env, url) {
          ORDER BY e.created_at DESC LIMIT 30`
       )
       .bind(since),
+    db
+      .prepare("SELECT COUNT(*) AS plays, COALESCE(SUM(duration_s), 0) AS total_s FROM sessions WHERE started_at >= ?1")
+      .bind(weekAgo),
+    db
+      .prepare("SELECT COUNT(*) AS plays, COALESCE(SUM(duration_s), 0) AS total_s FROM sessions WHERE started_at >= ?1 AND started_at < ?2")
+      .bind(twoWeeksAgo, weekAgo),
+    db
+      .prepare(
+        `SELECT country, MIN(started_at) AS first_seen FROM sessions
+         WHERE country IS NOT NULL GROUP BY country HAVING first_seen >= ?1`
+      )
+      .bind(weekAgo),
+    db
+      .prepare("SELECT name, COUNT(*) AS count FROM events WHERE created_at >= ?1 GROUP BY name")
+      .bind(weekAgo),
+    db
+      .prepare(
+        `SELECT app, duration_s, country, city FROM sessions
+         WHERE started_at >= ?1 AND duration_s > 0 ORDER BY duration_s DESC LIMIT 1`
+      )
+      .bind(since),
+    db
+      .prepare(
+        `SELECT date(started_at / 1000, 'unixepoch') AS day, COUNT(*) AS plays
+         FROM sessions WHERE started_at >= ?1
+         GROUP BY day ORDER BY plays DESC, day DESC LIMIT 1`
+      )
+      .bind(since),
   ]);
 
   return json(
@@ -174,6 +205,14 @@ async function getStats(request, env, url) {
       recent: recent.results || [],
       events: events.results || [],
       recentEvents: recentEvents.results || [],
+      insights: {
+        week: week.results?.[0] || { plays: 0, total_s: 0 },
+        prevWeek: prevWeek.results?.[0] || { plays: 0, total_s: 0 },
+        newCountries: newCountries.results || [],
+        weekEvents: weekEvents.results || [],
+        longest: longest.results?.[0] || null,
+        busiest: busiest.results?.[0] || null,
+      },
     },
     200,
     request,

@@ -1,0 +1,16 @@
+name = "site-analytics"
+main = "src/index.js"
+compatibility_date = "2026-07-30"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[[d1_databases]]
+binding = "ANALYTICS_DB"
+database_name = "site_analytics"
+database_id = "159ea1ea-231d-4859-a5fa-ed8a17c9e3e2"
+
+[vars]
+ALLOWED_ORIGINS = "https://joseppy.ca,https://www.joseppy.ca,https://jyoussouf.github.io"

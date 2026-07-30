@@ -465,6 +465,14 @@
     load(currentDays);
   });
 
+  /* Magic-link support: /analytics/#key=... saves the key and scrubs it from the URL,
+     so a bookmark can carry the key without it ever being typed or sent to the server. */
+  var hashKey = location.hash.match(/^#key=(.+)$/);
+  if (hashKey) {
+    setKey(decodeURIComponent(hashKey[1]).trim());
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+
   if (getKey()) load(currentDays);
   else showGate("");
 })();

@@ -158,6 +158,20 @@
   }
   #gate .err { color: #e34948; font-size: 12px; margin-top: 8px; min-height: 18px; }
   .empty { color: var(--muted); text-align: center; padding: 22px 0; font-size: 13px; }
+  .apptabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+  .apptabs button {
+    font: inherit; font-size: 13px; color: var(--text-secondary); background: none;
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .apptabs button:hover { color: var(--text-primary); }
+  .apptabs button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); font-weight: 600; }
+  .apptabs .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .funnel-row { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+  .funnel-label { width: 160px; font-size: 13px; color: var(--text-secondary); }
+  .funnel-track { flex: 1; height: 22px; background: var(--grid); border-radius: 7px; overflow: hidden; }
+  .funnel-fill { height: 100%; border-radius: 7px; min-width: 3px; }
+  .funnel-num { width: 120px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -178,8 +192,14 @@
     </div>
   </div>
 
+  <div class="apptabs" id="apptabs" role="group" aria-label="App filter"></div>
   <div class="highlights" id="highlights"></div>
   <div class="tiles" id="tiles"></div>
+
+  <div class="card" data-card="funnel" id="funnel-card" hidden>
+    <button class="card__head"><h2>Timmies funnel</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body"><div id="funnel"></div></div>
+  </div>
 
   <div class="card" data-card="chart">
     <button class="card__head"><h2>Plays over time</h2><span class="chev">&#9660;</span></button>
@@ -233,7 +253,8 @@
     northern_eh: "Northern Eh",
     the_great_puppy_detective: "Puppy Detective",
     spotify_venn: "Spotify Venn",
-    q1_wrapped: "Q1 Wrapped"
+    q1_wrapped: "Q1 Wrapped",
+    timmies_passport: "Timmies Passport"
   };
   var APP_SLOTS = { portfolio: 1, northern_eh: 2, the_great_puppy_detective: 3, spotify_venn: 4 };
   var EVENT_LABELS = {
@@ -244,11 +265,22 @@
     session_high_score: "Session high score",
     outbound_click: "Outbound click",
     form_start: "Form started",
-    file_download: "File download"
+    file_download: "File download",
+    stamp: "Store stamped",
+    account_created: "Account created",
+    share_instagram: "Share: Instagram",
+    share_facebook: "Share: Facebook",
+    share_snapchat: "Share: Snapchat",
+    share_x: "Share: X",
+    share_save: "Share: image saved"
   };
   var nextSlot = 5;
   var currentDays = 30;
   var leaderboardLoaded = false;
+  var APP_STORAGE = "sa_app";
+  var currentApp = "";
+  try { currentApp = localStorage.getItem(APP_STORAGE) || ""; } catch (e) {}
+  var lastData = null;
 
   function slotFor(app) {
     if (!APP_SLOTS[app]) { APP_SLOTS[app] = nextSlot < 9 ? nextSlot++ : 8; }
@@ -347,18 +379,145 @@
   }
 
   function render(data) {
+    lastData = data;
     document.getElementById("gate").hidden = true;
     document.getElementById("dash").hidden = false;
+    paint();
+  }
+
+  /*
+   * One dataset, many lenses. The worker returns everything broken out per
+   * app; the selected tab decides whether a section sees the whole pool or
+   * one app's slice, and the tiles are recomputed from the slice so they
+   * never quote a global number against a filtered table.
+   */
+  function view(data) {
+    if (!currentApp) {
+      var byCountry = {};
+      (data.countries || []).forEach(function (r) {
+        var k = r.country;
+        byCountry[k] = byCountry[k] || { country: k, plays: 0, total_s: 0 };
+        byCountry[k].plays += r.plays;
+        byCountry[k].total_s += r.total_s || 0;
+      });
+      var byName = {};
+      (data.events || []).forEach(function (r) {
+        byName[r.name] = byName[r.name] || { name: r.name, count: 0, sessions: 0 };
+        byName[r.name].count += r.count;
+        byName[r.name].sessions += r.sessions || 0;
+      });
+      return {
+        days: data.days,
+        totals: data.totals,
+        insights: data.insights,
+        apps: data.apps || [],
+        daily: data.daily || [],
+        recent: data.recent || [],
+        recentEvents: data.recentEvents || [],
+        countries: Object.values(byCountry).sort(function (a, b) { return b.plays - a.plays; }),
+        events: Object.values(byName).sort(function (a, b) { return b.count - a.count; })
+      };
+    }
+    var only = function (r) { return r.app === currentApp; };
+    var apps = (data.apps || []).filter(only);
+    var countries = (data.countries || []).filter(only)
+      .sort(function (a, b) { return b.plays - a.plays; });
+    var plays = 0, total_s = 0;
+    apps.forEach(function (a) { plays += a.plays; total_s += a.total_s || 0; });
+    return {
+      days: data.days,
+      totals: { plays: plays, total_s: total_s, countries: countries.length },
+      insights: null,
+      apps: apps,
+      daily: (data.daily || []).filter(only),
+      recent: (data.recent || []).filter(only),
+      recentEvents: (data.recentEvents || []).filter(only),
+      countries: countries,
+      events: (data.events || []).filter(only)
+        .sort(function (a, b) { return b.count - a.count; })
+    };
+  }
+
+  function paint() {
+    if (!lastData) return;
+    var v = view(lastData);
     renderRanges();
-    renderHighlights(data);
-    renderTiles(data);
-    renderChart(data);
-    renderApps(data.apps);
-    renderCountries(data.countries);
-    renderEvents(data.events || []);
-    renderRecentEvents(data.recentEvents || []);
-    renderRecent(data.recent);
+    renderAppTabs(lastData);
+    if (currentApp) {
+      document.getElementById("highlights").textContent = "";
+    } else {
+      renderHighlights(v);
+    }
+    renderTiles(v);
+    renderChart(v);
+    renderApps(v.apps);
+    renderCountries(v.countries);
+    renderEvents(v.events);
+    renderRecentEvents(v.recentEvents);
+    renderRecent(v.recent);
+    renderFunnel(lastData);
+    var lb = document.querySelector('[data-card="leaderboard"]');
+    if (lb) lb.hidden = !(currentApp === "" || currentApp === "the_great_puppy_detective");
     if (!leaderboardLoaded) { leaderboardLoaded = true; loadLeaderboard(); }
+  }
+
+  function renderAppTabs(data) {
+    var wrap = document.getElementById("apptabs");
+    wrap.textContent = "";
+    var names = (data.apps || []).map(function (a) { return a.app; });
+    names.sort(function (a, b) { return slotFor(a) - slotFor(b); });
+    // A selected app with no sessions in this range still deserves its tab.
+    if (currentApp && names.indexOf(currentApp) === -1) names.push(currentApp);
+    var all = el("button", { text: "All apps", "aria-pressed": String(currentApp === "") });
+    all.addEventListener("click", function () { setApp(""); });
+    wrap.appendChild(all);
+    names.forEach(function (app) {
+      var b = el("button", { "aria-pressed": String(currentApp === app) }, [el("i", { class: "dot" })]);
+      b.firstChild.style.background = colorFor(app);
+      b.appendChild(document.createTextNode(labelFor(app)));
+      b.addEventListener("click", function () { setApp(app); });
+      wrap.appendChild(b);
+    });
+  }
+
+  function setApp(app) {
+    currentApp = app;
+    try { localStorage.setItem(APP_STORAGE, app); } catch (e) {}
+    paint();
+  }
+
+  /*
+   * Visitors, then the two commitments a visitor can make, as bars scaled
+   * to the visitor count - the picture of who plays without signing up.
+   */
+  function renderFunnel(data) {
+    var card = document.getElementById("funnel-card");
+    if (currentApp !== "timmies_passport") { card.hidden = true; return; }
+    card.hidden = false;
+    var wrap = document.getElementById("funnel");
+    wrap.textContent = "";
+    var appRow = (data.apps || []).find(function (a) { return a.app === "timmies_passport"; });
+    var visitors = appRow ? appRow.plays : 0;
+    var ev = {};
+    (data.events || []).forEach(function (e) { if (e.app === "timmies_passport") ev[e.name] = e; });
+    var steps = [
+      { label: "Visitors", v: visitors, color: "var(--series-1)" },
+      { label: "Stamped a store", v: (ev.stamp || {}).sessions || 0, color: "var(--series-3)" },
+      { label: "Created an account", v: (ev.account_created || {}).count || 0, color: "var(--series-4)" }
+    ];
+    steps.forEach(function (s, i) {
+      var pctOfVisitors = visitors ? Math.round((s.v / visitors) * 100) : 0;
+      var fill = el("div", { class: "funnel-fill" });
+      fill.style.background = s.color;
+      fill.style.width = (visitors ? Math.max((s.v / visitors) * 100, s.v ? 1 : 0) : 0) + "%";
+      var num = i === 0 ? String(s.v) : s.v + " · " + pctOfVisitors + "%";
+      wrap.appendChild(el("div", { class: "funnel-row" }, [
+        el("div", { class: "funnel-label", text: s.label }),
+        el("div", { class: "funnel-track" }, [fill]),
+        el("div", { class: "funnel-num", text: num })
+      ]));
+    });
+    if (!visitors) wrap.appendChild(el("div", { class: "empty", text: "No sessions in this range yet." }));
   }
 
   function renderRanges() {

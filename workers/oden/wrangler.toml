@@ -1,0 +1,19 @@
+name = "oden"
+main = "src/index.js"
+compatibility_date = "2026-03-13"
+workers_dev = true
+
+# NOTE: joseppy.ca is not on Cloudflare (DNS at Namecheap, pointing straight to
+# GitHub Pages), so a path route on the apex can't intercept traffic. This worker
+# is served at its workers.dev URL instead — visit:
+#   https://oden.<your-subdomain>.workers.dev/demo
+# If you ever move joseppy.ca's DNS to Cloudflare and proxy it, just re-add:
+#   routes = [ { pattern = "joseppy.ca/demo*", zone_name = "joseppy.ca" } ]
+# The internal paths are already /demo, so no code change is needed then.
+
+# Bundle the demo HTML into the worker as an importable string. The file itself
+# is git-ignored and never published to GitHub Pages.
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false

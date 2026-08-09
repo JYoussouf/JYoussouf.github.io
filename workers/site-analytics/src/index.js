@@ -124,9 +124,9 @@ async function getStats(request, env, url) {
       .bind(since),
     db
       .prepare(
-        `SELECT COALESCE(country, '??') AS country, COUNT(*) AS plays, SUM(duration_s) AS total_s
+        `SELECT app, COALESCE(country, '??') AS country, COUNT(*) AS plays, SUM(duration_s) AS total_s
          FROM sessions WHERE started_at >= ?1
-         GROUP BY country ORDER BY plays DESC LIMIT 50`
+         GROUP BY app, country ORDER BY plays DESC LIMIT 300`
       )
       .bind(since),
     db
@@ -152,9 +152,9 @@ async function getStats(request, env, url) {
       .bind(since),
     db
       .prepare(
-        `SELECT name, COUNT(*) AS count
+        `SELECT app, name, COUNT(*) AS count, COUNT(DISTINCT session_id) AS sessions
          FROM events WHERE created_at >= ?1
-         GROUP BY name ORDER BY count DESC LIMIT 50`
+         GROUP BY app, name ORDER BY count DESC LIMIT 200`
       )
       .bind(since),
     db

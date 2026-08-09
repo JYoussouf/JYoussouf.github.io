@@ -201,6 +201,11 @@
     <div class="card__body"><div id="funnel"></div></div>
   </div>
 
+  <div class="card" data-card="timmies-users" id="timmies-users-card" hidden>
+    <button class="card__head"><h2>Passport holders</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body"><div id="timmies-users-table"></div></div>
+  </div>
+
   <div class="card" data-card="chart">
     <button class="card__head"><h2>Plays over time</h2><span class="chev">&#9660;</span></button>
     <div class="card__body">
@@ -456,6 +461,7 @@
     renderRecentEvents(v.recentEvents);
     renderRecent(v.recent);
     renderFunnel(lastData);
+    renderTimmiesUsers(lastData);
     var lb = document.querySelector('[data-card="leaderboard"]');
     if (lb) lb.hidden = !(currentApp === "" || currentApp === "the_great_puppy_detective");
     if (!leaderboardLoaded) { leaderboardLoaded = true; loadLeaderboard(); }
@@ -520,6 +526,30 @@
       ]));
     });
     if (!visitors) wrap.appendChild(el("div", { class: "empty", text: "No sessions in this range yet." }));
+  }
+
+  /*
+   * Every passport holder by name, with where their stamps are. The worker
+   * strips this to display_name, join date, and stamped places - emails and
+   * password hashes never reach the dashboard.
+   */
+  function renderTimmiesUsers(data) {
+    var card = document.getElementById("timmies-users-card");
+    var users = data.timmies && data.timmies.users;
+    if (currentApp !== "timmies_passport" || !users) { card.hidden = true; return; }
+    card.hidden = false;
+    limitedTable(
+      document.getElementById("timmies-users-table"),
+      [{ label: "Display name" }, { label: "Stamps", num: 1 }, { label: "Stamped in" }, { label: "Joined", num: 1 }],
+      users.map(function (u) {
+        return el("tr", {}, [
+          el("td", { text: u.name }),
+          el("td", { class: "num", text: String(u.stamps) }),
+          el("td", { text: u.places || "-" }),
+          el("td", { class: "num", text: (u.joined || "").slice(0, 10) })
+        ]);
+      })
+    );
   }
 
   function renderRanges() {

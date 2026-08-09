@@ -206,11 +206,47 @@ async function getStats(request, env, url) {
   if (env.TIMMIES_DB) {
     try {
       const sinceIso = new Date(since).toISOString();
-      const row = await env.TIMMIES_DB
-        .prepare("SELECT COUNT(*) AS n FROM users WHERE created_at >= ?1")
-        .bind(sinceIso)
-        .first();
-      timmies = { accounts: row?.n ?? 0 };
+      const [accountsRow, usersRes, placesRes] = await Promise.all([
+        env.TIMMIES_DB
+          .prepare("SELECT COUNT(*) AS n FROM users WHERE created_at >= ?1")
+          .bind(sinceIso)
+          .first(),
+        env.TIMMIES_DB
+          .prepare(
+            `SELECT u.id, u.display_name, u.created_at, COUNT(v.location_id) AS stamps
+             FROM users u LEFT JOIN visits v ON v.user_id = u.id
+             GROUP BY u.id ORDER BY stamps DESC, u.created_at ASC LIMIT 200`
+          )
+          .all(),
+        env.TIMMIES_DB
+          .prepare(
+            `SELECT v.user_id, l.city, l.region, l.country_code, COUNT(*) AS n
+             FROM visits v JOIN locations l ON l.id = v.location_id
+             GROUP BY v.user_id, l.city, l.region, l.country_code
+             ORDER BY n DESC`
+          )
+          .all(),
+      ]);
+      // Only display_name, join date, and stamped places cross this boundary -
+      // email and password_hash stay inside the worker.
+      const placesByUser = new Map();
+      for (const p of placesRes.results || []) {
+        if (!placesByUser.has(p.user_id)) placesByUser.set(p.user_id, []);
+        const list = placesByUser.get(p.user_id);
+        if (list.length < 8) {
+          const where = [p.city, p.region].filter(Boolean).join(", ") || p.country_code || "?";
+          list.push(p.n > 1 ? `${where} ×${p.n}` : where);
+        }
+      }
+      timmies = {
+        accounts: accountsRow?.n ?? 0,
+        users: (usersRes.results || []).map((u) => ({
+          name: u.display_name,
+          joined: u.created_at,
+          stamps: u.stamps,
+          places: (placesByUser.get(u.id) || []).join(" · "),
+        })),
+      };
     } catch (e) {
       console.error("timmies accounts lookup failed", e);
     }

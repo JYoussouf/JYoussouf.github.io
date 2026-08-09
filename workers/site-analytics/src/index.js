@@ -195,9 +195,31 @@ async function getStats(request, env, url) {
       .bind(since),
   ]);
 
+  /*
+   * Account creations come from the passport's own users table, not the
+   * beacon: a signup is a database row however old the visitor's bundle is
+   * or whatever their ad blocker eats, and the funnel should not undercount
+   * the one number that matters most. Guarded so a missing binding
+   * degrades to absent rather than a broken dashboard.
+   */
+  let timmies = null;
+  if (env.TIMMIES_DB) {
+    try {
+      const sinceIso = new Date(since).toISOString();
+      const row = await env.TIMMIES_DB
+        .prepare("SELECT COUNT(*) AS n FROM users WHERE created_at >= ?1")
+        .bind(sinceIso)
+        .first();
+      timmies = { accounts: row?.n ?? 0 };
+    } catch (e) {
+      console.error("timmies accounts lookup failed", e);
+    }
+  }
+
   return json(
     {
       days,
+      timmies,
       totals: totals.results?.[0] || { plays: 0, total_s: 0, countries: 0 },
       apps: apps.results || [],
       countries: countries.results || [],

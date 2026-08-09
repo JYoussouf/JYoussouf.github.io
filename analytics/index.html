@@ -503,7 +503,9 @@
     var steps = [
       { label: "Visitors", v: visitors, color: "var(--series-1)" },
       { label: "Stamped a store", v: (ev.stamp || {}).sessions || 0, color: "var(--series-3)" },
-      { label: "Created an account", v: (ev.account_created || {}).count || 0, color: "var(--series-4)" }
+      /* The passport database is the truth for signups; the beacon event
+         only backs it up when the stats endpoint lacks the binding. */
+      { label: "Created an account", v: (data.timmies ? data.timmies.accounts : (ev.account_created || {}).count) || 0, color: "var(--series-4)" }
     ];
     steps.forEach(function (s, i) {
       var pctOfVisitors = visitors ? Math.round((s.v / visitors) * 100) : 0;

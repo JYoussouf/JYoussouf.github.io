@@ -38,8 +38,8 @@
                 <img class="logo-badge" src="apps/portfolio/images/joseppy-mark.png" alt="Joe Youssouf">
             </a>
             <nav class="nav__links" id="nav-links" aria-label="Primary">
-                <a href="#gallery">Gallery</a>
                 <a href="#projects">Projects</a>
+                <a href="#gallery">Gallery</a>
                 <a class="nav__cta" data-track="cv_open" href="apps/portfolio/cv/JoeYoussouf-CV.pdf" target="_blank" rel="noopener">CV <i class="bi bi-arrow-up-right"></i></a>
             </nav>
             <div class="nav__actions">
@@ -84,30 +84,6 @@
             </div>
         </section>
 
-        <!-- Gallery -->
-        <section class="section" id="gallery">
-            <div class="section__head">
-                <h2 class="section__title">Gallery</h2>
-                <p class="section__sub">A few talks, panels, and conferences over the years. Click a photo to open the post.</p>
-            </div>
-            <div class="slideshow" id="slideshow" aria-roledescription="carousel" aria-label="Photo gallery">
-                <div class="slideshow__stage">
-                    <button class="slideshow__arrow slideshow__arrow--prev" id="slideshow-prev" type="button" aria-label="Previous photo">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                    <a class="slideshow__frame" id="slideshow-link" href="#" target="_blank" rel="noopener">
-                        <img class="slideshow__image" id="slideshow-image" src="apps/portfolio/images/me/bscs_panel.jpeg" alt="">
-                        <div class="slideshow__progress"><span id="slideshow-progress-bar"></span></div>
-                    </a>
-                    <button class="slideshow__arrow slideshow__arrow--next" id="slideshow-next" type="button" aria-label="Next photo">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
-                </div>
-                <p class="slideshow__caption" id="slideshow-caption" aria-live="polite"></p>
-                <div class="slideshow__dots" id="slideshow-dots" role="tablist" aria-label="Choose photo"></div>
-            </div>
-        </section>
-
         <!-- Projects -->
         <section class="section" id="projects">
             <div class="section__head">
@@ -148,23 +124,6 @@
                 </div>
             </div>
 
-            <!-- Bots -->
-            <div class="work-block">
-                <h3 class="work-block__title">Bots</h3>
-                <div class="card-grid card-grid--apps">
-                    <a class="card card--app" data-track="tierlistbot_click" href="https://top.gg/bot/1492764401416015943" target="_blank" rel="noopener">
-                        <img class="card--app__icon" src="apps/portfolio/images/apps/tierlistbot.webp" alt="TierListBot icon">
-                        <div class="card--app__body">
-                            <h4>TierListBot</h4>
-                            <p>Bring the fun of tier list ranking right into your own Discord server: build lists together and debate the placements.</p>
-                            <span class="card__meta"><i class="bi bi-discord"></i> Discord Bot · top.gg</span>
-                            <div class="card__tags"><span>Discord</span><span>Tier Lists</span></div>
-                        </div>
-                        <i class="bi bi-arrow-up-right card__go"></i>
-                    </a>
-                </div>
-            </div>
-
             <!-- Web apps & games -->
             <div class="work-block">
                 <h3 class="work-block__title">Web apps &amp; games</h3>
@@ -180,6 +139,23 @@
                     <a class="card card--game" href="apps/the_great_puppy_detective/">
                         <img src="apps/the_great_puppy_detective/thegpd_logo.png" alt="The Great Puppy Detective" class="card--game__art">
                         <span class="card__go-pill">Play <i class="bi bi-arrow-right"></i></span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bots -->
+            <div class="work-block">
+                <h3 class="work-block__title">Bots</h3>
+                <div class="card-grid card-grid--apps">
+                    <a class="card card--app" data-track="tierlistbot_click" href="https://top.gg/bot/1492764401416015943" target="_blank" rel="noopener">
+                        <img class="card--app__icon" src="apps/portfolio/images/apps/tierlistbot.webp" alt="TierListBot icon">
+                        <div class="card--app__body">
+                            <h4>TierListBot</h4>
+                            <p>Bring the fun of tier list ranking right into your own Discord server: build lists together and debate the placements.</p>
+                            <span class="card__meta"><i class="bi bi-discord"></i> Discord Bot · top.gg</span>
+                            <div class="card__tags"><span>Discord</span><span>Tier Lists</span></div>
+                        </div>
+                        <i class="bi bi-arrow-up-right card__go"></i>
                     </a>
                 </div>
             </div>
@@ -200,6 +176,30 @@
                     </div>
                     <div class="gh-years" id="gh-years" role="tablist" aria-label="Contribution years"></div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Gallery -->
+        <section class="section" id="gallery">
+            <div class="section__head">
+                <h2 class="section__title">Gallery</h2>
+                <p class="section__sub">A few talks, panels, and conferences over the years. Click a photo to open the post.</p>
+            </div>
+            <div class="slideshow" id="slideshow" aria-roledescription="carousel" aria-label="Photo gallery">
+                <div class="slideshow__stage">
+                    <button class="slideshow__arrow slideshow__arrow--prev" id="slideshow-prev" type="button" aria-label="Previous photo">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <a class="slideshow__frame" id="slideshow-link" href="#" target="_blank" rel="noopener">
+                        <img class="slideshow__image" id="slideshow-image" src="apps/portfolio/images/me/bscs_panel.jpeg" alt="">
+                        <div class="slideshow__progress"><span id="slideshow-progress-bar"></span></div>
+                    </a>
+                    <button class="slideshow__arrow slideshow__arrow--next" id="slideshow-next" type="button" aria-label="Next photo">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+                <p class="slideshow__caption" id="slideshow-caption" aria-live="polite"></p>
+                <div class="slideshow__dots" id="slideshow-dots" role="tablist" aria-label="Choose photo"></div>
             </div>
         </section>
 

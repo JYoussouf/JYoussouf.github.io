@@ -186,6 +186,7 @@ if (navBurger && navLinks) {
   if (!image || !link || !caption || !slideshow) return;
 
   const PHOTOS = [
+    { src: 'apps/portfolio/images/me/team_racemind_gdg_waterloo.jpeg', caption: 'Team RaceMind, first place at the Build with Gemma hackathon with WatDev in Waterloo', url: 'https://www.linkedin.com/posts/joeyoussouf_hey-all-on-saturday-i-hit-the-road-from-activity-7490135904750243840-7-Qx/' },
     { src: 'apps/portfolio/images/me/bscs_panel.jpeg', caption: '2026 BSCS Computer Science Career Panel', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7444428489061076993/' },
     { src: 'apps/portfolio/images/me/ieom_society_2nd_world_congress.jpeg', caption: 'IEOM Society 2nd World Congress Panel - The Future of AI', url: 'https://www.linkedin.com/feed/update/urn:li:activity:7423061230975795200/' },
     { src: 'apps/portfolio/images/me/oden_forge_gdg_2025.jpg', caption: 'Oden Forge and MCP at GDG 2025', url: 'https://www.linkedin.com/posts/kayode-babalola-5a8304109_windsorgdg2025-ai-machinelearning-activity-7393791535739252736-MX0y/' },
@@ -310,6 +311,52 @@ if (navBurger && navLinks) {
   });
 
   show(0);
+})();
+
+/* =============================================================
+   Video lightbox: any [data-video="<youtube id>"] button pops the
+   clip out over the page. The iframe is created on open and torn
+   down on close so nothing loads (or keeps playing) otherwise.
+   ============================================================= */
+(function initVideoModal() {
+  const modal = document.getElementById('video-modal');
+  const frame = document.getElementById('video-modal-frame');
+  const closeBtn = document.getElementById('video-modal-close');
+  const triggers = document.querySelectorAll('[data-video]');
+  if (!modal || !frame || !triggers.length) return;
+
+  let lastFocused = null;
+
+  function open(trigger) {
+    lastFocused = trigger;
+    const id = trigger.dataset.video;
+    const title = trigger.dataset.videoTitle || 'Demo video';
+    modal.setAttribute('aria-label', title);
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0`;
+    iframe.title = title;
+    iframe.allow = 'accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+    iframe.allowFullscreen = true;
+    frame.replaceChildren(iframe);
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function close() {
+    if (modal.hidden) return;
+    modal.hidden = true;
+    frame.replaceChildren();
+    document.body.style.overflow = '';
+    if (lastFocused) lastFocused.focus();
+  }
+
+  triggers.forEach((trigger) => trigger.addEventListener('click', () => open(trigger)));
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  modal.querySelectorAll('[data-video-close]').forEach((el) => el.addEventListener('click', close));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') close();
+  });
 })();
 
 /* =============================================================

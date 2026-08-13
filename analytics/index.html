@@ -142,6 +142,24 @@
   }
   .show-more:hover { color: var(--text-primary); }
 
+  /* A sortable header is a button filling the cell, so the whole header is the
+     hit target rather than just the few characters of the label. */
+  th.sortable { padding: 0; }
+  th.sortable button {
+    display: flex; align-items: center; gap: 4px;
+    width: 100%; padding: 4px 8px;
+    font: inherit; color: inherit; background: none; border: none; cursor: pointer;
+  }
+  th.sortable.num button { justify-content: flex-end; }
+  th.sortable button:hover { color: var(--text-primary); }
+  /* The arrow is always in the layout so sorting a column cannot nudge the
+     header's width; only its opacity changes. Dim on hover previews the
+     direction a click would give you, solid marks the column actually sorted. */
+  th.sortable .arrow { font-size: 8px; opacity: 0; }
+  th.sortable button:hover .arrow { opacity: 0.45; }
+  th.sortable[aria-sort] { color: var(--text-primary); }
+  th.sortable[aria-sort] .arrow { opacity: 1; }
+
   .tooltip {
     position: fixed; pointer-events: none; z-index: 10; display: none;
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
@@ -286,6 +304,10 @@
   var currentApp = "";
   try { currentApp = localStorage.getItem(APP_STORAGE) || ""; } catch (e) {}
   var lastData = null;
+  /* How the passport holders table is sorted, or null for the order the worker
+     sent it in - by stamp count, which is the leaderboard view of the same
+     people. Lives out here so switching range does not reset the sort. */
+  var timmiesSort = null;
 
   function slotFor(app) {
     if (!APP_SLOTS[app]) { APP_SLOTS[app] = nextSlot < 9 ? nextSlot++ : 8; }
@@ -538,17 +560,28 @@
     var users = data.timmies && data.timmies.users;
     if (currentApp !== "timmies_passport" || !users) { card.hidden = true; return; }
     card.hidden = false;
-    limitedTable(
+    sortableTable(
       document.getElementById("timmies-users-table"),
-      [{ label: "Display name" }, { label: "Stamps", num: 1 }, { label: "Stamped in" }, { label: "Joined", num: 1 }],
-      users.map(function (u) {
+      [
+        { label: "Display name", key: "name", value: function (u) { return (u.name || "").toLowerCase(); } },
+        { label: "Stamps", num: 1, key: "stamps", desc: 1, value: function (u) { return u.stamps || 0; } },
+        { label: "Stamped in", key: "places", value: function (u) { return (u.places || "").toLowerCase(); } },
+        /* created_at is written as an ISO-8601 UTC string, which is fixed
+           width, so comparing the raw values as strings already sorts them
+           chronologically - no parsing, and no Invalid Date to handle. */
+        { label: "Joined", num: 1, key: "joined", desc: 1, value: function (u) { return u.joined || ""; } }
+      ],
+      users,
+      function (u) {
         return el("tr", {}, [
           el("td", { text: u.name }),
           el("td", { class: "num", text: String(u.stamps) }),
           el("td", { text: u.places || "-" }),
           el("td", { class: "num", text: (u.joined || "").slice(0, 10) })
         ]);
-      })
+      },
+      timmiesSort,
+      function (next) { timmiesSort = next; renderTimmiesUsers(data); }
     );
   }
 
@@ -781,15 +814,30 @@
   }
 
   /* ---------- tables ---------- */
+  /*
+   * A header with an onSort becomes a button; one without stays plain text, so
+   * every table that does not opt in renders exactly as it did.
+   */
   function table(headers, rows) {
     var thead = el("thead", {}, [el("tr", {}, headers.map(function (h) {
-      return el("th", { text: h.label, class: h.num ? "num" : "" });
+      if (!h.onSort) return el("th", { text: h.label, class: h.num ? "num" : "" });
+      var th = el("th", { class: (h.num ? "num " : "") + "sortable" });
+      if (h.dir) th.setAttribute("aria-sort", h.dir < 0 ? "descending" : "ascending");
+      // Unsorted, the arrow points the way a first click would sort it.
+      var down = h.dir ? h.dir < 0 : !!h.desc;
+      var btn = el("button", { type: "button" }, [
+        el("span", { text: h.label }),
+        el("span", { class: "arrow", text: down ? "▼" : "▲" })
+      ]);
+      btn.addEventListener("click", h.onSort);
+      th.appendChild(btn);
+      return th;
     }))]);
     var tbody = el("tbody", {}, rows);
     return el("table", {}, [thead, tbody]);
   }
 
-  function limitedTable(wrap, headers, rows) {
+  function limitedTable(wrap, headers, rows, showAllInitially) {
     wrap.textContent = "";
     if (!rows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing yet." })); return; }
     function draw(showAll) {
@@ -801,7 +849,58 @@
         wrap.appendChild(btn);
       }
     }
-    draw(false);
+    draw(!!showAllInitially);
+  }
+
+  /*
+   * limitedTable with clickable headers. Rows arrive as data plus a renderer
+   * rather than as finished <tr>s, because a sort has to compare the value
+   * behind a cell and not the text printed in it: "10" loses to "9" as a
+   * string, and the Joined column shows a date but holds a timestamp.
+   *
+   * Sort state is owned by the caller and handed back through onChange, since
+   * these tables are rebuilt from scratch whenever the range changes and a
+   * sort the user picked should outlive the redraw.
+   */
+  function sortableTable(wrap, headers, items, renderRow, state, onChange) {
+    var col = null;
+    headers.forEach(function (h) { if (state && h.key === state.key) col = h; });
+    var ordered = items.slice();
+    if (col) {
+      ordered.sort(function (a, b) {
+        var x = col.value(a), y = col.value(b);
+        if (x == null) x = "";
+        if (y == null) y = "";
+        return (x < y ? -1 : x > y ? 1 : 0) * state.dir;
+      });
+    }
+    // Showing everything is a decision about the table, not about one ordering
+    // of it - so re-sorting an expanded table leaves it expanded.
+    var expanded = !!wrap.querySelector(".show-more") &&
+      wrap.querySelectorAll("tbody tr").length > TABLE_LIMIT;
+    limitedTable(
+      wrap,
+      headers.map(function (h) {
+        if (!h.key) return h;
+        return {
+          label: h.label,
+          num: h.num,
+          desc: h.desc,
+          dir: state && state.key === h.key ? state.dir : 0,
+          onSort: function () {
+            // Clicking the sorted column flips it; clicking a new one starts in
+            // the direction that answers the question you clicked it to ask -
+            // newest first for dates, biggest first for counts, A-Z for names.
+            onChange({
+              key: h.key,
+              dir: state && state.key === h.key ? -state.dir : (h.desc ? -1 : 1)
+            });
+          }
+        };
+      }),
+      ordered.map(renderRow),
+      expanded
+    );
   }
 
   function appCell(app) {

@@ -85,6 +85,9 @@
     border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
   }
   .icon-btn:hover { color: var(--text-primary); }
+  /* Link to the sibling dashboard. Two pages, one instrument. */
+  .head .sibling { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .head .sibling:hover { color: var(--text-primary); }
 
   .highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
   .chip {
@@ -205,6 +208,7 @@
   <div class="head">
     <div class="brand"><h1>Pulse</h1><span class="sub">joseppy.ca</span></div>
     <div class="controls">
+      <a class="sibling" href="wroom/">wroom| &rarr;</a>
       <div class="ranges" id="ranges" role="group" aria-label="Date range"></div>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">&#9788;</button>
     </div>

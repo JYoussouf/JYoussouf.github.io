@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>wroom| &middot; joseppy.ca</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#128218;</text></svg>">
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --surface-2: #222221;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+    --accent-soft: rgba(57, 135, 229, 0.14);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface-1: #fcfcfb;
+    --surface-2: #f2f1ee;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --accent: #2a78d6;
+    --accent-soft: rgba(42, 120, 214, 0.10);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --series-5: #e87ba4;
+    --series-6: #008300;
+    --series-7: #4a3aa7;
+    --series-8: #e34948;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--text-primary);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 24px 48px;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .head {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--page);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 18px 0 14px;
+    border-bottom: 1px solid var(--grid);
+    margin-bottom: 20px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand .sub { color: var(--muted); font-size: 13px; }
+  .controls { display: flex; align-items: center; gap: 8px; }
+  .ranges { display: flex; gap: 2px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 2px; }
+  .ranges button {
+    font: inherit; font-size: 13px; color: var(--text-secondary); background: none;
+    border: none; border-radius: 8px; padding: 4px 11px; cursor: pointer;
+  }
+  .ranges button:hover { color: var(--text-primary); }
+  .ranges button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); font-weight: 600; }
+  .icon-btn {
+    font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+    background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
+  }
+  .icon-btn:hover { color: var(--text-primary); }
+
+  .highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 13px; font-size: 13px; color: var(--text-secondary);
+  }
+  .chip strong { color: var(--text-primary); font-weight: 600; }
+  .chip.hot { background: var(--accent-soft); border-color: var(--accent); color: var(--text-primary); }
+  .chip.hot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+  .chip .up { color: #0ca30c; }
+  .chip .down { color: #e34948; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+  .tile .label { color: var(--muted); font-size: 12px; }
+  .tile .value { font-size: 27px; font-weight: 650; margin-top: 2px; letter-spacing: -0.01em; }
+  .tile .delta { font-size: 12px; margin-top: 2px; color: var(--muted); }
+  .tile .delta .up { color: #0ca30c; }
+  .tile .delta .down { color: #e34948; }
+
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px; overflow: hidden; }
+  .card__head {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    font: inherit; background: none; border: none; color: inherit; cursor: pointer;
+    padding: 13px 16px; text-align: left;
+  }
+  .card__head h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.01em; }
+  .card__head .chev { color: var(--muted); font-size: 11px; transition: transform 0.15s; }
+  .card.collapsed .card__head .chev { transform: rotate(-90deg); }
+  .card__body { padding: 0 16px 16px; }
+  .card.collapsed .card__body { display: none; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .chart-wrap { overflow-x: auto; }
+  svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cols .card { margin-bottom: 16px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } body { padding: 0 14px 40px; } }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; color: var(--muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .show-more {
+    display: block; width: 100%; margin-top: 8px; padding: 6px;
+    font: inherit; font-size: 12px; color: var(--muted); background: none;
+    border: none; border-top: 1px dashed var(--grid); cursor: pointer;
+  }
+  .show-more:hover { color: var(--text-primary); }
+
+  /* A sortable header is a button filling the cell, so the whole header is the
+     hit target rather than just the few characters of the label. */
+  th.sortable { padding: 0; }
+  th.sortable button {
+    display: flex; align-items: center; gap: 4px;
+    width: 100%; padding: 4px 8px;
+    font: inherit; color: inherit; background: none; border: none; cursor: pointer;
+  }
+  th.sortable.num button { justify-content: flex-end; }
+  th.sortable button:hover { color: var(--text-primary); }
+  /* The arrow is always in the layout so sorting a column cannot nudge the
+     header's width; only its opacity changes. Dim on hover previews the
+     direction a click would give you, solid marks the column actually sorted. */
+  th.sortable .arrow { font-size: 8px; opacity: 0; }
+  th.sortable button:hover .arrow { opacity: 0.45; }
+  th.sortable[aria-sort] { color: var(--text-primary); }
+  th.sortable[aria-sort] .arrow { opacity: 1; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 10; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.28); white-space: nowrap;
+  }
+  .tooltip .t-day { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .t-row { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+
+  #gate { max-width: 320px; margin: 18vh auto 0; text-align: center; }
+  #gate h1 { font-size: 22px; margin-bottom: 4px; }
+  #gate input {
+    font: inherit; width: 100%; margin-top: 14px; padding: 9px 11px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); color: var(--text-primary);
+  }
+  #gate .err { color: #e34948; font-size: 12px; margin-top: 8px; min-height: 18px; }
+  .empty { color: var(--muted); text-align: center; padding: 22px 0; font-size: 13px; }
+  .apptabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+  .apptabs button {
+    font: inherit; font-size: 13px; color: var(--text-secondary); background: none;
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .apptabs button:hover { color: var(--text-primary); }
+  .apptabs button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); font-weight: 600; }
+  .apptabs .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .funnel-row { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+  .funnel-label { width: 160px; font-size: 13px; color: var(--text-secondary); }
+  .funnel-track { flex: 1; height: 22px; background: var(--grid); border-radius: 7px; overflow: hidden; }
+  .funnel-fill { height: 100%; border-radius: 7px; min-width: 3px; }
+  .funnel-num { width: 120px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+  [hidden] { display: none !important; }
+
+  /* wroom only: the two-up split under a tile row, and the note that says how
+     far back a number actually goes. Everything above this comment is Pulse's
+     stylesheet unchanged, so the two dashboards stay one instrument. */
+  .note { color: var(--muted); font-size: 12px; margin: -6px 0 16px; }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .bar-track { flex: 1; height: 6px; background: var(--grid); border-radius: 3px; overflow: hidden; min-width: 60px; }
+  .bar-fill { height: 100%; border-radius: 3px; min-width: 2px; }
+  .head .back { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .head .back:hover { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div id="gate" hidden>
+  <h1>wroom|</h1>
+  <p class="sub">the numbers &middot; enter the key</p>
+  <input id="key-input" type="password" autocomplete="off" placeholder="Dashboard key">
+  <div class="err" id="gate-err"></div>
+</div>
+
+<div id="dash" hidden>
+  <div class="head">
+    <div class="brand"><h1>wroom|</h1><span class="sub">the numbers</span></div>
+    <div class="controls">
+      <a class="back" href="../">&larr; Pulse</a>
+      <div class="ranges" id="ranges" role="group" aria-label="Date range"></div>
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">&#9788;</button>
+    </div>
+  </div>
+
+  <div class="highlights" id="highlights"></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="note" id="active-note"></div>
+
+  <div class="card" data-card="wroom-made">
+    <button class="card__head"><h2>What got made</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="legend" id="made-legend"></div>
+      <div class="chart-wrap"><div id="made-chart"></div></div>
+    </div>
+  </div>
+
+  <div class="card" data-card="wroom-active">
+    <button class="card__head"><h2>Active authors per day</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="legend" id="active-legend"></div>
+      <div class="chart-wrap"><div id="active-chart"></div></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card" data-card="wroom-activation">
+      <button class="card__head"><h2>Does an account become an author</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="activation-table"></div></div>
+    </div>
+    <div class="card" data-card="wroom-writing">
+      <button class="card__head"><h2>Where the writing goes</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="writing-table"></div></div>
+    </div>
+    <div class="card" data-card="wroom-period">
+      <button class="card__head"><h2>New in this range</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="period-table"></div></div>
+    </div>
+    <div class="card" data-card="wroom-moderation">
+      <button class="card__head"><h2>Queues and housekeeping</h2><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="moderation-table"></div></div>
+    </div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function () {
+  "use strict";
+  var API = "https://wroom-api.joseppy-workers.workers.dev";
+  var KEY_STORAGE = "wroom_dash_key";
+  /* The theme is shared with Pulse on purpose: two dashboards, one instrument,
+     and flipping to light on one should not hand you a dark slab on the other. */
+  var THEME_STORAGE = "sa_theme";
+  var COLLAPSE_STORAGE = "wroom_collapsed";
+  var RANGES = [{ d: 7, label: "7d" }, { d: 30, label: "30d" }, { d: 90, label: "90d" }, { d: 365, label: "1y" }, { d: 3650, label: "All" }];
+  var currentDays = 30;
+  var lastData = null;
+
+  /* The four things the product makes, in the order they happen: somebody
+     joins, invents a character, builds a world, writes in it. */
+  var MADE = [
+    { key: "signups", label: "Signups", color: "var(--series-1)" },
+    { key: "characters", label: "Characters", color: "var(--series-3)" },
+    { key: "wrooms", label: "Wrooms", color: "var(--series-4)" },
+    { key: "posts", label: "Posts", color: "var(--series-2)" }
+  ];
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    for (var k in attrs || {}) {
+      if (k === "text") node.textContent = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    }
+    (children || []).forEach(function (c) { node.appendChild(c); });
+    return node;
+  }
+  function svgEl(tag, attrs) {
+    var node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs || {}) node.setAttribute(k, attrs[k]);
+    return node;
+  }
+  function num(n) { return (n || 0).toLocaleString(); }
+  function pct(part, whole) { return whole ? Math.round((part / whole) * 100) : 0; }
+  /* A rate, rounded - but never rounded to "0" when the thing did happen. Four
+     reports over ninety days is 0.04 a day, and printing that as 0 next to a
+     count of 4 reads as a bug in the page rather than as a rare event. */
+  function perDay(count, days) {
+    var rate = (count || 0) / days;
+    if (rate === 0) return "0";
+    if (rate < 0.1) return "<0.1";
+    return (Math.round(rate * 10) / 10).toString();
+  }
+  function prettyDay(day) {
+    if (!day) return "";
+    var d = new Date(day + "T00:00:00Z");
+    return d.toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
+  }
+
+  /* ---------- theme ---------- */
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.getElementById("theme-toggle").innerHTML = theme === "dark" ? "&#9788;" : "&#9789;";
+  }
+  try { applyTheme(localStorage.getItem(THEME_STORAGE) || "dark"); } catch (e) { applyTheme("dark"); }
+  document.getElementById("theme-toggle").addEventListener("click", function () {
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    try { localStorage.setItem(THEME_STORAGE, next); } catch (e) {}
+    applyTheme(next);
+  });
+
+  /* ---------- collapsible cards ---------- */
+  function collapsedSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_STORAGE) || "[]")); } catch (e) { return new Set(); }
+  }
+  function saveCollapsed(set) {
+    try { localStorage.setItem(COLLAPSE_STORAGE, JSON.stringify(Array.from(set))); } catch (e) {}
+  }
+  (function initCollapse() {
+    var collapsed = collapsedSet();
+    document.querySelectorAll(".card[data-card]").forEach(function (card) {
+      var id = card.getAttribute("data-card");
+      if (collapsed.has(id)) card.classList.add("collapsed");
+      card.querySelector(".card__head").addEventListener("click", function () {
+        card.classList.toggle("collapsed");
+        var set = collapsedSet();
+        if (card.classList.contains("collapsed")) set.add(id); else set.delete(id);
+        saveCollapsed(set);
+      });
+    });
+  })();
+
+  /* ---------- auth + fetch ---------- */
+  function getKey() { try { return localStorage.getItem(KEY_STORAGE) || ""; } catch (e) { return ""; } }
+  function setKey(v) { try { localStorage.setItem(KEY_STORAGE, v); } catch (e) {} }
+
+  function showGate(message) {
+    document.getElementById("dash").hidden = true;
+    var gate = document.getElementById("gate");
+    gate.hidden = false;
+    document.getElementById("gate-err").textContent = message || "";
+    document.getElementById("key-input").focus();
+  }
+
+  function load(days) {
+    currentDays = days;
+    fetch(API + "/api/admin/stats?days=" + days, { headers: { "x-dash-key": getKey() } })
+      .then(function (res) {
+        /* The wroom API answers a wrong key with 404 rather than 401 - the same
+           answer its report and moderation queues give a non-admin, so nothing
+           learns that an admin surface is there. Both mean "wrong key" here. */
+        if (res.status === 404 || res.status === 401) { showGate(getKey() ? "Wrong key." : ""); throw new Error("unauthorized"); }
+        if (!res.ok) throw new Error("request failed: " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        lastData = data;
+        document.getElementById("gate").hidden = true;
+        document.getElementById("dash").hidden = false;
+        paint();
+      })
+      .catch(function (err) { if (err.message !== "unauthorized") console.error(err); });
+  }
+
+  function paint() {
+    if (!lastData) return;
+    renderRanges();
+    renderHighlights(lastData);
+    renderTiles(lastData);
+    renderActiveNote(lastData);
+    renderMadeChart(lastData);
+    renderActiveChart(lastData);
+    renderActivation(lastData);
+    renderWriting(lastData);
+    renderPeriod(lastData);
+    renderModeration(lastData);
+  }
+
+  function renderRanges() {
+    var wrap = document.getElementById("ranges");
+    wrap.textContent = "";
+    RANGES.forEach(function (r) {
+      var b = el("button", { text: r.label, "aria-pressed": String(r.d === currentDays) });
+      b.addEventListener("click", function () { load(r.d); });
+      wrap.appendChild(b);
+    });
+  }
+
+  /* ---------- highlights ---------- */
+  function chip(hot, parts) {
+    var c = el("span", { class: "chip" + (hot ? " hot" : "") });
+    parts.forEach(function (p) {
+      if (typeof p === "string") c.appendChild(document.createTextNode(p));
+      else c.appendChild(p);
+    });
+    return c;
+  }
+
+  function renderHighlights(d) {
+    var wrap = document.getElementById("highlights");
+    wrap.textContent = "";
+    var a = d.active || {};
+    var act = d.activation || {};
+    var t = d.totals || {};
+    wrap.appendChild(chip(a.dau > 0, [el("strong", { text: num(a.dau) }), " active today"]));
+    wrap.appendChild(chip(false, [el("strong", { text: num(a.wau) }), " this week"]));
+    wrap.appendChild(chip(false, [el("strong", { text: num(a.mau) }), " this month"]));
+    if (t.authors) {
+      wrap.appendChild(chip(false, [
+        el("strong", { text: pct(act.authorsWhoPosted, t.authors) + "%" }),
+        " of accounts have written something"
+      ]));
+    }
+    if (act.wroomsWithMoreThanOneWriter > 0) {
+      wrap.appendChild(chip(true, [
+        el("strong", { text: num(act.wroomsWithMoreThanOneWriter) }),
+        act.wroomsWithMoreThanOneWriter === 1 ? " wroom has more than one writer" : " wrooms have more than one writer"
+      ]));
+    }
+    var open = (d.health || {}).openReports || 0;
+    if (open > 0) {
+      wrap.appendChild(chip(true, [el("strong", { text: num(open) }), open === 1 ? " report is open" : " reports are open"]));
+    }
+  }
+
+  /* ---------- tiles ---------- */
+  function renderTiles(d) {
+    var t = d.totals || {};
+    var nw = d.new || {};
+    var wrap = document.getElementById("tiles");
+    wrap.textContent = "";
+    [
+      { label: "Authors", value: t.authors, added: nw.authors },
+      { label: "Characters", value: t.characters, added: nw.characters },
+      { label: "Wrooms", value: t.wrooms, added: nw.wrooms },
+      { label: "Posts", value: t.posts, added: nw.posts },
+      { label: "Active today", value: (d.active || {}).dau },
+      { label: "Active this week", value: (d.active || {}).wau }
+    ].forEach(function (tile) {
+      var node = el("div", { class: "tile" }, [
+        el("div", { class: "label", text: tile.label }),
+        el("div", { class: "value", text: num(tile.value) })
+      ]);
+      if (tile.added !== undefined) {
+        var delta = el("div", { class: "delta" });
+        if (tile.added > 0) {
+          delta.appendChild(el("span", { class: "up", text: "+" + num(tile.added) }));
+          delta.appendChild(document.createTextNode(" in " + d.days + "d"));
+        } else {
+          delta.textContent = "none in " + d.days + "d";
+        }
+        node.appendChild(delta);
+      }
+      wrap.appendChild(node);
+    });
+  }
+
+  /* The one honest caveat on the page: activity was not recorded before the
+     table existed, so a short history is a young table and not a dead product. */
+  function renderActiveNote(d) {
+    var note = document.getElementById("active-note");
+    var first = (d.active || {}).firstDay;
+    note.textContent = first
+      ? "Active-author counts start " + prettyDay(first) + ", when daily activity began being recorded. Earlier days cannot be backfilled."
+      : "No activity has been recorded yet. Daily active counts begin the first time somebody uses the app after this endpoint was deployed.";
+  }
+
+  /* ---------- charts ---------- */
+  /*
+   * Pulse's stacked-bar renderer, taking its series from an argument instead of
+   * from the app list. Same bucketing (a day, a week past 120 days, a month past
+   * 400), same gridlines, same hover target spanning the full column width.
+   */
+  function dayList(days) {
+    var out = [];
+    var d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    for (var i = days - 1; i >= 0; i--) {
+      out.push(new Date(d.getTime() - i * 86400000).toISOString().slice(0, 10));
+    }
+    return out;
+  }
+
+  function stackedChart(mount, legendEl, daily, series, days, emptyText) {
+    mount.textContent = "";
+    legendEl.textContent = "";
+    var byDay = {};
+    (daily || []).forEach(function (row) { byDay[row.day] = row; });
+
+    var allDays = dayList(days);
+    /* Trim the empty runway before the first day that has anything, so a 1y
+       range on a young product is not 350 blank columns and one bar. */
+    var first = null;
+    (daily || []).forEach(function (row) { if (!first || row.day < first) first = row.day; });
+    if (first) {
+      var idx = allDays.indexOf(first);
+      if (idx > 0) allDays = allDays.slice(Math.min(idx, allDays.length - 7));
+    }
+
+    var bucketSize = allDays.length > 400 ? 30 : allDays.length > 120 ? 7 : 1;
+    var buckets = [];
+    for (var bi = 0; bi < allDays.length; bi += bucketSize) buckets.push(allDays.slice(bi, bi + bucketSize));
+
+    function bucketCount(bucket, key) {
+      var total = 0;
+      bucket.forEach(function (day) { total += (byDay[day] || {})[key] || 0; });
+      return total;
+    }
+    function bucketLabel(bucket) {
+      return bucket.length === 1 ? bucket[0] : bucket[0] + " to " + bucket[bucket.length - 1];
+    }
+
+    var maxTotal = 0;
+    buckets.forEach(function (bucket) {
+      var total = 0;
+      series.forEach(function (s) { total += bucketCount(bucket, s.key); });
+      if (total > maxTotal) maxTotal = total;
+    });
+    if (!maxTotal) {
+      mount.appendChild(el("div", { class: "empty", text: emptyText }));
+      return;
+    }
+
+    series.forEach(function (s) {
+      var c = el("span", {}, [el("i", {})]);
+      c.firstChild.style.background = s.color;
+      c.appendChild(document.createTextNode(s.label));
+      legendEl.appendChild(c);
+    });
+
+    var W = Math.max(640, mount.clientWidth || 640);
+    var H = 220, padL = 38, padB = 20, padT = 8;
+    var plotW = W - padL - 8, plotH = H - padT - padB;
+    var step = plotW / buckets.length;
+    var barW = Math.max(2, Math.min(28, step - 2));
+    var yMax = Math.max(4, Math.ceil(maxTotal * 1.1));
+    var svg = svgEl("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Stacked bar chart over time" });
+
+    [0, 0.5, 1].forEach(function (f) {
+      var y = padT + plotH - plotH * f;
+      svg.appendChild(svgEl("line", { x1: padL, x2: W - 8, y1: y, y2: y, stroke: f === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": 1 }));
+      var label = svgEl("text", { x: padL - 6, y: y + 4, "text-anchor": "end" });
+      label.textContent = String(Math.round(yMax * f));
+      svg.appendChild(label);
+    });
+
+    var tooltip = document.getElementById("tooltip");
+    buckets.forEach(function (bucket, i) {
+      var x = padL + i * step + (step - barW) / 2;
+      var yCursor = padT + plotH;
+      var stack = [];
+      series.forEach(function (s) {
+        var v = bucketCount(bucket, s.key);
+        if (!v) return;
+        stack.push({ s: s, v: v });
+        var h = (v / yMax) * plotH;
+        yCursor -= h;
+        svg.appendChild(svgEl("rect", {
+          x: x, y: yCursor, width: barW, height: Math.max(h - 1, 1),
+          fill: s.color, stroke: "var(--surface-1)", "stroke-width": 1
+        }));
+      });
+      if (stack.length) {
+        svg.appendChild(svgEl("rect", { x: x, y: yCursor, width: barW, height: 3, rx: 1.5, fill: stack[stack.length - 1].s.color }));
+      }
+
+      var hit = svgEl("rect", { x: padL + i * step, y: padT, width: step, height: plotH, fill: "transparent" });
+      hit.addEventListener("mousemove", function (ev) {
+        tooltip.style.display = "block";
+        tooltip.textContent = "";
+        tooltip.appendChild(el("div", { class: "t-day", text: bucketLabel(bucket) }));
+        if (!stack.length) tooltip.appendChild(el("div", { class: "t-row", text: "Nothing" }));
+        stack.slice().reverse().forEach(function (item) {
+          var row = el("div", { class: "t-row" }, [el("i", { class: "dot" })]);
+          row.firstChild.style.background = item.s.color;
+          row.appendChild(document.createTextNode(item.s.label + ": " + num(item.v)));
+          tooltip.appendChild(row);
+        });
+        tooltip.style.left = Math.min(ev.clientX + 12, window.innerWidth - tooltip.offsetWidth - 8) + "px";
+        tooltip.style.top = (ev.clientY + 12) + "px";
+      });
+      hit.addEventListener("mouseleave", function () { tooltip.style.display = "none"; });
+      svg.appendChild(hit);
+
+      var every = Math.ceil(buckets.length / 10);
+      if (i % every === 0) {
+        var t = svgEl("text", { x: padL + i * step + step / 2, y: H - 4, "text-anchor": "middle" });
+        t.textContent = bucketSize >= 30 ? bucket[0].slice(0, 7) : bucket[0].slice(5);
+        svg.appendChild(t);
+      }
+    });
+
+    mount.appendChild(svg);
+  }
+
+  function renderMadeChart(d) {
+    stackedChart(
+      document.getElementById("made-chart"),
+      document.getElementById("made-legend"),
+      d.daily, MADE, d.days, "Nothing was made in this range."
+    );
+  }
+
+  function renderActiveChart(d) {
+    /* Deliberately its own chart rather than a fifth colour on the one above:
+       an active author is a different unit from a thing that got made, and
+       stacking the two would add people to posts. */
+    stackedChart(
+      document.getElementById("active-chart"),
+      document.getElementById("active-legend"),
+      d.daily,
+      [{ key: "active", label: "Active authors", color: "var(--series-7)" }],
+      d.days,
+      "No activity recorded in this range yet."
+    );
+  }
+
+  /* ---------- tables ---------- */
+  function table(headers, rows) {
+    var thead = el("thead", {}, [el("tr", {}, headers.map(function (h) {
+      return el("th", { text: h.label, class: h.num ? "num" : "" });
+    }))]);
+    return el("table", {}, [thead, el("tbody", {}, rows)]);
+  }
+
+  function plainTable(mountId, headers, rows) {
+    var wrap = document.getElementById(mountId);
+    wrap.textContent = "";
+    if (!rows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing yet." })); return; }
+    wrap.appendChild(table(headers, rows));
+  }
+
+  /* A count, then the same count as a share of the whole it belongs to. The
+     bar is there so the shares are comparable down the column at a glance. */
+  function shareRow(label, value, whole, color) {
+    var fill = el("div", { class: "bar-fill" });
+    fill.style.background = color;
+    fill.style.width = pct(value, whole) + "%";
+    return el("tr", {}, [
+      el("td", { text: label }),
+      el("td", { class: "num", text: num(value) }),
+      el("td", {}, [el("div", { class: "bar-cell" }, [
+        el("div", { class: "bar-track" }, [fill]),
+        el("span", { class: "sub", text: whole ? pct(value, whole) + "%" : "-" })
+      ])])
+    ]);
+  }
+
+  function renderActivation(d) {
+    var t = d.totals || {}, a = d.activation || {};
+    plainTable("activation-table",
+      [{ label: "Step" }, { label: "Count", num: 1 }, { label: "Share" }],
+      [
+        shareRow("Accounts", t.authors, t.authors, "var(--series-1)"),
+        shareRow("...made a character", a.authorsWithCharacters, t.authors, "var(--series-3)"),
+        shareRow("...wrote a post", a.authorsWhoPosted, t.authors, "var(--series-2)"),
+        shareRow("Wrooms with any posts", a.wroomsWithPosts, t.wrooms, "var(--series-4)"),
+        shareRow("...with more than one writer", a.wroomsWithMoreThanOneWriter, t.wrooms, "var(--series-5)")
+      ]);
+  }
+
+  function renderWriting(d) {
+    var t = d.totals || {};
+    plainTable("writing-table",
+      [{ label: "Kind" }, { label: "Count", num: 1 }, { label: "Share" }],
+      [
+        shareRow("Posts in a wroom", t.postsInWrooms, t.posts, "var(--series-1)"),
+        shareRow("Posts on an author's own page", t.postsOnOwnPage, t.posts, "var(--series-4)"),
+        shareRow("Replies (of all posts)", t.replies, t.posts, "var(--series-3)"),
+        shareRow("Characters placed in a wroom", t.wroomCharactersPlaced, t.wroomCharacters, "var(--series-7)")
+      ]);
+  }
+
+  function renderPeriod(d) {
+    var nw = d.new || {};
+    plainTable("period-table",
+      [{ label: "Since " + prettyDay(d.since) }, { label: "New", num: 1 }, { label: "Per day", num: 1 }],
+      [
+        ["Authors", nw.authors], ["Characters", nw.characters], ["Wrooms", nw.wrooms],
+        ["Posts", nw.posts], ["Characters placed in a wroom", nw.wroomCharacters], ["Reports filed", nw.reports]
+      ].map(function (r) {
+        return el("tr", {}, [
+          el("td", { text: r[0] }),
+          el("td", { class: "num", text: num(r[1]) }),
+          el("td", { class: "num sub", text: perDay(r[1], d.days) })
+        ]);
+      }));
+  }
+
+  function renderModeration(d) {
+    var h = d.health || {};
+    plainTable("moderation-table",
+      [{ label: "Thing" }, { label: "Count", num: 1 }],
+      [
+        ["Open reports", h.openReports], ["...waiting on a wroom's owners", h.openReportsWithOwners],
+        ["...waiting on you", h.openReportsForAdmin], ["Auto-hidden, awaiting review", h.autoHiddenAwaitingReview],
+        ["Hidden wrooms", h.hiddenWrooms], ["Suspended authors", h.suspendedAuthors],
+        ["Deleted authors", h.deletedAuthors], ["Unverified emails", h.unverifiedAuthors],
+        ["Public wrooms", h.publicWrooms], ["Archived wrooms", h.archivedWrooms],
+        ["Deleted posts", h.deletedPosts]
+      ].map(function (r) {
+        return el("tr", {}, [el("td", { text: r[0] }), el("td", { class: "num", text: num(r[1]) })]);
+      }));
+  }
+
+  /* ---------- init ---------- */
+  document.getElementById("key-input").addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter") return;
+    setKey(ev.target.value.trim());
+    ev.target.value = "";
+    load(currentDays);
+  });
+
+  /* Magic-link support, same as Pulse: /analytics/wroom/#key=... saves the key
+     and scrubs it out of the URL so it does not sit in history. */
+  var hashKey = location.hash.match(/^#key=(.+)$/);
+  if (hashKey) {
+    setKey(decodeURIComponent(hashKey[1]).trim());
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    /* The charts are sized off the container's clientWidth, so they do need a
+       redraw - but once the drag settles, not on every frame of it. */
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(paint, 150);
+  });
+
+  if (getKey()) load(currentDays);
+  else showGate("");
+})();
+</script>
+</body>
+</html>

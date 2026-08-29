@@ -9,132 +9,167 @@
 <style>
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0d0d0d;
-    --surface-1: #1a1a19;
-    --surface-2: #222221;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted: #898781;
-    --grid: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.10);
-    --accent: #3987e5;
-    --accent-soft: rgba(57, 135, 229, 0.14);
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
+    --page: #0a0c0e;
+    --surface-1: #14171a;
+    --surface-2: #1b1f23;
+    --sheen: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 42%);
+    --text-primary: #f2f5f7;
+    --text-secondary: #aeb6bd;
+    --muted: #6d767e;
+    --grid: #23282d;
+    --baseline: #3a4148;
+    --border: #2a3036;
+    --border-strong: #3a4148;
+    --accent: #3aa0ff;
+    --accent-soft: rgba(58, 160, 255, 0.12);
+    --ok: #2fd076;
+    --warn: #ffb224;
+    --bad: #ff5d5d;
+    --series-1: #3aa0ff;
+    --series-2: #ff7a2f;
+    --series-3: #2fd076;
+    --series-4: #ffc53d;
+    --series-5: #ff5d8f;
+    --series-6: #29c8c8;
+    --series-7: #a48fff;
+    --series-8: #ff5d5d;
   }
   :root[data-theme="light"] {
     color-scheme: light;
-    --page: #f9f9f7;
-    --surface-1: #fcfcfb;
-    --surface-2: #f2f1ee;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --muted: #898781;
-    --grid: #e1e0d9;
-    --baseline: #c3c2b7;
-    --border: rgba(11, 11, 11, 0.10);
-    --accent: #2a78d6;
-    --accent-soft: rgba(42, 120, 214, 0.10);
-    --series-1: #2a78d6;
-    --series-2: #eb6834;
-    --series-3: #1baf7a;
-    --series-4: #eda100;
-    --series-5: #e87ba4;
-    --series-6: #008300;
-    --series-7: #4a3aa7;
-    --series-8: #e34948;
+    --page: #eef0f2;
+    --surface-1: #ffffff;
+    --surface-2: #f3f5f7;
+    --sheen: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0) 42%);
+    --text-primary: #14181c;
+    --text-secondary: #454c53;
+    --muted: #7a828a;
+    --grid: #dde1e5;
+    --baseline: #b8bfc6;
+    --border: #ccd2d8;
+    --border-strong: #aab2ba;
+    --accent: #0b6fd6;
+    --accent-soft: rgba(11, 111, 214, 0.10);
+    --ok: #0f9d55;
+    --warn: #b97900;
+    --bad: #d63a3a;
+    --series-1: #0b6fd6;
+    --series-2: #d95d16;
+    --series-3: #0f9d55;
+    --series-4: #c79400;
+    --series-5: #d6407a;
+    --series-6: #0a9e9e;
+    --series-7: #6a53d6;
+    --series-8: #d63a3a;
   }
   * { box-sizing: border-box; margin: 0; }
   body {
     background: var(--page);
     color: var(--text-primary);
-    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-    padding: 0 24px 48px;
-    max-width: 1080px;
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 28px 56px;
+    max-width: 1280px;
     margin: 0 auto;
   }
+  /* HARD LINES. Panels are square-cornered graphite slabs: a 1px steel border,
+     a faint top sheen for the metal, and no shadow theatrics. */
   .head {
     position: sticky; top: 0; z-index: 5;
     background: var(--page);
     display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-    padding: 18px 0 14px;
-    border-bottom: 1px solid var(--grid);
-    margin-bottom: 20px;
+    padding: 16px 0 12px;
+    border-bottom: 2px solid var(--border-strong);
+    margin-bottom: 18px;
   }
   .brand { display: flex; align-items: baseline; gap: 10px; }
-  .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-  .brand .sub { color: var(--muted); font-size: 13px; }
+  .brand h1 { font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
+  .brand .sub { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
   .controls { display: flex; align-items: center; gap: 8px; }
-  .ranges { display: flex; gap: 2px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 2px; }
+  .ranges { display: flex; background: var(--surface-1); border: 1px solid var(--border); }
   .ranges button {
-    font: inherit; font-size: 13px; color: var(--text-secondary); background: none;
-    border: none; border-radius: 8px; padding: 4px 11px; cursor: pointer;
+    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); background: none;
+    border: none; border-right: 1px solid var(--border); padding: 6px 12px; cursor: pointer;
   }
+  .ranges button:last-child { border-right: none; }
   .ranges button:hover { color: var(--text-primary); }
-  .ranges button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); font-weight: 600; }
+  .ranges button[aria-pressed="true"] { color: var(--page); background: var(--accent); }
   .icon-btn {
-    font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+    font: inherit; font-size: 14px; line-height: 1; cursor: pointer;
     background: var(--surface-1); color: var(--text-secondary);
-    border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
+    border: 1px solid var(--border); padding: 7px 10px;
   }
-  .icon-btn:hover { color: var(--text-primary); }
+  .icon-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
 
-  .highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .chip {
     display: inline-flex; align-items: center; gap: 7px;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
-    padding: 6px 13px; font-size: 13px; color: var(--text-secondary);
+    background: var(--surface-1); border: 1px solid var(--border);
+    padding: 5px 12px; font-size: 12.5px; color: var(--text-secondary);
   }
-  .chip strong { color: var(--text-primary); font-weight: 600; }
-  .chip.hot { background: var(--accent-soft); border-color: var(--accent); color: var(--text-primary); }
-  .chip.hot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
-  .chip .up { color: #0ca30c; }
-  .chip .down { color: #e34948; }
+  .chip strong { color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chip.hot { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); }
+  .chip.hot::before { content: ""; width: 7px; height: 7px; background: var(--accent); flex: none; }
+  .chip.alarm { border-color: var(--bad); background: rgba(255,93,93,0.10); color: var(--text-primary); }
+  .chip.alarm::before { content: ""; width: 7px; height: 7px; background: var(--bad); flex: none; }
+  .chip .up { color: var(--ok); }
+  .chip .down { color: var(--bad); }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
-  .tile .label { color: var(--muted); font-size: 12px; }
-  .tile .value { font-size: 27px; font-weight: 650; margin-top: 2px; letter-spacing: -0.01em; }
-  .tile .delta { font-size: 12px; margin-top: 2px; color: var(--muted); }
-  .tile .delta .up { color: #0ca30c; }
-  .tile .delta .down { color: #e34948; }
+  /* KPI band: one slab, hairline-divided, Cloudflare-style. */
+  .tiles {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    background: var(--surface-1); border: 1px solid var(--border);
+    background-image: var(--sheen);
+    margin-bottom: 16px;
+  }
+  .tile { padding: 13px 16px 12px; border-right: 1px solid var(--grid); }
+  .tile:last-child { border-right: none; }
+  .tile .label { color: var(--muted); font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.09em; }
+  .tile .value { font-size: 28px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .tile .delta { font-size: 12px; margin-top: 1px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .delta .up { color: var(--ok); font-weight: 600; }
+  .tile .delta .down { color: var(--bad); font-weight: 600; }
 
-  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px; overflow: hidden; }
+  .card {
+    background: var(--surface-1); background-image: var(--sheen);
+    border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden;
+  }
   .card__head {
     width: 100%; display: flex; align-items: center; justify-content: space-between;
-    font: inherit; background: none; border: none; color: inherit; cursor: pointer;
-    padding: 13px 16px; text-align: left;
+    font: inherit; background: none; border: none; border-bottom: 1px solid var(--grid);
+    color: inherit; cursor: pointer;
+    padding: 11px 16px; text-align: left;
   }
-  .card__head h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.01em; }
-  .card__head .chev { color: var(--muted); font-size: 11px; transition: transform 0.15s; }
+  .card__head h2 {
+    font-size: 11px; font-weight: 750; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .card__head .chev { color: var(--muted); font-size: 10px; transition: transform 0.15s; }
+  .card.collapsed .card__head { border-bottom: none; }
   .card.collapsed .card__head .chev { transform: rotate(-90deg); }
-  .card__body { padding: 0 16px 16px; }
+  .card__body { padding: 14px 16px 16px; }
   .card.collapsed .card__body { display: none; }
 
-  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
-  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend i { width: 10px; height: 10px; display: inline-block; }
   .chart-wrap { overflow-x: auto; }
-  svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+  svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
 
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .cols .card { margin-bottom: 16px; }
   @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } body { padding: 0 14px 40px; } }
 
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; color: var(--muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+  th {
+    text-align: left; color: var(--muted); font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 8px; border-bottom: 1px solid var(--border-strong);
+  }
   td { padding: 6px 8px; border-bottom: 1px solid var(--grid); }
   tr:last-child td { border-bottom: none; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+  .dot { width: 8px; height: 8px; display: inline-block; margin-right: 8px; vertical-align: 1px; }
   .sub { color: var(--muted); font-size: 12px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; }
   .show-more {
     display: block; width: 100%; margin-top: 8px; padding: 6px;
     font: inherit; font-size: 12px; color: var(--muted); background: none;
@@ -142,19 +177,15 @@
   }
   .show-more:hover { color: var(--text-primary); }
 
-  /* A sortable header is a button filling the cell, so the whole header is the
-     hit target rather than just the few characters of the label. */
   th.sortable { padding: 0; }
   th.sortable button {
     display: flex; align-items: center; gap: 4px;
-    width: 100%; padding: 4px 8px;
+    width: 100%; padding: 5px 8px;
     font: inherit; color: inherit; background: none; border: none; cursor: pointer;
+    text-transform: inherit; letter-spacing: inherit; font-size: inherit; font-weight: inherit;
   }
   th.sortable.num button { justify-content: flex-end; }
   th.sortable button:hover { color: var(--text-primary); }
-  /* The arrow is always in the layout so sorting a column cannot nudge the
-     header's width; only its opacity changes. Dim on hover previews the
-     direction a click would give you, solid marks the column actually sorted. */
   th.sortable .arrow { font-size: 8px; opacity: 0; }
   th.sortable button:hover .arrow { opacity: 0.45; }
   th.sortable[aria-sort] { color: var(--text-primary); }
@@ -162,45 +193,64 @@
 
   .tooltip {
     position: fixed; pointer-events: none; z-index: 10; display: none;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.28); white-space: nowrap;
+    background: var(--surface-2); border: 1px solid var(--border-strong);
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.45); white-space: nowrap;
   }
-  .tooltip .t-day { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .t-day { font-weight: 700; margin-bottom: 4px; }
   .tooltip .t-row { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
 
   #gate { max-width: 320px; margin: 18vh auto 0; text-align: center; }
   #gate h1 { font-size: 22px; margin-bottom: 4px; }
   #gate input {
     font: inherit; width: 100%; margin-top: 14px; padding: 9px 11px;
-    border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border-strong); background: var(--surface-1); color: var(--text-primary);
   }
-  #gate .err { color: #e34948; font-size: 12px; margin-top: 8px; min-height: 18px; }
+  #gate .err { color: var(--bad); font-size: 12px; margin-top: 8px; min-height: 18px; }
   .empty { color: var(--muted); text-align: center; padding: 22px 0; font-size: 13px; }
-  .apptabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
-  .apptabs button {
-    font: inherit; font-size: 13px; color: var(--text-secondary); background: none;
-    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 7px;
-  }
-  .apptabs button:hover { color: var(--text-primary); }
-  .apptabs button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); font-weight: 600; }
-  .apptabs .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .funnel-row { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
-  .funnel-label { width: 160px; font-size: 13px; color: var(--text-secondary); }
-  .funnel-track { flex: 1; height: 22px; background: var(--grid); border-radius: 7px; overflow: hidden; }
-  .funnel-fill { height: 100%; border-radius: 7px; min-width: 3px; }
-  .funnel-num { width: 120px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
-  [hidden] { display: none !important; }
 
-  /* wroom only: the two-up split under a tile row, and the note that says how
-     far back a number actually goes. Everything above this comment is Pulse's
-     stylesheet unchanged, so the two dashboards stay one instrument. */
   .note { color: var(--muted); font-size: 12px; margin: -6px 0 16px; }
   .bar-cell { display: flex; align-items: center; gap: 8px; }
-  .bar-track { flex: 1; height: 6px; background: var(--grid); border-radius: 3px; overflow: hidden; min-width: 60px; }
-  .bar-fill { height: 100%; border-radius: 3px; min-width: 2px; }
-  .head .back { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .bar-track { flex: 1; height: 7px; background: var(--grid); overflow: hidden; min-width: 60px; }
+  .bar-fill { height: 100%; min-width: 2px; }
+  .head .back { color: var(--muted); text-decoration: none; font-size: 12.5px; }
   .head .back:hover { color: var(--text-primary); }
+
+  /* ---- The command surfaces: reports and errors ---- */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters button {
+    font: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; cursor: pointer;
+  }
+  .filters button:hover { color: var(--text-primary); }
+  .filters button[aria-pressed="true"] { color: var(--page); background: var(--accent); border-color: var(--accent); }
+  .badge {
+    display: inline-block; padding: 1px 7px; font-size: 10.5px; font-weight: 750;
+    text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid;
+  }
+  .badge.open { color: var(--warn); border-color: var(--warn); }
+  .badge.actioned { color: var(--ok); border-color: var(--ok); }
+  .badge.dismissed, .badge.reviewed { color: var(--muted); border-color: var(--border-strong); }
+  .badge.fatal { color: var(--bad); border-color: var(--bad); }
+  .badge.err { color: var(--warn); border-color: var(--warn); }
+  .actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .act {
+    font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer;
+    background: var(--surface-2); color: var(--text-primary);
+    border: 1px solid var(--border-strong); padding: 3px 9px;
+  }
+  .act:hover { border-color: var(--accent); color: var(--accent); }
+  .act.danger:hover { border-color: var(--bad); color: var(--bad); }
+  .act:disabled { opacity: 0.4; cursor: default; }
+  .stack-row td { padding: 0; }
+  .stack {
+    margin: 0; padding: 10px 12px; background: var(--page);
+    border-left: 3px solid var(--warn);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px; line-height: 1.5; color: var(--text-secondary);
+    white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto;
+  }
+  .queue-note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -224,6 +274,24 @@
   <div class="highlights" id="highlights"></div>
   <div class="tiles" id="tiles"></div>
   <div class="note" id="active-note"></div>
+
+  <div class="card" data-card="wroom-reports">
+    <button class="card__head"><h2>Reports &middot; act here</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="filters" id="report-filters"></div>
+      <div id="reports-table"></div>
+      <div class="queue-note">Actions are immediate and use the same code path as the in-app moderation tools. Hide and suspend are reversible; decide closes the report.</div>
+    </div>
+  </div>
+
+  <div class="card" data-card="wroom-errors">
+    <button class="card__head"><h2>Client errors &middot; last 7 days</h2><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="legend" id="errors-legend"></div>
+      <div class="chart-wrap"><div id="errors-chart"></div></div>
+      <div id="errors-table" style="margin-top:12px"></div>
+    </div>
+  </div>
 
   <div class="card" data-card="wroom-made">
     <button class="card__head"><h2>What got made</h2><span class="chev">&#9660;</span></button>
@@ -376,8 +444,159 @@
         document.getElementById("gate").hidden = true;
         document.getElementById("dash").hidden = false;
         paint();
+        loadQueues();
       })
       .catch(function (err) { if (err.message !== "unauthorized") console.error(err); });
+  }
+
+  /* ---------- the privileged side: reports + errors ---------- */
+  var reportStatus = "open";
+  var reportRows = [];
+  var errorData = null;
+
+  function dashFetch(path) {
+    return fetch(API + "/api/admin/dash" + path, { headers: { "x-dash-key": getKey() } })
+      .then(function (res) {
+        if (!res.ok) throw new Error("dash request failed: " + res.status);
+        return res.json();
+      });
+  }
+  function dashPost(path, body) {
+    return fetch(API + "/api/admin/dash" + path, {
+      method: "POST",
+      headers: { "x-dash-key": getKey(), "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    }).then(function (res) {
+      if (!res.ok) throw new Error("action failed: " + res.status);
+      return res.json();
+    });
+  }
+
+  function loadQueues() {
+    dashFetch("/reports?tier=all&status=" + reportStatus)
+      .then(function (d) { reportRows = d.reports || []; renderReports(); })
+      .catch(function () { reportRows = null; renderReports(); });
+    dashFetch("/errors?days=7")
+      .then(function (d) { errorData = d; renderErrors(); })
+      .catch(function () { errorData = null; renderErrors(); });
+  }
+
+  function fmtWhen(ms) {
+    if (!ms) return "";
+    var d = new Date(Number(ms));
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function actBtn(label, danger, fn) {
+    var b = el("button", { class: "act" + (danger ? " danger" : ""), text: label });
+    b.addEventListener("click", function () {
+      if (!confirm(label + " - are you sure?")) return;
+      b.disabled = true;
+      fn().then(function () { loadQueues(); }).catch(function (e) { b.disabled = false; alert(e.message); });
+    });
+    return b;
+  }
+
+  /* Which levers a report offers is decided by what it points at. Every
+     lever is the same endpoint the in-app admin tools call. */
+  function leversFor(r) {
+    var wrap = el("div", { class: "actions" });
+    var kind = r.target_type;
+    var id = r.target_id;
+    if (kind === "post") {
+      wrap.appendChild(actBtn("Hide post", true, function () { return dashPost("/moderation/post/" + encodeURIComponent(id) + "/hide", {}); }));
+      wrap.appendChild(actBtn("Restore post", false, function () { return dashPost("/moderation/post/" + encodeURIComponent(id) + "/restore", {}); }));
+    }
+    if (kind === "wroom") {
+      wrap.appendChild(actBtn("Hide wroom", true, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(id) + "/hide", {}); }));
+      wrap.appendChild(actBtn("Restore wroom", false, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(id) + "/restore", {}); }));
+    }
+    if (kind === "author") {
+      wrap.appendChild(actBtn("Suspend writer", true, function () { return dashPost("/moderation/author/" + encodeURIComponent(id) + "/suspend", {}); }));
+      wrap.appendChild(actBtn("Unsuspend", false, function () { return dashPost("/moderation/author/" + encodeURIComponent(id) + "/restore", {}); }));
+    }
+    if (r.status === "open") {
+      wrap.appendChild(actBtn("Dismiss", false, function () { return dashPost("/reports/" + encodeURIComponent(r.id) + "/decide", { status: "dismissed" }); }));
+      wrap.appendChild(actBtn("Mark actioned", false, function () { return dashPost("/reports/" + encodeURIComponent(r.id) + "/decide", { status: "actioned" }); }));
+    }
+    return wrap;
+  }
+
+  function renderReports() {
+    var filters = document.getElementById("report-filters");
+    filters.textContent = "";
+    ["open", "actioned", "dismissed"].forEach(function (st) {
+      var b = el("button", { text: st, "aria-pressed": String(st === reportStatus) });
+      b.addEventListener("click", function () { reportStatus = st; loadQueues(); });
+      filters.appendChild(b);
+    });
+
+    var wrap = document.getElementById("reports-table");
+    wrap.textContent = "";
+    if (reportRows === null) { wrap.appendChild(el("div", { class: "empty", text: "Couldn't load the queue." })); return; }
+    if (!reportRows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing " + reportStatus + "." })); return; }
+
+    var rows = reportRows.map(function (r) {
+      var badge = el("span", { class: "badge " + (r.status || "open"), text: r.status || "open" });
+      return el("tr", {}, [
+        el("td", { class: "sub", text: fmtWhen(r.created_at) }),
+        el("td", {}, [badge]),
+        el("td", {}, [
+          el("div", { text: (r.target_type || "?") + " " }, [el("span", { class: "mono sub", text: r.target_id || "" })]),
+        ]),
+        el("td", { text: r.reason || "" }),
+        el("td", { class: "sub", text: (r.reporter_name ? "by " + r.reporter_name : "") + (r.detail ? " - " + r.detail : "") }),
+        el("td", {}, [leversFor(r)])
+      ]);
+    });
+    wrap.appendChild(table(
+      [{ label: "When" }, { label: "Status" }, { label: "Target" }, { label: "Reason" }, { label: "Detail" }, { label: "Actions" }],
+      rows
+    ));
+  }
+
+  function renderErrors() {
+    var legend = document.getElementById("errors-legend");
+    var chartMount = document.getElementById("errors-chart");
+    var wrap = document.getElementById("errors-table");
+    legend.textContent = ""; chartMount.textContent = ""; wrap.textContent = "";
+    if (errorData === null || !errorData) {
+      wrap.appendChild(el("div", { class: "empty", text: errorData === null ? "Couldn't load errors." : "" }));
+      return;
+    }
+    var byDay = (errorData.byDay || []).map(function (r) {
+      return { day: r.day, errors: (r.n || 0) - (r.fatals || 0), fatals: r.fatals || 0 };
+    });
+    stackedChart(chartMount, legend, byDay, [
+      { key: "errors", label: "Errors", color: "var(--series-4)" },
+      { key: "fatals", label: "Crashes", color: "var(--series-8)" }
+    ], 7, "Nothing broke in the last week.");
+
+    var recent = errorData.recent || [];
+    if (!recent.length) return;
+    var body = [];
+    recent.slice(0, 30).forEach(function (e, i) {
+      var row = el("tr", {}, [
+        el("td", { class: "sub", text: fmtWhen(e.created_at) }),
+        el("td", {}, [el("span", { class: "badge " + (e.fatal ? "fatal" : "err"), text: e.fatal ? "crash" : "error" })]),
+        el("td", { class: "sub", text: e.platform + (e.app_version ? " " + e.app_version : "") }),
+        el("td", { class: "mono", text: (e.message || "").slice(0, 160) })
+      ]);
+      row.style.cursor = e.stack ? "pointer" : "default";
+      body.push(row);
+      if (e.stack) {
+        var stackRow = el("tr", { class: "stack-row", hidden: "" }, [
+          el("td", { colspan: "4" }, [el("pre", { class: "stack", text: e.stack })])
+        ]);
+        row.addEventListener("click", function () { stackRow.hidden = !stackRow.hidden; });
+        body.push(stackRow);
+      }
+    });
+    wrap.appendChild(table(
+      [{ label: "When" }, { label: "Kind" }, { label: "Build" }, { label: "Message (click for stack)" }],
+      body
+    ));
   }
 
   function paint() {

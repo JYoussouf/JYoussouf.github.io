@@ -15,7 +15,7 @@
     --sheen: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 42%);
     --text-primary: #f2f5f7;
     --text-secondary: #aeb6bd;
-    --muted: #6d767e;
+    --muted: #8a939b;
     --grid: #23282d;
     --baseline: #3a4148;
     --border: #2a3036;
@@ -42,7 +42,7 @@
     --sheen: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0) 42%);
     --text-primary: #14181c;
     --text-secondary: #454c53;
-    --muted: #7a828a;
+    --muted: #5f676e;
     --grid: #dde1e5;
     --baseline: #b8bfc6;
     --border: #ccd2d8;
@@ -50,7 +50,7 @@
     --accent: #0b6fd6;
     --accent-soft: rgba(11, 111, 214, 0.10);
     --ok: #0f9d55;
-    --warn: #b97900;
+    --warn: #8a5a00;
     --bad: #d63a3a;
     --series-1: #0b6fd6;
     --series-2: #d95d16;
@@ -62,6 +62,7 @@
     --series-8: #d63a3a;
   }
   * { box-sizing: border-box; margin: 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   body {
     background: var(--page);
     color: var(--text-primary);
@@ -108,8 +109,6 @@
   .chip strong { color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
   .chip.hot { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); }
   .chip.hot::before { content: ""; width: 7px; height: 7px; background: var(--accent); flex: none; }
-  .chip.alarm { border-color: var(--bad); background: rgba(255,93,93,0.10); color: var(--text-primary); }
-  .chip.alarm::before { content: ""; width: 7px; height: 7px; background: var(--bad); flex: none; }
   .chip .up { color: var(--ok); }
   .chip .down { color: var(--bad); }
 
@@ -138,7 +137,7 @@
     color: inherit; cursor: pointer;
     padding: 11px 16px; text-align: left;
   }
-  .card__head h2 {
+  .card__head .card__title {
     font-size: 11px; font-weight: 750; color: var(--text-secondary);
     text-transform: uppercase; letter-spacing: 0.1em;
   }
@@ -177,19 +176,6 @@
   }
   .show-more:hover { color: var(--text-primary); }
 
-  th.sortable { padding: 0; }
-  th.sortable button {
-    display: flex; align-items: center; gap: 4px;
-    width: 100%; padding: 5px 8px;
-    font: inherit; color: inherit; background: none; border: none; cursor: pointer;
-    text-transform: inherit; letter-spacing: inherit; font-size: inherit; font-weight: inherit;
-  }
-  th.sortable.num button { justify-content: flex-end; }
-  th.sortable button:hover { color: var(--text-primary); }
-  th.sortable .arrow { font-size: 8px; opacity: 0; }
-  th.sortable button:hover .arrow { opacity: 0.45; }
-  th.sortable[aria-sort] { color: var(--text-primary); }
-  th.sortable[aria-sort] .arrow { opacity: 1; }
 
   .tooltip {
     position: fixed; pointer-events: none; z-index: 10; display: none;
@@ -250,6 +236,12 @@
     white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto;
   }
   .queue-note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap .mono { word-break: break-all; }
+  /* The reported words, quoted: content, not metadata, so it reads at full
+     secondary rather than muted. */
+  .excerpt { color: var(--text-secondary); font-style: italic; margin-top: 2px; max-width: 420px; }
+  td.detail { color: var(--text-secondary); max-width: 260px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -276,25 +268,26 @@
   <div class="note" id="active-note"></div>
 
   <div class="card" data-card="wroom-reports">
-    <button class="card__head"><h2>Reports &middot; act here</h2><span class="chev">&#9660;</span></button>
+    <button class="card__head" aria-expanded="true"><span class="card__title">Reports &middot; act here</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="filters" id="report-filters"></div>
-      <div id="reports-table"></div>
+      <div id="reports-table" style="min-height:120px"></div>
       <div class="queue-note">Actions are immediate and use the same code path as the in-app moderation tools. Hide and suspend are reversible; decide closes the report.</div>
     </div>
   </div>
 
   <div class="card" data-card="wroom-errors">
-    <button class="card__head"><h2>Client errors &middot; last 7 days</h2><span class="chev">&#9660;</span></button>
+    <button class="card__head" aria-expanded="true"><span class="card__title">Client errors &middot; last 7 days</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="legend" id="errors-legend"></div>
-      <div class="chart-wrap"><div id="errors-chart"></div></div>
+      <div class="chart-wrap"><div id="errors-chart" style="min-height:220px"></div></div>
+      <div id="errors-top" style="margin-top:12px"></div>
       <div id="errors-table" style="margin-top:12px"></div>
     </div>
   </div>
 
   <div class="card" data-card="wroom-made">
-    <button class="card__head"><h2>What got made</h2><span class="chev">&#9660;</span></button>
+    <button class="card__head" aria-expanded="true"><span class="card__title">What got made</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="legend" id="made-legend"></div>
       <div class="chart-wrap"><div id="made-chart"></div></div>
@@ -302,7 +295,7 @@
   </div>
 
   <div class="card" data-card="wroom-active">
-    <button class="card__head"><h2>Active authors per day</h2><span class="chev">&#9660;</span></button>
+    <button class="card__head" aria-expanded="true"><span class="card__title">Active authors per day</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="legend" id="active-legend"></div>
       <div class="chart-wrap"><div id="active-chart"></div></div>
@@ -311,19 +304,19 @@
 
   <div class="cols">
     <div class="card" data-card="wroom-activation">
-      <button class="card__head"><h2>Does an account become an author</h2><span class="chev">&#9660;</span></button>
+      <button class="card__head" aria-expanded="true"><span class="card__title">Does an account become an author</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="activation-table"></div></div>
     </div>
     <div class="card" data-card="wroom-writing">
-      <button class="card__head"><h2>Where the writing goes</h2><span class="chev">&#9660;</span></button>
+      <button class="card__head" aria-expanded="true"><span class="card__title">Where the writing goes</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="writing-table"></div></div>
     </div>
     <div class="card" data-card="wroom-period">
-      <button class="card__head"><h2>New in this range</h2><span class="chev">&#9660;</span></button>
+      <button class="card__head" aria-expanded="true"><span class="card__title">New in this range</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="period-table"></div></div>
     </div>
     <div class="card" data-card="wroom-moderation">
-      <button class="card__head"><h2>Queues and housekeeping</h2><span class="chev">&#9660;</span></button>
+      <button class="card__head" aria-expanded="true"><span class="card__title">Queues and housekeeping</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="moderation-table"></div></div>
     </div>
   </div>
@@ -407,8 +400,11 @@
     document.querySelectorAll(".card[data-card]").forEach(function (card) {
       var id = card.getAttribute("data-card");
       if (collapsed.has(id)) card.classList.add("collapsed");
-      card.querySelector(".card__head").addEventListener("click", function () {
+      var headBtn = card.querySelector(".card__head");
+      headBtn.setAttribute("aria-expanded", String(!collapsed.has(id)));
+      headBtn.addEventListener("click", function () {
         card.classList.toggle("collapsed");
+        headBtn.setAttribute("aria-expanded", String(!card.classList.contains("collapsed")));
         var set = collapsedSet();
         if (card.classList.contains("collapsed")) set.add(id); else set.delete(id);
         saveCollapsed(set);
@@ -444,15 +440,25 @@
         document.getElementById("gate").hidden = true;
         document.getElementById("dash").hidden = false;
         paint();
-        loadQueues();
+        if (!document.getElementById("reports-table").childElementCount) loadQueues();
       })
-      .catch(function (err) { if (err.message !== "unauthorized") console.error(err); });
+      .catch(function (err) {
+        if (err.message === "unauthorized") return;
+        console.error(err);
+        /* A dead network must not render as a blank slab: say so, offer the
+           way back. */
+        var gate = document.getElementById("gate");
+        document.getElementById("dash").hidden = true;
+        gate.hidden = false;
+        document.getElementById("gate-err").textContent = "Couldn't reach the API (" + err.message + "). Press Enter in the key field to retry.";
+      });
   }
 
   /* ---------- the privileged side: reports + errors ---------- */
   var reportStatus = "open";
   var reportRows = [];
   var errorData = null;
+  var actionInFlight = false;
 
   function dashFetch(path) {
     return fetch(API + "/api/admin/dash" + path, { headers: { "x-dash-key": getKey() } })
@@ -467,58 +473,82 @@
       headers: { "x-dash-key": getKey(), "Content-Type": "application/json" },
       body: JSON.stringify(body || {})
     }).then(function (res) {
-      if (!res.ok) throw new Error("action failed: " + res.status);
+      if (!res.ok) throw new Error("The server refused that (" + res.status + "). Try again in a moment.");
       return res.json();
     });
   }
 
-  function loadQueues() {
-    dashFetch("/reports?tier=all&status=" + reportStatus)
+  function loadReports() {
+    var wrap = document.getElementById("reports-table");
+    if (!wrap.childElementCount) wrap.appendChild(el("div", { class: "empty", text: "Loading the queue\u2026" }));
+    /* The RICH queue, not the raw report rows: it carries the reported text,
+       the target's current state (hidden, deleted, suspended), and how many
+       people said the same thing - the difference between moderating and
+       guessing. */
+    dashFetch("/moderation/queue?tier=all&status=" + reportStatus)
       .then(function (d) { reportRows = d.reports || []; renderReports(); })
       .catch(function () { reportRows = null; renderReports(); });
+  }
+  function loadErrors() {
     dashFetch("/errors?days=7")
       .then(function (d) { errorData = d; renderErrors(); })
       .catch(function () { errorData = null; renderErrors(); });
   }
+  function loadQueues() { loadReports(); loadErrors(); }
 
   function fmtWhen(ms) {
     if (!ms) return "";
     var d = new Date(Number(ms));
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
-      d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    /* UTC, because every chart bucket on this page is a UTC day and a row
+       that disagrees with its own column is worse than an unfamiliar hour. */
+    return d.toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { timeZone: "UTC", hour: "2-digit", minute: "2-digit", hour12: false }) + " UTC";
   }
 
-  function actBtn(label, danger, fn) {
-    var b = el("button", { class: "act" + (danger ? " danger" : ""), text: label });
+  function actBtn(label, opts, fn) {
+    var b = el("button", { class: "act" + (opts.danger ? " danger" : ""), text: label });
     b.addEventListener("click", function () {
-      if (!confirm(label + " - are you sure?")) return;
+      if (actionInFlight) return;
+      if (opts.danger && !confirm(label + (opts.what ? " \u2014 " + opts.what : "") + "?")) return;
+      actionInFlight = true;
       b.disabled = true;
-      fn().then(function () { loadQueues(); }).catch(function (e) { b.disabled = false; alert(e.message); });
+      fn().then(function () { actionInFlight = false; loadReports(); })
+        .catch(function (e) { actionInFlight = false; b.disabled = false; alert(e.message); });
     });
     return b;
   }
 
-  /* Which levers a report offers is decided by what it points at. Every
-     lever is the same endpoint the in-app admin tools call. */
+  /* One lever per state, decided by the target's CURRENT state - offering
+     Hide on a thing already hidden is a button that lies. */
   function leversFor(r) {
     var wrap = el("div", { class: "actions" });
-    var kind = r.target_type;
-    var id = r.target_id;
-    if (kind === "post") {
-      wrap.appendChild(actBtn("Hide post", true, function () { return dashPost("/moderation/post/" + encodeURIComponent(id) + "/hide", {}); }));
-      wrap.appendChild(actBtn("Restore post", false, function () { return dashPost("/moderation/post/" + encodeURIComponent(id) + "/restore", {}); }));
+    var t = r.target || {};
+    var what = (t.name || r.targetType) + (t.wroomName ? " in " + t.wroomName : "");
+    if (r.targetType === "post") {
+      wrap.appendChild(t.deleted
+        ? actBtn("Restore post", { what: what }, function () { return dashPost("/moderation/post/" + encodeURIComponent(r.targetId) + "/restore", {}); })
+        : actBtn("Hide post", { danger: true, what: what }, function () { return dashPost("/moderation/post/" + encodeURIComponent(r.targetId) + "/hide", {}); }));
     }
-    if (kind === "wroom") {
-      wrap.appendChild(actBtn("Hide wroom", true, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(id) + "/hide", {}); }));
-      wrap.appendChild(actBtn("Restore wroom", false, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(id) + "/restore", {}); }));
+    if (r.targetType === "wroom") {
+      wrap.appendChild(t.hidden
+        ? actBtn("Restore wroom", { what: what }, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(r.targetId) + "/restore", {}); })
+        : actBtn("Hide wroom", { danger: true, what: what }, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(r.targetId) + "/hide", {}); }));
     }
-    if (kind === "author") {
-      wrap.appendChild(actBtn("Suspend writer", true, function () { return dashPost("/moderation/author/" + encodeURIComponent(id) + "/suspend", {}); }));
-      wrap.appendChild(actBtn("Unsuspend", false, function () { return dashPost("/moderation/author/" + encodeURIComponent(id) + "/restore", {}); }));
+    if (r.targetType === "author") {
+      wrap.appendChild(t.suspended
+        ? actBtn("Unsuspend", { what: what }, function () { return dashPost("/moderation/author/" + encodeURIComponent(r.targetId) + "/restore", {}); })
+        : actBtn("Suspend writer", { danger: true, what: what }, function () { return dashPost("/moderation/author/" + encodeURIComponent(r.targetId) + "/suspend", {}); }));
+    }
+    if (r.targetType === "cast" && t.wroomSlug) {
+      /* No per-character lever exists yet; the world she lives in is the
+         nearest one. */
+      wrap.appendChild(t.wroomHidden
+        ? actBtn("Restore wroom", { what: t.wroomName || t.wroomSlug }, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(t.wroomSlug) + "/restore", {}); })
+        : actBtn("Hide wroom", { danger: true, what: t.wroomName || t.wroomSlug }, function () { return dashPost("/moderation/wroom/" + encodeURIComponent(t.wroomSlug) + "/hide", {}); }));
     }
     if (r.status === "open") {
-      wrap.appendChild(actBtn("Dismiss", false, function () { return dashPost("/reports/" + encodeURIComponent(r.id) + "/decide", { status: "dismissed" }); }));
-      wrap.appendChild(actBtn("Mark actioned", false, function () { return dashPost("/reports/" + encodeURIComponent(r.id) + "/decide", { status: "actioned" }); }));
+      wrap.appendChild(actBtn("Dismiss", { what: "close without action" }, function () { return dashPost("/reports/" + encodeURIComponent(r.id) + "/decide", { status: "dismissed" }); }));
+      wrap.appendChild(actBtn("Mark actioned", { what: "close as handled" }, function () { return dashPost("/reports/" + encodeURIComponent(r.id) + "/decide", { status: "actioned" }); }));
     }
     return wrap;
   }
@@ -526,41 +556,63 @@
   function renderReports() {
     var filters = document.getElementById("report-filters");
     filters.textContent = "";
-    ["open", "actioned", "dismissed"].forEach(function (st) {
+    ["open", "actioned", "dismissed", "reviewed"].forEach(function (st) {
       var b = el("button", { text: st, "aria-pressed": String(st === reportStatus) });
-      b.addEventListener("click", function () { reportStatus = st; loadQueues(); });
+      b.addEventListener("click", function () {
+        reportStatus = st;
+        renderReports(); /* the pressed state moves NOW; the rows follow */
+        loadReports();
+      });
       filters.appendChild(b);
     });
 
     var wrap = document.getElementById("reports-table");
     wrap.textContent = "";
-    if (reportRows === null) { wrap.appendChild(el("div", { class: "empty", text: "Couldn't load the queue." })); return; }
-    if (!reportRows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing " + reportStatus + "." })); return; }
+    if (reportRows === null) { wrap.appendChild(el("div", { class: "empty", text: "Couldn't load the queue. Check the key and the network, then reload." })); return; }
+    if (!reportRows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing " + reportStatus + ". Oldest reports are listed first when there are any." })); return; }
 
     var rows = reportRows.map(function (r) {
+      var t = r.target || {};
       var badge = el("span", { class: "badge " + (r.status || "open"), text: r.status || "open" });
+      var target = el("td", {});
+      target.appendChild(el("div", {}, [
+        el("strong", { text: t.name || r.targetType }),
+        el("span", { class: "sub", text: "  " + r.targetType + (t.wroomName ? " \u00b7 " + t.wroomName : "") })
+      ]));
+      if (t.excerpt) target.appendChild(el("div", { class: "excerpt", text: "\u201c" + t.excerpt + "\u201d" }));
+      var state = [];
+      if (t.deleted) state.push("hidden");
+      if (t.hidden) state.push("wroom hidden");
+      if (t.suspended) state.push("suspended");
+      if (r.autoHidden) state.push("auto-hidden \u00d7" + (r.autoHiddenCount || ""));
+      if (state.length) target.appendChild(el("div", { class: "sub", text: state.join(" \u00b7 ") }));
+      var detail = el("td", { class: "detail" });
+      detail.appendChild(el("div", { text: r.reason + (r.reportCount > 1 ? " \u00d7" + r.reportCount : "") }));
+      if (r.detail) detail.appendChild(el("div", { text: r.detail }));
+      if (r.reporterName) detail.appendChild(el("div", { class: "sub", text: "by " + r.reporterName }));
       return el("tr", {}, [
-        el("td", { class: "sub", text: fmtWhen(r.created_at) }),
+        el("td", { class: "sub", text: fmtWhen(r.createdAt) }),
         el("td", {}, [badge]),
-        el("td", {}, [
-          el("div", { text: (r.target_type || "?") + " " }, [el("span", { class: "mono sub", text: r.target_id || "" })]),
-        ]),
-        el("td", { text: r.reason || "" }),
-        el("td", { class: "sub", text: (r.reporter_name ? "by " + r.reporter_name : "") + (r.detail ? " - " + r.detail : "") }),
+        target,
+        detail,
         el("td", {}, [leversFor(r)])
       ]);
     });
-    wrap.appendChild(table(
-      [{ label: "When" }, { label: "Status" }, { label: "Target" }, { label: "Reason" }, { label: "Detail" }, { label: "Actions" }],
+    var tableEl = table(
+      [{ label: "When" }, { label: "Status" }, { label: "Target" }, { label: "Report" }, { label: "Actions" }],
       rows
-    ));
+    );
+    var scroller = el("div", { class: "table-wrap" }, [tableEl]);
+    wrap.appendChild(scroller);
   }
 
+  var errorsShown = 30;
   function renderErrors() {
     var legend = document.getElementById("errors-legend");
     var chartMount = document.getElementById("errors-chart");
     var wrap = document.getElementById("errors-table");
-    legend.textContent = ""; chartMount.textContent = ""; wrap.textContent = "";
+    var topWrap = document.getElementById("errors-top");
+    legend.textContent = ""; chartMount.textContent = ""; wrap.textContent = ""; topWrap.textContent = "";
     if (errorData === null || !errorData) {
       wrap.appendChild(el("div", { class: "empty", text: errorData === null ? "Couldn't load errors." : "" }));
       return;
@@ -569,34 +621,63 @@
       return { day: r.day, errors: (r.n || 0) - (r.fatals || 0), fatals: r.fatals || 0 };
     });
     stackedChart(chartMount, legend, byDay, [
-      { key: "errors", label: "Errors", color: "var(--series-4)" },
-      { key: "fatals", label: "Crashes", color: "var(--series-8)" }
-    ], 7, "Nothing broke in the last week.");
+      { key: "errors", label: "Errors", color: "var(--warn)" },
+      { key: "fatals", label: "Crashes", color: "var(--bad)" }
+    ], 7, "Nothing broke in the last week.", "Client errors per day");
+
+    /* The rollup first: one line per distinct message is the view a crash
+       wave is actually read in. */
+    var top = errorData.byMessage || [];
+    if (top.length > 1) {
+      topWrap.appendChild(table(
+        [{ label: "Message" }, { label: "Count", num: 1 }, { label: "Crashes", num: 1 }, { label: "Last seen" }],
+        top.slice(0, 10).map(function (m) {
+          return el("tr", {}, [
+            el("td", { class: "mono", title: m.message, text: (m.message || "").slice(0, 120) + ((m.message || "").length > 120 ? "\u2026" : "") }),
+            el("td", { class: "num", text: num(m.n) }),
+            el("td", { class: "num", text: num(m.fatals) }),
+            el("td", { class: "sub", text: fmtWhen(m.last_seen) })
+          ]);
+        })
+      ));
+    }
 
     var recent = errorData.recent || [];
     if (!recent.length) return;
-    var body = [];
-    recent.slice(0, 30).forEach(function (e, i) {
-      var row = el("tr", {}, [
-        el("td", { class: "sub", text: fmtWhen(e.created_at) }),
-        el("td", {}, [el("span", { class: "badge " + (e.fatal ? "fatal" : "err"), text: e.fatal ? "crash" : "error" })]),
-        el("td", { class: "sub", text: e.platform + (e.app_version ? " " + e.app_version : "") }),
-        el("td", { class: "mono", text: (e.message || "").slice(0, 160) })
-      ]);
-      row.style.cursor = e.stack ? "pointer" : "default";
-      body.push(row);
-      if (e.stack) {
-        var stackRow = el("tr", { class: "stack-row", hidden: "" }, [
-          el("td", { colspan: "4" }, [el("pre", { class: "stack", text: e.stack })])
+    function paintRecent() {
+      wrap.textContent = "";
+      var body = [];
+      recent.slice(0, errorsShown).forEach(function (e) {
+        var msg = e.message || "";
+        var row = el("tr", {}, [
+          el("td", { class: "sub", text: fmtWhen(e.created_at) }),
+          el("td", {}, [el("span", { class: "badge " + (e.fatal ? "fatal" : "err"), text: e.fatal ? "crash" : "error" })]),
+          el("td", { class: "sub", text: e.platform + " " + (e.app_version || "?") + (e.update_id ? " \u00b7 " + e.update_id.slice(0, 8) : "") }),
+          el("td", { class: "mono", title: msg, text: msg.slice(0, 160) + (msg.length > 160 ? "\u2026" : "") })
         ]);
-        row.addEventListener("click", function () { stackRow.hidden = !stackRow.hidden; });
-        body.push(stackRow);
+        row.style.cursor = e.stack ? "pointer" : "default";
+        if (e.stack) row.setAttribute("title", "Click for the stack trace");
+        body.push(row);
+        if (e.stack) {
+          var stackRow = el("tr", { class: "stack-row", hidden: "" }, [
+            el("td", { colspan: "4" }, [el("pre", { class: "stack", text: e.stack })])
+          ]);
+          row.addEventListener("click", function () { stackRow.hidden = !stackRow.hidden; });
+          body.push(stackRow);
+        }
+      });
+      var scroller = el("div", { class: "table-wrap" }, [table(
+        [{ label: "When" }, { label: "Kind" }, { label: "Build" }, { label: "Message \u00b7 click for stack" }],
+        body
+      )]);
+      wrap.appendChild(scroller);
+      if (recent.length > errorsShown) {
+        var more = el("button", { class: "show-more", text: "Show " + Math.min(50, recent.length - errorsShown) + " more of " + recent.length });
+        more.addEventListener("click", function () { errorsShown += 50; paintRecent(); });
+        wrap.appendChild(more);
       }
-    });
-    wrap.appendChild(table(
-      [{ label: "When" }, { label: "Kind" }, { label: "Build" }, { label: "Message (click for stack)" }],
-      body
-    ));
+    }
+    paintRecent();
   }
 
   function paint() {
@@ -718,7 +799,7 @@
     return out;
   }
 
-  function stackedChart(mount, legendEl, daily, series, days, emptyText) {
+  function stackedChart(mount, legendEl, daily, series, days, emptyText, chartLabel) {
     mount.textContent = "";
     legendEl.textContent = "";
     var byDay = {};
@@ -771,7 +852,7 @@
     var step = plotW / buckets.length;
     var barW = Math.max(2, Math.min(28, step - 2));
     var yMax = Math.max(4, Math.ceil(maxTotal * 1.1));
-    var svg = svgEl("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Stacked bar chart over time" });
+    var svg = svgEl("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": chartLabel || "Stacked bar chart over time" });
 
     [0, 0.5, 1].forEach(function (f) {
       var y = padT + plotH - plotH * f;
@@ -834,7 +915,7 @@
     stackedChart(
       document.getElementById("made-chart"),
       document.getElementById("made-legend"),
-      d.daily, MADE, d.days, "Nothing was made in this range."
+      d.daily, MADE, d.days, "Nothing was made in this range.", "What got made, per day"
     );
   }
 
@@ -848,7 +929,8 @@
       d.daily,
       [{ key: "active", label: "Active authors", color: "var(--series-7)" }],
       d.days,
-      "No activity recorded in this range yet."
+      "No activity recorded in this range yet.",
+      "Active authors per day"
     );
   }
 

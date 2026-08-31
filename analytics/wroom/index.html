@@ -269,6 +269,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   <div class="tiles" id="tiles"></div>
   <div class="note" id="active-note"></div>
 
+  <div class="card" data-card="wroom-online">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Online right now</span><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="online-row"><span class="online-count" id="online-count">-</span><span class="sub" id="online-note">counted from ten-minute activity slices; refreshes each minute</span></div>
+      <div class="chart-wrap"><div id="online-chart"></div></div>
+    </div>
+  </div>
+
   <div class="card" data-card="wroom-reports">
     <button class="card__head" aria-expanded="true"><span class="card__title">Reports &middot; act here</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
@@ -293,14 +301,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     <div class="card__body">
       <div class="legend" id="made-legend"></div>
       <div class="chart-wrap"><div id="made-chart"></div></div>
-    </div>
-  </div>
-
-  <div class="card" data-card="wroom-online">
-    <button class="card__head" aria-expanded="true"><span class="card__title">Online right now</span><span class="chev">&#9660;</span></button>
-    <div class="card__body">
-      <div class="online-row"><span class="online-count" id="online-count">-</span><span class="sub" id="online-note">counted from ten-minute activity slices; refreshes each minute</span></div>
-      <div class="chart-wrap"><div id="online-chart"></div></div>
     </div>
   </div>
 

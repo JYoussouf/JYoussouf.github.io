@@ -151,7 +151,9 @@
   .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
   .legend i { width: 10px; height: 10px; display: inline-block; }
   .chart-wrap { overflow-x: auto; }
-  svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+  .online-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.online-count { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--series-3); }
+svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
 
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .cols .card { margin-bottom: 16px; }
@@ -291,6 +293,14 @@
     <div class="card__body">
       <div class="legend" id="made-legend"></div>
       <div class="chart-wrap"><div id="made-chart"></div></div>
+    </div>
+  </div>
+
+  <div class="card" data-card="wroom-online">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Online right now</span><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="online-row"><span class="online-count" id="online-count">-</span><span class="sub" id="online-note">counted from ten-minute activity slices; refreshes each minute</span></div>
+      <div class="chart-wrap"><div id="online-chart"></div></div>
     </div>
   </div>
 
@@ -707,6 +717,7 @@
     renderCrowd(lastData);
     renderPostLoad(lastData);
     renderWorldFunnel(lastData);
+    pollOnline();
   }
 
   function renderRanges() {
@@ -933,6 +944,41 @@
       d.daily, MADE, d.days, "Nothing was made in this range.", "What got made, per day"
     );
   }
+
+  /* The live line: distinct authors per ten-minute slice over the last day,
+     drawn as one polyline, with the current count big beside it. Its own
+     fetch on its own small clock (60s) - polling the whole stats batch that
+     often would be twelve statements a minute to move one number. */
+  function renderOnline(p) {
+    document.getElementById("online-count").textContent = num(p.online);
+    var mount = document.getElementById("online-chart");
+    mount.textContent = "";
+    var series = p.series || [];
+    if (series.length < 2) { mount.appendChild(el("div", { class: "empty", text: "Not enough slices yet." })); return; }
+    var W = mount.clientWidth || 600, H = 120, PAD = 8;
+    var first = series[0].slice, last = series[series.length - 1].slice;
+    var max = 1;
+    series.forEach(function (r) { if (r.n > max) max = r.n; });
+    var svg = svgEl("svg", { width: "100%", height: H, viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none" });
+    var pts = series.map(function (r) {
+      var x = PAD + (W - 2 * PAD) * (r.slice - first) / Math.max(1, last - first);
+      var y = H - PAD - (H - 2 * PAD) * (r.n / max);
+      return x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+    svg.appendChild(svgEl("polyline", {
+      points: pts, fill: "none", stroke: "var(--series-3)", "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round",
+    }));
+    mount.appendChild(svg);
+  }
+
+  function pollOnline() {
+    fetch(API + "/api/admin/stats/presence", { headers: { "x-dash-key": getKey() } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (p) { if (p) renderOnline(p); })
+      .catch(function () {});
+  }
+  setInterval(pollOnline, 60000);
 
   function renderActiveChart(d) {
     /* Deliberately its own chart rather than a fifth colour on the one above:

@@ -319,6 +319,18 @@
       <button class="card__head" aria-expanded="true"><span class="card__title">Queues and housekeeping</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="moderation-table"></div></div>
     </div>
+    <div class="card" data-card="wroom-crowd">
+      <button class="card__head" aria-expanded="true"><span class="card__title">Who the accounts are</span><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="crowd-table"></div></div>
+    </div>
+    <div class="card" data-card="wroom-postload">
+      <button class="card__head" aria-expanded="true"><span class="card__title">Posts per writer</span><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="postload-table"></div></div>
+    </div>
+    <div class="card" data-card="wroom-worldfunnel">
+      <button class="card__head" aria-expanded="true"><span class="card__title">Does a wroom happen</span><span class="chev">&#9660;</span></button>
+      <div class="card__body"><div id="worldfunnel-table"></div></div>
+    </div>
   </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
@@ -692,6 +704,9 @@
     renderWriting(lastData);
     renderPeriod(lastData);
     renderModeration(lastData);
+    renderCrowd(lastData);
+    renderPostLoad(lastData);
+    renderWorldFunnel(lastData);
   }
 
   function renderRanges() {
@@ -1004,6 +1019,61 @@
           el("td", { class: "num sub", text: perDay(r[1], d.days) })
         ]);
       }));
+  }
+
+  /* The accounts as a crowd, sliced twice: what each one DOES (writes,
+     reacts, subscribes-and-reads, or nothing), and when anybody last showed
+     up. "React only" is the lurker who taps hearts; "reads, quietly" follows
+     or watches but has never acted; "silent" made an account and stopped. */
+  function renderCrowd(d) {
+    var t = d.totals || {}, dist = d.distribution || {};
+    var en = dist.engagement || {}, seen = dist.lastSeen || {};
+    plainTable("crowd-table",
+      [{ label: "Slice" }, { label: "Count", num: 1 }, { label: "Share" }],
+      [
+        shareRow("Writes posts", en.writers, t.authors, "var(--series-1)"),
+        shareRow("Reacts (likes/reposts at all)", en.reactors, t.authors, "var(--series-3)"),
+        shareRow("Reacts but never writes", en.reactOnly, t.authors, "var(--series-4)"),
+        shareRow("Reads, quietly (follows/watches only)", en.lurkersSubscribed, t.authors, "var(--series-2)"),
+        shareRow("Silent (no action at all)", en.silent, t.authors, "var(--series-5)"),
+        shareRow("Seen in the last 7 days", seen.withinWeek, t.authors, "var(--series-6)"),
+        shareRow("Seen in the last 30 days", (seen.withinWeek || 0) + (seen.withinMonth || 0), t.authors, "var(--series-7)"),
+        shareRow("Gone quiet (30+ days)", seen.goneQuiet, t.authors, "var(--series-8)"),
+        shareRow("Never seen since tracking began", seen.neverSeen, t.authors, "var(--series-5)")
+      ]);
+  }
+
+  /* The writing, as a distribution instead of an average: an average of 12
+     posts per writer can be one maniac and nine ghosts, and this is the row
+     that says which. */
+  function renderPostLoad(d) {
+    var t = d.totals || {}, pp = (d.distribution || {}).postsPerAuthor || {};
+    plainTable("postload-table",
+      [{ label: "Wrote" }, { label: "Accounts", num: 1 }, { label: "Share" }],
+      [
+        shareRow("Nothing yet", pp.none, t.authors, "var(--series-5)"),
+        shareRow("1-5 posts", pp.upToFive, t.authors, "var(--series-1)"),
+        shareRow("6-20 posts", pp.sixToTwenty, t.authors, "var(--series-3)"),
+        shareRow("21-100 posts", pp.toHundred, t.authors, "var(--series-4)"),
+        shareRow("Over 100 posts", pp.overHundred, t.authors, "var(--series-2)")
+      ]);
+  }
+
+  /* The world-side funnel, mirror of the account one: making a wroom, and
+     the wroom becoming a PLACE - watched, written in, joined by a second
+     hand, carrying a real body of writing. */
+  function renderWorldFunnel(d) {
+    var t = d.totals || {}, f = d.wroomFunnel || {};
+    plainTable("worldfunnel-table",
+      [{ label: "Step" }, { label: "Count", num: 1 }, { label: "Share" }],
+      [
+        shareRow("Accounts that created a wroom", f.creators, t.authors, "var(--series-1)"),
+        shareRow("Wrooms made", f.wroomsMade, f.wroomsMade, "var(--series-3)"),
+        shareRow("...watched by anybody", f.wroomsWatched, f.wroomsMade, "var(--series-6)"),
+        shareRow("...with any posts", f.wroomsWithPosts, f.wroomsMade, "var(--series-4)"),
+        shareRow("...with a second writer", f.wroomsWithMoreThanOneWriter, f.wroomsMade, "var(--series-5)"),
+        shareRow("...with ten or more posts", f.wroomsWithTenPosts, f.wroomsMade, "var(--series-2)")
+      ]);
   }
 
   function renderModeration(d) {

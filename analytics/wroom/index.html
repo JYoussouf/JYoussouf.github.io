@@ -681,6 +681,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   var gateState = null;
   var gateError = null;
   var waitlist = null;
+  var waitlistError = null;
   var waitlistStatus = "waiting";
   var inviteInFlight = false;
 
@@ -689,8 +690,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       .then(function (d) { gateState = d; gateError = null; renderGate(); })
       .catch(function (e) { gateState = null; gateError = e.message; renderGate(); });
     dashFetch("/signup-gate/waitlist?status=" + waitlistStatus)
-      .then(function (d) { waitlist = d; renderWaitlist(); renderTabs(); })
-      .catch(function () { waitlist = null; renderWaitlist(); });
+      .then(function (d) { waitlist = d; waitlistError = null; renderWaitlist(); renderTabs(); })
+      .catch(function (e) { waitlist = null; waitlistError = e.message; renderWaitlist(); });
   }
 
   function renderGate() {
@@ -777,7 +778,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var wrap = document.getElementById("waitlist-table");
     wrap.textContent = "";
     if (!waitlist) {
-      wrap.appendChild(el("div", { class: "empty", text: gateError || "Couldn't load the waitlist." }));
+      // Loudly, and never as "nobody is waiting": an empty list and a broken
+      // request look identical otherwise, and one of them needs acting on.
+      wrap.appendChild(el("div", { class: "empty", text: waitlistError || gateError || "Couldn't load the waitlist." }));
       return;
     }
 
@@ -804,62 +807,75 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       return;
     }
 
-    var body = el("tbody");
+    var rows = [];
     waitlist.entries.forEach(function (e) {
-      var tr = el("tr");
+      /* A handle-only row is keyed `discord:<handle>`; that is a key, not an
+         address, and must never be shown as one or offered a Send button. */
+      var mailable = e.email.indexOf("@") > 0 && e.email.indexOf("discord:") !== 0;
+      var who = e.name || e.discord || (mailable ? e.email : e.email.replace("discord:", "@"));
 
-      /* Who they are, over two lines: the name and handle you would greet
-         them by, then the answers you are actually deciding on. Stacked
-         rather than columned because a phone reads this too. */
-      var who = el("td");
-      var mailKey = e.email.indexOf("discord:") === 0 ? "" : e.email;
-      who.appendChild(el("div", { text: e.name || e.discord || e.email }));
-      if (mailKey) who.appendChild(el("div", { class: "sub", text: mailKey }));
+      var idCell = el("td");
+      idCell.appendChild(el("div", { text: who }));
+      var under = [];
+      if (mailable) under.push(e.email);
+      if (e.discord && e.discord !== who) under.push("@" + e.discord);
+      if (under.length) idCell.appendChild(el("div", { class: "sub", text: under.join(" \u00b7 ") }));
       var bits = [];
-      if (e.discord) bits.push("discord: " + e.discord);
       if (e.device) bits.push(e.device);
       if (e.writesOften) bits.push(e.writesOften);
       if (e.writesWhere) bits.push("writes on " + e.writesWhere);
-      if (e.note) bits.push(e.note);
-      if (bits.length) who.appendChild(el("div", { class: "sub", text: bits.join(" \u00b7 ") }));
-      tr.appendChild(who);
+      if (bits.length) idCell.appendChild(el("div", { class: "sub", text: bits.join(" \u00b7 ") }));
 
-      tr.appendChild(el("td", { class: "sub", text: fmtWhen(e.createdAt) }));
-      var last = el("td");
-      if (e.invitedAt) {
-        /* The code is shown after the fact so a bounced email can be read
-           out over any other channel, rather than being lost with it. */
-        last.appendChild(el("span", { class: "sub", text: "sent " + fmtWhen(e.invitedAt) + " \u00b7 " + (e.inviteCode || "") }));
-      } else {
-        /* Somebody with an address gets a key sent; somebody known only by a
-           handle gets one minted and handed back to carry over Discord.
-           Two buttons rather than one clever one: sending and not-sending
-           fail in different ways, and the row should say which it will do. */
-        var mailable = e.email.indexOf("@") > 0 && e.email.indexOf("discord:") !== 0;
-        var b = el("button", { class: "act", text: mailable ? "Email a key" : "Mint a code" });
-        b.addEventListener("click", function () {
-          if (inviteInFlight) return;
-          var who = e.name || e.discord || e.email;
-          if (!confirm((mailable ? "Email a key to " : "Mint a code for ") + who + "?")) return;
-          inviteInFlight = true;
-          b.disabled = true;
-          dashPost(mailable ? "/signup-gate/waitlist/invite" : "/signup-gate/waitlist/mint",
-                   mailable ? { email: e.email } : { key: e.email })
-            .then(function (d) {
-              inviteInFlight = false;
-              // Shown, not just recorded: a minted code that is never copied
-              // out of this screen has invited nobody.
-              if (!mailable && d.code) window.prompt("Send this to " + who + ":", d.code);
-              loadIntake();
-            })
-            .catch(function (err) { inviteInFlight = false; b.disabled = false; alert(err.message); });
-        });
-        last.appendChild(b);
-      }
-      tr.appendChild(last);
-      body.appendChild(tr);
+      var stateCell = el("td", { class: "sub" });
+      stateCell.appendChild(el("div", {
+        text: e.invitedAt ? "sent " + fmtWhen(e.invitedAt) : "waiting since " + fmtWhen(e.createdAt),
+      }));
+      // The code, always visible once there is one: a key that only ever
+      // appeared in a prompt somebody dismissed has invited nobody.
+      if (e.inviteCode) stateCell.appendChild(el("div", { class: "mono", text: e.inviteCode }));
+
+      /* PRIMARY IS WHAT TO DO NEXT, secondary is the correction. Before an
+         invite that is send-or-mint; after one it is refresh, which revokes
+         the old key rather than leaving two live for one seat. */
+      var actions = el("div", { class: "actions" });
+      actions.appendChild(inviteBtn(e, mailable, false,
+        e.invitedAt ? (mailable ? "Resend" : "Show code") : (mailable ? "Email access code" : "Mint access code")));
+      if (e.invitedAt) actions.appendChild(inviteBtn(e, mailable, true, "Refresh code"));
+
+      rows.push(el("tr", {}, [idCell, stateCell, el("td", {}, [actions])]));
     });
-    wrap.appendChild(el("table", {}, [body]));
+    wrap.appendChild(el("div", { class: "table-wrap" }, [table(
+      [{ label: "Who" }, { label: "State" }, { label: "Access code" }],
+      rows,
+    )]));
+  }
+
+  /**
+   * One action on one row. `force` is the refresh: it revokes whatever key
+   * that person is holding and issues another, which is the only honest way
+   * to answer "it never arrived" without leaving two keys live for one seat.
+   */
+  function inviteBtn(e, mailable, force, label) {
+    var b = el("button", { class: "act" + (force ? " danger" : ""), text: label });
+    var who = e.name || e.discord || e.email;
+    b.addEventListener("click", function () {
+      if (inviteInFlight) return;
+      var ask = force
+        ? "Replace " + who + "'s code? The one they have stops working."
+        : (mailable ? "Email an access code to " + e.email + "?" : "Mint a code for " + who + "?");
+      if (!confirm(ask)) return;
+      inviteInFlight = true;
+      b.disabled = true;
+      var body = mailable ? { email: e.email, force: force } : { key: e.email, force: force };
+      dashPost(mailable ? "/signup-gate/waitlist/invite" : "/signup-gate/waitlist/mint", body)
+        .then(function (d) {
+          inviteInFlight = false;
+          if (!mailable && d.code) window.prompt("Send this to " + who + ":", d.code);
+          loadIntake();
+        })
+        .catch(function (err) { inviteInFlight = false; b.disabled = false; alert(err.message); });
+    });
+    return b;
   }
 
   function fmtWhen(ms) {

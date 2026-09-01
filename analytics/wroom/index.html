@@ -280,7 +280,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   <h1>wroom|</h1>
   <p class="sub">the numbers &middot; enter the key</p>
   <input id="key-input" type="password" autocomplete="off" placeholder="Dashboard key">
-  <input id="write-key-input" type="password" autocomplete="off" placeholder="Moderation key (only to act)">
   <div class="err" id="gate-err"></div>
 </div>
 
@@ -401,14 +400,17 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   "use strict";
   var API = "https://wroom-api.joseppy-workers.workers.dev";
   var KEY_STORAGE = "wroom_dash_key";
-  /* The SECOND key, and the reason there are two.
-     Reading the numbers and suspending somebody's account used to be one
-     string - so the credential typed into a browser on whatever machine was
-     to hand, to look at a chart, was also the credential that takes an
-     account away. The Worker splits them: STATS_DASH_KEY reads, and
-     ADMIN_WRITE_KEY acts. Until ADMIN_WRITE_KEY is set server-side the write
-     side falls back to the read key, which is why the fetchers below fall
-     back the same way - one key entered still works everywhere it used to. */
+  /* ONE KEY, and the server is what makes that safe to say.
+     Reading the numbers and suspending an account CAN be split - the Worker
+     takes an ADMIN_WRITE_KEY for the acting routes and falls back to this
+     one when that secret is unset. It is unset, deliberately: this is a
+     dashboard one person opens on their own machines, and a second field to
+     fill every time buys separation from nobody.
+
+     The storage slot stays so that a key typed before the split was undone
+     is still found and still works. If the secret is ever set again, the
+     acting routes will 404 until this reads it from somewhere, which is
+     exactly the failure the message in dashFetch names. */
   var WRITE_KEY_STORAGE = "wroom_dash_write_key";
   /* The theme is shared with Pulse on purpose: two dashboards, one instrument,
      and flipping to light on one should not hand you a dark slab on the other. */
@@ -565,7 +567,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   /* The moderation key, or the lack of one. Every privileged route answers
      404 to a wrong key, so this is what that 404 almost always means. */
   var WRONG_KEY =
-    "The moderation key is missing or wrong. Reload and enter it in the second field.";
+    "That key was refused. If ADMIN_WRITE_KEY is set on the Worker, the acting " +
+    "routes want that one - delete the secret to go back to a single key.";
 
   function dashPost(path, body) {
     return fetch(API + "/api/admin/dash" + path, {
@@ -913,9 +916,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     if (reportRows === null) {
       /* Named precisely, because the likely cause is now specific: the
          numbers loaded, so the READ key is right, and the queue did not. */
-      wrap.appendChild(el("div", { class: "empty", text: getWriteKey()
-        ? "Couldn't load the queue. The moderation key may be wrong - reload and re-enter it."
-        : "Couldn't load the queue. Enter the moderation key: reload, and fill the second field." }));
+      wrap.appendChild(el("div", { class: "empty", text: gateError || "Couldn't load the queue." }));
       return;
     }
     if (!reportRows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing " + reportStatus + ". Oldest reports are listed first when there are any." })); return; }
@@ -1478,17 +1479,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      leaves what is stored alone rather than clearing it. */
   function commitKeys() {
     var read = document.getElementById("key-input");
-    var write = document.getElementById("write-key-input");
     if (read.value.trim()) setKey(read.value.trim());
-    if (write.value.trim()) setWriteKey(write.value.trim());
     read.value = "";
-    write.value = "";
     load(currentDays);
   }
-  ["key-input", "write-key-input"].forEach(function (id) {
-    document.getElementById(id).addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter") commitKeys();
-    });
+  document.getElementById("key-input").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") commitKeys();
   });
 
   /* Magic-link support, same as Pulse: /analytics/wroom/#key=... saves the key

@@ -249,6 +249,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .badge.fatal { color: var(--bad); border-color: var(--bad); }
   .badge.err { color: var(--warn); border-color: var(--warn); }
   .actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  /* The waitlist's two actions are long words, and a column that clips them
+     is a button you cannot read before pressing. */
+  .waitlist-table .actions { flex-direction: column; align-items: stretch; }
+  .waitlist-table .actions .act { white-space: nowrap; text-align: center; }
   .act {
     font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer;
     background: var(--surface-2); color: var(--text-primary);
@@ -281,10 +285,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      once it has been typed in, which is the only one that means they are
      actually here. A left edge rather than a filled row: the answers still
      have to be readable. */
-  .waitlist-table tr.sent td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
-  .waitlist-table tr.here td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
-  .waitlist-table tr.sent td { background: color-mix(in srgb, var(--warn) 6%, transparent); }
-  .waitlist-table tr.here td { background: color-mix(in srgb, var(--ok) 7%, transparent); }
+  .waitlist-table tr.sent td { background: color-mix(in srgb, var(--warn) 9%, transparent); }
+  .waitlist-table tr.here td { background: color-mix(in srgb, var(--ok) 10%, transparent); }
   .table-wrap .mono { word-break: break-all; }
   /* The reported words, quoted: content, not metadata, so it reads at full
      secondary rather than muted. */
@@ -328,19 +330,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   </div>
 
   <div class="card" data-tab="waitlist" data-card="wroom-intake">
-    <button class="card__head" aria-expanded="true"><span class="card__title">Intake &middot; the alpha door</span><span class="chev">&#9660;</span></button>
+    <button class="card__head" aria-expanded="true"><span class="card__title">Waitlist</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
-      <div id="gate-mode" class="gate-mode"></div>
-      <details class="adder">
-        <summary>Add people by hand</summary>
-        <p class="sub" style="margin:8px 0">One per line. <code>handle (name)</code>, an email, or <code>email (name)</code>. Anybody already listed is left alone.</p>
-        <textarea id="waitlist-add" rows="6" placeholder="wormhaver69 (dem)&#10;someone@example.com (Zion)"></textarea>
-        <div class="gate-mode" style="margin-top:8px">
-          <button class="act" id="waitlist-add-go">Add to waitlist</button>
-          <span class="count" id="waitlist-add-note"></span>
-        </div>
-      </details>
-      <div id="waitlist-table" style="min-height:80px;margin-top:12px"></div>
+      <div id="waitlist-table" style="min-height:80px"></div>
       <div class="queue-note">Inviting mints a single-use key and emails it. The key works once, on one device; somebody who reinstalls needs a new one.</div>
     </div>
   </div>
@@ -580,6 +572,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   /* ---------- the privileged side: reports + errors ---------- */
   var reportStatus = "open";
   var reportRows = [];
+  var reportsError = null;
   var errorData = null;
   var actionInFlight = false;
 
@@ -633,8 +626,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
        people said the same thing - the difference between moderating and
        guessing. */
     dashFetch("/moderation/queue?tier=all&status=" + reportStatus)
-      .then(function (d) { reportRows = d.reports || []; renderReports(); })
-      .catch(function () { reportRows = null; renderReports(); });
+      .then(function (d) { reportRows = d.reports || []; reportsError = null; renderReports(); })
+      .catch(function (e) { reportRows = null; reportsError = e.message; renderReports(); });
   }
   function loadErrors() {
     dashFetch("/errors?days=7")
@@ -691,13 +684,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
 
   function loadQueues() { loadReports(); loadErrors(); loadIntake(); }
 
-  /* ---- intake: the alpha door -------------------------------------------
-     Two things that are really one job: whether new accounts can be created
-     at all, and who is waiting for a key. Inviting somebody mints a
-     single-use code and emails it, so the queue and the codes never have to
-     be reconciled by hand. */
-  var gateState = null;
-  var gateError = null;
+  /* ---- the waitlist ------------------------------------------------------
+     Who is at the door and what has been sent to them. The signup-mode
+     switch used to live here too and is gone: the access wall in the app is
+     what actually decides who gets in now, and a second control that says
+     something different about the same question is a control that will one
+     day be wrong. The endpoint remains for whenever that is not true. */
   var waitlist = null;
   var waitlistError = null;
   /* ALL by default. "Waiting" is a filter you reach for, not the question
@@ -707,101 +699,19 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   var inviteInFlight = false;
 
   function loadIntake() {
-    dashFetch("/signup-gate")
-      .then(function (d) { gateState = d; gateError = null; renderGate(); })
-      .catch(function (e) { gateState = null; gateError = e.message; renderGate(); });
     dashFetch("/signup-gate/waitlist?status=" + waitlistStatus)
       .then(function (d) { waitlist = d; waitlistError = null; renderWaitlist(); renderTabs(); })
       .catch(function (e) { waitlist = null; waitlistError = e.message; renderWaitlist(); });
   }
 
-  function renderGate() {
-    var wrap = document.getElementById("gate-mode");
-    wrap.textContent = "";
-    if (!gateState) {
-      wrap.appendChild(el("span", { class: "count", text: gateError || "Couldn't read the gate." }));
-      return;
-    }
-    wrap.appendChild(el("span", { class: "count", text: "New accounts:" }));
-    var modes = el("div", { class: "modes" });
-    [
-      ["open", "Open"],
-      ["invite", "Invite only"],
-      ["closed", "Closed"],
-    ].forEach(function (pair) {
-      var b = el("button", { text: pair[1] });
-      b.setAttribute("aria-pressed", gateState.mode === pair[0] ? "true" : "false");
-      b.addEventListener("click", function () {
-        if (gateState.mode === pair[0]) return;
-        b.disabled = true;
-        dashPost("/signup-gate", { mode: pair[0] })
-          .then(function () { loadIntake(); })
-          .catch(function (e) { b.disabled = false; alert(e.message); });
-      });
-      modes.appendChild(b);
-    });
-    wrap.appendChild(modes);
-    wrap.appendChild(el("span", {
-      class: "count",
-      text: gateState.liveCodes + " live code" + (gateState.liveCodes === 1 ? "" : "s"),
-    }));
-  }
-
-
-  /* One per line, in whichever of the three shapes came to hand:
-       wormhaver69 (dem)      a Discord handle and who that is
-       someone@example.com    an address on its own
-       someone@x.com (Zion)   both
-     An "@" decides which it is, because a Discord handle never has one and
-     an email always does. */
-  function parseWaitlistLines(text) {
-    return text
-      .split("\n")
-      .map(function (line) { return line.trim(); })
-      .filter(Boolean)
-      .map(function (line) {
-        var name = "";
-        var who = line;
-        var m = line.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
-        if (m) { who = m[1].trim(); name = m[2].trim(); }
-        who = who.replace(/^@+/, "");
-        return who.indexOf("@") > 0
-          ? { email: who, name: name }
-          : { discord: who, name: name };
-      })
-      .filter(function (e) { return e.email || e.discord; });
-  }
-
-  function wireWaitlistAdder() {
-    var go = document.getElementById("waitlist-add-go");
-    if (!go || go.dataset.wired) return;
-    go.dataset.wired = "1";
-    go.addEventListener("click", function () {
-      var box = document.getElementById("waitlist-add");
-      var note = document.getElementById("waitlist-add-note");
-      var entries = parseWaitlistLines(box.value);
-      if (!entries.length) { note.textContent = "Nothing to add."; return; }
-      go.disabled = true;
-      note.textContent = "Adding " + entries.length + "...";
-      dashPost("/signup-gate/waitlist", { entries: entries })
-        .then(function (d) {
-          box.value = "";
-          note.textContent = "Added " + d.added + ".";
-          go.disabled = false;
-          loadIntake();
-        })
-        .catch(function (e) { go.disabled = false; note.textContent = e.message; });
-    });
-  }
 
   function renderWaitlist() {
-    wireWaitlistAdder();
     var wrap = document.getElementById("waitlist-table");
     wrap.textContent = "";
     if (!waitlist) {
       // Loudly, and never as "nobody is waiting": an empty list and a broken
       // request look identical otherwise, and one of them needs acting on.
-      wrap.appendChild(el("div", { class: "empty", text: waitlistError || gateError || "Couldn't load the waitlist." }));
+      wrap.appendChild(el("div", { class: "empty", text: waitlistError || "Couldn't load the waitlist." }));
       return;
     }
 
@@ -844,8 +754,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
 
       var actions = el("div", { class: "actions" });
       actions.appendChild(inviteBtn(e, mailable, false,
-        e.invitedAt ? (mailable ? "Resend" : "Show") : (mailable ? "Email" : "Mint")));
-      if (e.invitedAt) actions.appendChild(inviteBtn(e, mailable, true, "Refresh"));
+        e.invitedAt ? (mailable ? "Resend email" : "Show code") : (mailable ? "Email code" : "Mint code")));
+      if (e.invitedAt) actions.appendChild(inviteBtn(e, mailable, true, "Mint new code"));
 
       /* Three states: nobody has been sent anything, a key is out and
          untouched, or it has been used. Revoked counts as "not sent" - the
@@ -863,6 +773,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
           class: "sub",
           text: (e.redeemed ? "in \u00b7 " : e.invitedAt && !e.codeRevoked ? "sent \u00b7 " : "") +
             fmtWhen(e.invitedAt || e.createdAt).replace(" UTC", ""),
+          title: fmtWhen(e.invitedAt || e.createdAt),
         }),
         el("td", { class: "mono", text: e.inviteCode || "\u2014" }),
         el("td", {}, [actions]),
@@ -879,7 +790,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     tbl.className = "waitlist-table";
     /* Fixed widths, because `auto` gives the long free-text columns whatever
        they ask for and squeezes the ones somebody is actually scanning. */
-    var cols = el("colgroup", {}, ["11%", "12%", "16%", "10%", "14%", "14%", "9%", "8%", "6%"].map(
+    var cols = el("colgroup", {}, ["9%", "11%", "15%", "9%", "13%", "13%", "10%", "8%", "12%"].map(
       function (w) { return el("col", { style: "width:" + w }); }
     ));
     tbl.insertBefore(cols, tbl.firstChild);
@@ -989,7 +900,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     if (reportRows === null) {
       /* Named precisely, because the likely cause is now specific: the
          numbers loaded, so the READ key is right, and the queue did not. */
-      wrap.appendChild(el("div", { class: "empty", text: gateError || "Couldn't load the queue." }));
+      wrap.appendChild(el("div", { class: "empty", text: reportsError || "Couldn't load the queue." }));
       return;
     }
     if (!reportRows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing " + reportStatus + ". Oldest reports are listed first when there are any." })); return; }

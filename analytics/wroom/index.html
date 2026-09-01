@@ -573,7 +573,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
            learn an admin surface is there. From inside the dashboard that
            ambiguity is unhelpful, so it is named. */
         if (res.status === 404) throw new Error(WRONG_KEY);
-        if (!res.ok) throw new Error("The server answered " + res.status + ".");
+        if (!res.ok) {
+          /* The server's own sentence when it has one. A status code is what
+             you say when you have nothing to say, and this endpoint does -
+             an unset ADMIN_AUTHOR_IDS reads as "503" otherwise, which is
+             indistinguishable from the API being down. */
+          return res.json().catch(function () { return {}; }).then(function (d) {
+            throw new Error(d.error || "The server answered " + res.status + ".");
+          });
+        }
         return res.json();
       });
   }

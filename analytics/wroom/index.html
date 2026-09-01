@@ -407,10 +407,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      dashboard one person opens on their own machines, and a second field to
      fill every time buys separation from nobody.
 
-     The storage slot stays so that a key typed before the split was undone
-     is still found and still works. If the secret is ever set again, the
-     acting routes will 404 until this reads it from somewhere, which is
-     exactly the failure the message in dashFetch names. */
+     The slot below is named only so it can be CLEARED - see the sweep in the
+     auth block. Leaving a key in it was the bug: it outlived the split and
+     kept being sent to a Worker that had gone back to expecting the other
+     one. If the secret is ever set again, the acting routes will 404 until
+     something reads a write key again, which is the failure dashFetch
+     names. */
   var WRITE_KEY_STORAGE = "wroom_dash_write_key";
   /* The theme is shared with Pulse on purpose: two dashboards, one instrument,
      and flipping to light on one should not hand you a dark slab on the other. */

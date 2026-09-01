@@ -252,6 +252,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   <h1>wroom|</h1>
   <p class="sub">the numbers &middot; enter the key</p>
   <input id="key-input" type="password" autocomplete="off" placeholder="Dashboard key">
+  <input id="write-key-input" type="password" autocomplete="off" placeholder="Moderation key (only to act)">
   <div class="err" id="gate-err"></div>
 </div>
 
@@ -350,6 +351,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   "use strict";
   var API = "https://wroom-api.joseppy-workers.workers.dev";
   var KEY_STORAGE = "wroom_dash_key";
+  /* The SECOND key, and the reason there are two.
+     Reading the numbers and suspending somebody's account used to be one
+     string - so the credential typed into a browser on whatever machine was
+     to hand, to look at a chart, was also the credential that takes an
+     account away. The Worker splits them: STATS_DASH_KEY reads, and
+     ADMIN_WRITE_KEY acts. Until ADMIN_WRITE_KEY is set server-side the write
+     side falls back to the read key, which is why the fetchers below fall
+     back the same way - one key entered still works everywhere it used to. */
+  var WRITE_KEY_STORAGE = "wroom_dash_write_key";
   /* The theme is shared with Pulse on purpose: two dashboards, one instrument,
      and flipping to light on one should not hand you a dark slab on the other. */
   var THEME_STORAGE = "sa_theme";
@@ -437,6 +447,13 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   /* ---------- auth + fetch ---------- */
   function getKey() { try { return localStorage.getItem(KEY_STORAGE) || ""; } catch (e) { return ""; } }
   function setKey(v) { try { localStorage.setItem(KEY_STORAGE, v); } catch (e) {} }
+  function getWriteKey() { try { return localStorage.getItem(WRITE_KEY_STORAGE) || ""; } catch (e) { return ""; } }
+  function setWriteKey(v) { try { localStorage.setItem(WRITE_KEY_STORAGE, v); } catch (e) {} }
+  /* What the acting routes are asked with: the moderation key when there is
+     one, the dashboard key when there is not. Mirrors the server's own
+     fallback exactly, so neither half can be configured into a state the
+     other does not expect. */
+  function actingKey() { return getWriteKey() || getKey(); }
 
   function showGate(message) {
     document.getElementById("dash").hidden = true;
@@ -483,7 +500,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   var actionInFlight = false;
 
   function dashFetch(path) {
-    return fetch(API + "/api/admin/dash" + path, { headers: { "x-dash-key": getKey() } })
+    return fetch(API + "/api/admin/dash" + path, { headers: { "x-dash-key": actingKey() } })
       .then(function (res) {
         if (!res.ok) throw new Error("dash request failed: " + res.status);
         return res.json();
@@ -492,7 +509,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   function dashPost(path, body) {
     return fetch(API + "/api/admin/dash" + path, {
       method: "POST",
-      headers: { "x-dash-key": getKey(), "Content-Type": "application/json" },
+      headers: { "x-dash-key": actingKey(), "Content-Type": "application/json" },
       body: JSON.stringify(body || {})
     }).then(function (res) {
       if (!res.ok) throw new Error("The server refused that (" + res.status + "). Try again in a moment.");
@@ -590,7 +607,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
 
     var wrap = document.getElementById("reports-table");
     wrap.textContent = "";
-    if (reportRows === null) { wrap.appendChild(el("div", { class: "empty", text: "Couldn't load the queue. Check the key and the network, then reload." })); return; }
+    if (reportRows === null) {
+      /* Named precisely, because the likely cause is now specific: the
+         numbers loaded, so the READ key is right, and the queue did not. */
+      wrap.appendChild(el("div", { class: "empty", text: getWriteKey()
+        ? "Couldn't load the queue. The moderation key may be wrong - reload and re-enter it."
+        : "Couldn't load the queue. Enter the moderation key: reload, and fill the second field." }));
+      return;
+    }
     if (!reportRows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing " + reportStatus + ". Oldest reports are listed first when there are any." })); return; }
 
     var rows = reportRows.map(function (r) {
@@ -1146,11 +1170,22 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   }
 
   /* ---------- init ---------- */
-  document.getElementById("key-input").addEventListener("keydown", function (ev) {
-    if (ev.key !== "Enter") return;
-    setKey(ev.target.value.trim());
-    ev.target.value = "";
+  /* Enter in EITHER field commits both, so the moderation key can be added
+     later without retyping the one that already works - and a blank field
+     leaves what is stored alone rather than clearing it. */
+  function commitKeys() {
+    var read = document.getElementById("key-input");
+    var write = document.getElementById("write-key-input");
+    if (read.value.trim()) setKey(read.value.trim());
+    if (write.value.trim()) setWriteKey(write.value.trim());
+    read.value = "";
+    write.value = "";
     load(currentDays);
+  }
+  ["key-input", "write-key-input"].forEach(function (id) {
+    document.getElementById(id).addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") commitKeys();
+    });
   });
 
   /* Magic-link support, same as Pulse: /analytics/wroom/#key=... saves the key

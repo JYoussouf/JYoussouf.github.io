@@ -637,7 +637,22 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var body = el("tbody");
     waitlist.entries.forEach(function (e) {
       var tr = el("tr");
-      tr.appendChild(el("td", { text: e.email }));
+
+      /* Who they are, over two lines: the name and handle you would greet
+         them by, then the answers you are actually deciding on. Stacked
+         rather than columned because a phone reads this too. */
+      var who = el("td");
+      who.appendChild(el("div", { text: e.name || e.email }));
+      who.appendChild(el("div", { class: "sub", text: e.email }));
+      var bits = [];
+      if (e.discord) bits.push("discord: " + e.discord);
+      if (e.device) bits.push(e.device);
+      if (e.writesOften) bits.push(e.writesOften);
+      if (e.writesWhere) bits.push("writes on " + e.writesWhere);
+      if (e.note) bits.push(e.note);
+      if (bits.length) who.appendChild(el("div", { class: "sub", text: bits.join(" \u00b7 ") }));
+      tr.appendChild(who);
+
       tr.appendChild(el("td", { class: "sub", text: fmtWhen(e.createdAt) }));
       var last = el("td");
       if (e.invitedAt) {

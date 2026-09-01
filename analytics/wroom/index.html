@@ -275,6 +275,16 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .waitlist-table td, .waitlist-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .waitlist-table td.wrap { white-space: normal; }
   .waitlist-table td, .waitlist-table th { padding: 6px; font-size: 12px; }
+  /* WHERE SOMEBODY IS, at a glance, because the queue is scanned far more
+     often than it is read. Nothing until a key goes out; amber while it is
+     out and untouched, which is the state that might need chasing; green
+     once it has been typed in, which is the only one that means they are
+     actually here. A left edge rather than a filled row: the answers still
+     have to be readable. */
+  .waitlist-table tr.sent td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+  .waitlist-table tr.here td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
+  .waitlist-table tr.sent td { background: color-mix(in srgb, var(--warn) 6%, transparent); }
+  .waitlist-table tr.here td { background: color-mix(in srgb, var(--ok) 7%, transparent); }
   .table-wrap .mono { word-break: break-all; }
   /* The reported words, quoted: content, not metadata, so it reads at full
      secondary rather than muted. */
@@ -690,7 +700,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   var gateError = null;
   var waitlist = null;
   var waitlistError = null;
-  var waitlistStatus = "waiting";
+  /* ALL by default. "Waiting" is a filter you reach for, not the question
+     you arrive with - opening the tab to see who is in, who is owed a key
+     and who has gone quiet means seeing them together. */
+  var waitlistStatus = "all";
   var inviteInFlight = false;
 
   function loadIntake() {
@@ -795,7 +808,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var head = el("div", { class: "gate-mode" });
     head.appendChild(el("span", {
       class: "count",
-      text: waitlist.waiting + " waiting of " + waitlist.total,
+      text: waitlist.waiting + " waiting \u00b7 " + waitlist.total + " on the list",
     }));
     var tabs = el("div", { class: "modes" });
     [["waiting", "Waiting"], ["invited", "Invited"], ["all", "All"]].forEach(function (pair) {
@@ -834,7 +847,11 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         e.invitedAt ? (mailable ? "Resend" : "Show") : (mailable ? "Email" : "Mint")));
       if (e.invitedAt) actions.appendChild(inviteBtn(e, mailable, true, "Refresh"));
 
-      return el("tr", {}, [
+      /* Three states: nobody has been sent anything, a key is out and
+         untouched, or it has been used. Revoked counts as "not sent" - the
+         key it names does not work any more, so the row is owed another. */
+      var state = !e.invitedAt || e.codeRevoked ? "" : e.redeemed ? "here" : "sent";
+      return el("tr", { class: state }, [
         el("td", { text: dash(e.name) }),
         el("td", { class: "sub", text: handle ? "@" + handle : "\u2014" }),
         el("td", { class: "sub", text: mailable ? e.email : "\u2014" }),
@@ -842,7 +859,11 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         el("td", { class: "sub wrap", text: dash(e.writesOften) }),
         el("td", { class: "sub wrap", text: dash(e.writesWhere) }),
         // "UTC" lives in nothing but every cell otherwise; the column says it.
-        el("td", { class: "sub", text: (e.invitedAt ? "sent " : "") + fmtWhen(e.invitedAt || e.createdAt).replace(" UTC", "") }),
+        el("td", {
+          class: "sub",
+          text: (e.redeemed ? "in \u00b7 " : e.invitedAt && !e.codeRevoked ? "sent \u00b7 " : "") +
+            fmtWhen(e.invitedAt || e.createdAt).replace(" UTC", ""),
+        }),
         el("td", { class: "mono", text: e.inviteCode || "\u2014" }),
         el("td", {}, [actions]),
       ]);

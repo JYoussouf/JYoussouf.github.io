@@ -553,17 +553,32 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   function dashFetch(path) {
     return fetch(API + "/api/admin/dash" + path, { headers: { "x-dash-key": actingKey() } })
       .then(function (res) {
+        /* A 404 here is never a missing page - every route under /dash
+           answers 404 to a wrong key on purpose, so that a wrong key cannot
+           learn an admin surface is there. From inside the dashboard that
+           ambiguity is unhelpful, so it is named. */
+        if (res.status === 404) throw new Error(WRONG_KEY);
         if (!res.ok) throw new Error("dash request failed: " + res.status);
         return res.json();
       });
   }
+  /* The moderation key, or the lack of one. Every privileged route answers
+     404 to a wrong key, so this is what that 404 almost always means. */
+  var WRONG_KEY =
+    "The moderation key is missing or wrong. Reload and enter it in the second field.";
+
   function dashPost(path, body) {
     return fetch(API + "/api/admin/dash" + path, {
       method: "POST",
       headers: { "x-dash-key": actingKey(), "Content-Type": "application/json" },
       body: JSON.stringify(body || {})
     }).then(function (res) {
-      if (!res.ok) throw new Error("The server refused that (" + res.status + "). Try again in a moment.");
+      if (res.status === 404) throw new Error(WRONG_KEY);
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (d) {
+          throw new Error(d.error || "The server refused that (" + res.status + ").");
+        });
+      }
       return res.json();
     });
   }
@@ -640,14 +655,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      single-use code and emails it, so the queue and the codes never have to
      be reconciled by hand. */
   var gateState = null;
+  var gateError = null;
   var waitlist = null;
   var waitlistStatus = "waiting";
   var inviteInFlight = false;
 
   function loadIntake() {
     dashFetch("/signup-gate")
-      .then(function (d) { gateState = d; renderGate(); })
-      .catch(function () { gateState = null; renderGate(); });
+      .then(function (d) { gateState = d; gateError = null; renderGate(); })
+      .catch(function (e) { gateState = null; gateError = e.message; renderGate(); });
     dashFetch("/signup-gate/waitlist?status=" + waitlistStatus)
       .then(function (d) { waitlist = d; renderWaitlist(); renderTabs(); })
       .catch(function () { waitlist = null; renderWaitlist(); });
@@ -657,7 +673,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var wrap = document.getElementById("gate-mode");
     wrap.textContent = "";
     if (!gateState) {
-      wrap.appendChild(el("span", { class: "count", text: "Couldn't read the gate." }));
+      wrap.appendChild(el("span", { class: "count", text: gateError || "Couldn't read the gate." }));
       return;
     }
     wrap.appendChild(el("span", { class: "count", text: "New accounts:" }));
@@ -737,7 +753,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var wrap = document.getElementById("waitlist-table");
     wrap.textContent = "";
     if (!waitlist) {
-      wrap.appendChild(el("div", { class: "empty", text: "Couldn't load the waitlist." }));
+      wrap.appendChild(el("div", { class: "empty", text: gateError || "Couldn't load the waitlist." }));
       return;
     }
 

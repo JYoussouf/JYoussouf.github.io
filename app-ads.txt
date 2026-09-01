@@ -1,0 +1,19 @@
+# app-ads.txt - who is authorised to sell ad inventory in Joseph Youssouf's apps.
+#
+# IAB Tech Lab spec: https://iabtechlab.com/ads-txt/
+#
+# Buyers crawl this file to check that whoever is offering inventory for
+# "wroom" is actually allowed to. Without it, a large share of programmatic
+# demand simply will not bid, which shows up as low fill rather than as an
+# error - so an app with no app-ads.txt looks like an app nobody wants to
+# advertise on.
+#
+# HOW IT IS FOUND: the crawler reads the developer website from the app's
+# store listing and fetches /app-ads.txt from that domain. So the marketing
+# or support URL on the App Store and Play listings must point at
+# joseppy.ca, or this file is never looked at.
+#
+# The trailing field on each line is the certification authority ID, which
+# for Google is the same public value for every publisher.
+
+google.com, pub-6016754843819376, DIRECT, f08c47fec0942fa0

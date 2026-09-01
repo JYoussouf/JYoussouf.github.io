@@ -85,6 +85,19 @@
   .brand h1 { font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
   .brand .sub { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
   .controls { display: flex; align-items: center; gap: 8px; }
+  /* Thirteen cards on one page is a scroll, not a dashboard. Four sections,
+     and the one you were last looking at is the one you come back to. */
+  .tabs { display: flex; gap: 2px; margin: 0 0 18px; flex-wrap: wrap; }
+  .tabs button {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--text-secondary); background: none; border: none;
+    border-bottom: 2px solid transparent; padding: 8px 12px;
+  }
+  .tabs button:hover { color: var(--text-primary); }
+  .tabs button[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--text-primary); }
+  .tabs .tally { font-weight: 400; color: var(--muted); margin-left: 5px; }
+  [data-tab][hidden] { display: none !important; }
+
   .ranges { display: flex; background: var(--surface-1); border: 1px solid var(--border); }
   .ranges button {
     font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); background: none;
@@ -274,11 +287,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
-  <div class="highlights" id="highlights"></div>
-  <div class="tiles" id="tiles"></div>
-  <div class="note" id="active-note"></div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Sections"></div>
 
-  <div class="card" data-card="wroom-online">
+  <div data-tab="summary">
+    <div class="highlights" id="highlights"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="note" id="active-note"></div>
+  </div>
+
+  <div class="card" data-tab="live" data-card="wroom-online">
     <button class="card__head" aria-expanded="true"><span class="card__title">Online right now</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="online-row"><span class="online-count" id="online-count">-</span><span class="sub" id="online-note">counted from ten-minute activity slices; refreshes each minute</span></div>
@@ -286,7 +303,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
-  <div class="card" data-card="wroom-intake">
+  <div class="card" data-tab="waitlist" data-card="wroom-intake">
     <button class="card__head" aria-expanded="true"><span class="card__title">Intake &middot; the alpha door</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div id="gate-mode" class="gate-mode"></div>
@@ -295,7 +312,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
-  <div class="card" data-card="wroom-reports">
+  <div class="card" data-tab="queues" data-card="wroom-reports">
     <button class="card__head" aria-expanded="true"><span class="card__title">Reports &middot; act here</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="filters" id="report-filters"></div>
@@ -304,7 +321,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
-  <div class="card" data-card="wroom-errors">
+  <div class="card" data-tab="queues" data-card="wroom-errors">
     <button class="card__head" aria-expanded="true"><span class="card__title">Client errors &middot; last 7 days</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="legend" id="errors-legend"></div>
@@ -314,7 +331,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
-  <div class="card" data-card="wroom-made">
+  <div class="card" data-tab="summary" data-card="wroom-made">
     <button class="card__head" aria-expanded="true"><span class="card__title">What got made</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="legend" id="made-legend"></div>
@@ -322,7 +339,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
-  <div class="card" data-card="wroom-active">
+  <div class="card" data-tab="summary" data-card="wroom-active">
     <button class="card__head" aria-expanded="true"><span class="card__title">Active authors per day</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="legend" id="active-legend"></div>
@@ -331,31 +348,31 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   </div>
 
   <div class="cols">
-    <div class="card" data-card="wroom-activation">
+    <div class="card" data-tab="summary" data-card="wroom-activation">
       <button class="card__head" aria-expanded="true"><span class="card__title">Does an account become an author</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="activation-table"></div></div>
     </div>
-    <div class="card" data-card="wroom-writing">
+    <div class="card" data-tab="summary" data-card="wroom-writing">
       <button class="card__head" aria-expanded="true"><span class="card__title">Where the writing goes</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="writing-table"></div></div>
     </div>
-    <div class="card" data-card="wroom-period">
+    <div class="card" data-tab="summary" data-card="wroom-period">
       <button class="card__head" aria-expanded="true"><span class="card__title">New in this range</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="period-table"></div></div>
     </div>
-    <div class="card" data-card="wroom-moderation">
+    <div class="card" data-tab="queues" data-card="wroom-moderation">
       <button class="card__head" aria-expanded="true"><span class="card__title">Queues and housekeeping</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="moderation-table"></div></div>
     </div>
-    <div class="card" data-card="wroom-crowd">
+    <div class="card" data-tab="summary" data-card="wroom-crowd">
       <button class="card__head" aria-expanded="true"><span class="card__title">Who the accounts are</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="crowd-table"></div></div>
     </div>
-    <div class="card" data-card="wroom-postload">
+    <div class="card" data-tab="summary" data-card="wroom-postload">
       <button class="card__head" aria-expanded="true"><span class="card__title">Posts per writer</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="postload-table"></div></div>
     </div>
-    <div class="card" data-card="wroom-worldfunnel">
+    <div class="card" data-tab="summary" data-card="wroom-worldfunnel">
       <button class="card__head" aria-expanded="true"><span class="card__title">Does a wroom happen</span><span class="chev">&#9660;</span></button>
       <div class="card__body"><div id="worldfunnel-table"></div></div>
     </div>
@@ -495,6 +512,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         lastData = data;
         document.getElementById("gate").hidden = true;
         document.getElementById("dash").hidden = false;
+        setTab(currentTab);
         paint();
         if (!document.getElementById("reports-table").childElementCount) loadQueues();
       })
@@ -550,6 +568,54 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       .then(function (d) { errorData = d; renderErrors(); })
       .catch(function () { errorData = null; renderErrors(); });
   }
+
+  /* ---- sections ----------------------------------------------------------
+     Four, because thirteen cards on one page is a scroll rather than a
+     dashboard, and because they answer different questions: what is true
+     right now, what has happened over a range, what is waiting for a person
+     to act on it, and who is at the door.
+
+     The date range only means anything to the summary, so it hides with it -
+     a control that changes nothing on the screen you are looking at is worse
+     than no control. */
+  var TAB_STORAGE = "wroom_dash_tab";
+  var TABS = [
+    { key: "live", label: "Live" },
+    { key: "summary", label: "Summary" },
+    { key: "queues", label: "Reports & errors" },
+    { key: "waitlist", label: "Waitlist" },
+  ];
+  var currentTab = "live";
+  try { currentTab = localStorage.getItem(TAB_STORAGE) || "live"; } catch (e) {}
+  if (!TABS.some(function (t) { return t.key === currentTab; })) currentTab = "live";
+
+  function renderTabs() {
+    var bar = document.getElementById("tabs");
+    bar.textContent = "";
+    TABS.forEach(function (t) {
+      var b = el("button", { role: "tab", text: t.label });
+      b.setAttribute("aria-selected", currentTab === t.key ? "true" : "false");
+      // The waitlist carries its count, because "is anybody waiting" is the
+      // question you would otherwise open the tab to answer.
+      if (t.key === "waitlist" && waitlist && waitlist.waiting > 0) {
+        b.appendChild(el("span", { class: "tally", text: String(waitlist.waiting) }));
+      }
+      b.addEventListener("click", function () { setTab(t.key); });
+      bar.appendChild(b);
+    });
+  }
+
+  function setTab(key) {
+    currentTab = key;
+    try { localStorage.setItem(TAB_STORAGE, key); } catch (e) {}
+    document.querySelectorAll("[data-tab]").forEach(function (n) {
+      n.hidden = n.getAttribute("data-tab") !== key;
+    });
+    var ranges = document.getElementById("ranges");
+    if (ranges) ranges.hidden = key !== "summary";
+    renderTabs();
+  }
+
   function loadQueues() { loadReports(); loadErrors(); loadIntake(); }
 
   /* ---- intake: the alpha door -------------------------------------------
@@ -567,7 +633,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       .then(function (d) { gateState = d; renderGate(); })
       .catch(function () { gateState = null; renderGate(); });
     dashFetch("/signup-gate/waitlist?status=" + waitlistStatus)
-      .then(function (d) { waitlist = d; renderWaitlist(); })
+      .then(function (d) { waitlist = d; renderWaitlist(); renderTabs(); })
       .catch(function () { waitlist = null; renderWaitlist(); });
   }
 

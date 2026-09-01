@@ -1124,6 +1124,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
 
   function renderModeration(d) {
     var h = d.health || {};
+    var mm = d.mediaMigration || {};
     plainTable("moderation-table",
       [{ label: "Thing" }, { label: "Count", num: 1 }],
       [
@@ -1132,7 +1133,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         ["Hidden wrooms", h.hiddenWrooms], ["Suspended authors", h.suspendedAuthors],
         ["Deleted authors", h.deletedAuthors], ["Unverified emails", h.unverifiedAuthors],
         ["Public wrooms", h.publicWrooms], ["Archived wrooms", h.archivedWrooms],
-        ["Deleted posts", h.deletedPosts]
+        ["Deleted posts", h.deletedPosts],
+        ["Avatars still inline (base64)", mm.inlineAvatars],
+        ["Avatars migrated to the media store", mm.migratedAvatars],
+        ["Inline image weight (KB)", mm.inlineBytes != null ? Math.round(mm.inlineBytes / 1024) : null]
       ].map(function (r) {
         return el("tr", {}, [el("td", { text: r[0] }), el("td", { class: "num", text: num(r[1]) })]);
       }));

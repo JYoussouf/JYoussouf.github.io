@@ -216,6 +216,13 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   }
   .gate-mode button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
   .gate-mode .count { color: var(--muted); font-size: 12.5px; }
+  .adder { margin-top: 12px; }
+  .adder summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+  .adder textarea {
+    font: inherit; font-size: 12.5px; width: 100%; box-sizing: border-box; padding: 8px 10px;
+    border: 1px solid var(--border-strong); background: var(--surface-1); color: var(--text-primary);
+  }
+  .adder code { font-size: 11.5px; background: var(--grid); padding: 1px 4px; }
 
   .note { color: var(--muted); font-size: 12px; margin: -6px 0 16px; }
   .bar-cell { display: flex; align-items: center; gap: 8px; }
@@ -307,6 +314,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     <button class="card__head" aria-expanded="true"><span class="card__title">Intake &middot; the alpha door</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div id="gate-mode" class="gate-mode"></div>
+      <details class="adder">
+        <summary>Add people by hand</summary>
+        <p class="sub" style="margin:8px 0">One per line. <code>handle (name)</code>, an email, or <code>email (name)</code>. Anybody already listed is left alone.</p>
+        <textarea id="waitlist-add" rows="6" placeholder="wormhaver69 (dem)&#10;someone@example.com (Zion)"></textarea>
+        <div class="gate-mode" style="margin-top:8px">
+          <button class="act" id="waitlist-add-go">Add to waitlist</button>
+          <span class="count" id="waitlist-add-note"></span>
+        </div>
+      </details>
       <div id="waitlist-table" style="min-height:80px;margin-top:12px"></div>
       <div class="queue-note">Inviting mints a single-use key and emails it. The key works once, on one device; somebody who reinstalls needs a new one.</div>
     </div>
@@ -629,7 +645,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   var inviteInFlight = false;
 
   function loadIntake() {
-    dashFetch("/signup-gate/")
+    dashFetch("/signup-gate")
       .then(function (d) { gateState = d; renderGate(); })
       .catch(function () { gateState = null; renderGate(); });
     dashFetch("/signup-gate/waitlist?status=" + waitlistStatus)
@@ -656,7 +672,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       b.addEventListener("click", function () {
         if (gateState.mode === pair[0]) return;
         b.disabled = true;
-        dashPost("/signup-gate/", { mode: pair[0] })
+        dashPost("/signup-gate", { mode: pair[0] })
           .then(function () { loadIntake(); })
           .catch(function (e) { b.disabled = false; alert(e.message); });
       });
@@ -669,7 +685,55 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     }));
   }
 
+
+  /* One per line, in whichever of the three shapes came to hand:
+       wormhaver69 (dem)      a Discord handle and who that is
+       someone@example.com    an address on its own
+       someone@x.com (Zion)   both
+     An "@" decides which it is, because a Discord handle never has one and
+     an email always does. */
+  function parseWaitlistLines(text) {
+    return text
+      .split("\n")
+      .map(function (line) { return line.trim(); })
+      .filter(Boolean)
+      .map(function (line) {
+        var name = "";
+        var who = line;
+        var m = line.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+        if (m) { who = m[1].trim(); name = m[2].trim(); }
+        who = who.replace(/^@+/, "");
+        return who.indexOf("@") > 0
+          ? { email: who, name: name }
+          : { discord: who, name: name };
+      })
+      .filter(function (e) { return e.email || e.discord; });
+  }
+
+  function wireWaitlistAdder() {
+    var go = document.getElementById("waitlist-add-go");
+    if (!go || go.dataset.wired) return;
+    go.dataset.wired = "1";
+    go.addEventListener("click", function () {
+      var box = document.getElementById("waitlist-add");
+      var note = document.getElementById("waitlist-add-note");
+      var entries = parseWaitlistLines(box.value);
+      if (!entries.length) { note.textContent = "Nothing to add."; return; }
+      go.disabled = true;
+      note.textContent = "Adding " + entries.length + "...";
+      dashPost("/signup-gate/waitlist", { entries: entries })
+        .then(function (d) {
+          box.value = "";
+          note.textContent = "Added " + d.added + ".";
+          go.disabled = false;
+          loadIntake();
+        })
+        .catch(function (e) { go.disabled = false; note.textContent = e.message; });
+    });
+  }
+
   function renderWaitlist() {
+    wireWaitlistAdder();
     var wrap = document.getElementById("waitlist-table");
     wrap.textContent = "";
     if (!waitlist) {
@@ -708,8 +772,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
          them by, then the answers you are actually deciding on. Stacked
          rather than columned because a phone reads this too. */
       var who = el("td");
-      who.appendChild(el("div", { text: e.name || e.email }));
-      who.appendChild(el("div", { class: "sub", text: e.email }));
+      var mailKey = e.email.indexOf("discord:") === 0 ? "" : e.email;
+      who.appendChild(el("div", { text: e.name || e.discord || e.email }));
+      if (mailKey) who.appendChild(el("div", { class: "sub", text: mailKey }));
       var bits = [];
       if (e.discord) bits.push("discord: " + e.discord);
       if (e.device) bits.push(e.device);
@@ -726,14 +791,27 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
            out over any other channel, rather than being lost with it. */
         last.appendChild(el("span", { class: "sub", text: "sent " + fmtWhen(e.invitedAt) + " \u00b7 " + (e.inviteCode || "") }));
       } else {
-        var b = el("button", { class: "act", text: "Invite" });
+        /* Somebody with an address gets a key sent; somebody known only by a
+           handle gets one minted and handed back to carry over Discord.
+           Two buttons rather than one clever one: sending and not-sending
+           fail in different ways, and the row should say which it will do. */
+        var mailable = e.email.indexOf("@") > 0 && e.email.indexOf("discord:") !== 0;
+        var b = el("button", { class: "act", text: mailable ? "Email a key" : "Mint a code" });
         b.addEventListener("click", function () {
           if (inviteInFlight) return;
-          if (!confirm("Email a key to " + e.email + "?")) return;
+          var who = e.name || e.discord || e.email;
+          if (!confirm((mailable ? "Email a key to " : "Mint a code for ") + who + "?")) return;
           inviteInFlight = true;
           b.disabled = true;
-          dashPost("/signup-gate/waitlist/invite", { email: e.email })
-            .then(function () { inviteInFlight = false; loadIntake(); })
+          dashPost(mailable ? "/signup-gate/waitlist/invite" : "/signup-gate/waitlist/mint",
+                   mailable ? { email: e.email } : { key: e.email })
+            .then(function (d) {
+              inviteInFlight = false;
+              // Shown, not just recorded: a minted code that is never copied
+              // out of this screen has invited nobody.
+              if (!mailable && d.code) window.prompt("Send this to " + who + ":", d.code);
+              loadIntake();
+            })
             .catch(function (err) { inviteInFlight = false; b.disabled = false; alert(err.message); });
         });
         last.appendChild(b);

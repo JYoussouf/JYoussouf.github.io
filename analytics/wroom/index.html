@@ -499,13 +499,24 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   /* ---------- auth + fetch ---------- */
   function getKey() { try { return localStorage.getItem(KEY_STORAGE) || ""; } catch (e) { return ""; } }
   function setKey(v) { try { localStorage.setItem(KEY_STORAGE, v); } catch (e) {} }
-  function getWriteKey() { try { return localStorage.getItem(WRITE_KEY_STORAGE) || ""; } catch (e) { return ""; } }
-  function setWriteKey(v) { try { localStorage.setItem(WRITE_KEY_STORAGE, v); } catch (e) {} }
-  /* What the acting routes are asked with: the moderation key when there is
-     one, the dashboard key when there is not. Mirrors the server's own
-     fallback exactly, so neither half can be configured into a state the
-     other does not expect. */
-  function actingKey() { return getWriteKey() || getKey(); }
+  // Swept, not read. See `actingKey`.
+  (function forgetWriteKey() {
+    try { localStorage.removeItem(WRITE_KEY_STORAGE); } catch (e) {}
+  })();
+  /* ONE KEY, and this function is why that has to be said in code rather
+     than only in a comment.
+
+     It used to prefer a stored moderation key and fall back to the dashboard
+     key. That mirrored the server while the split was live - and became the
+     bug the moment the split was undone: a key typed into the old second
+     field stayed in this browser, kept being preferred, and was refused by a
+     Worker that had gone back to expecting the other one. "Still found and
+     still works" was the reasoning, and it was exactly backwards.
+
+     Nothing reads the stored slot now; it is swept above. If the split is
+     ever wanted again it comes back as a deliberate change here, not as
+     something a browser remembered. */
+  function actingKey() { return getKey(); }
 
   function showGate(message) {
     document.getElementById("dash").hidden = true;
@@ -560,15 +571,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
            learn an admin surface is there. From inside the dashboard that
            ambiguity is unhelpful, so it is named. */
         if (res.status === 404) throw new Error(WRONG_KEY);
-        if (!res.ok) throw new Error("dash request failed: " + res.status);
+        if (!res.ok) throw new Error("The server answered " + res.status + ".");
         return res.json();
       });
   }
   /* The moderation key, or the lack of one. Every privileged route answers
      404 to a wrong key, so this is what that 404 almost always means. */
   var WRONG_KEY =
-    "That key was refused. If ADMIN_WRITE_KEY is set on the Worker, the acting " +
-    "routes want that one - delete the secret to go back to a single key.";
+    "That key was refused by the privileged routes. If ADMIN_WRITE_KEY is set " +
+    "on the Worker, they want that one instead.";
 
   function dashPost(path, body) {
     return fetch(API + "/api/admin/dash" + path, {

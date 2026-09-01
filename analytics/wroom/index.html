@@ -275,7 +275,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      nowrap was what pushed it off the edge: the two free-text answers are
      the long ones, so they wrap and everything else - names, handles, dates,
      codes, buttons - stays on its line. */
-  .waitlist-table { table-layout: fixed; width: 100%; }
+  /* BLED TO THE CARD'S EDGES. The row is what carries the state, so its
+     wash has to reach both ends of it - stopping at the card's inner padding
+     drew a band floating in the middle of a row, which reads as a highlight
+     over the cells rather than a state on the person. The negative margin
+     eats the padding; the outer cells put it back so the text still lines up
+     with everything above. */
+  .waitlist-table { table-layout: fixed; width: calc(100% + 32px); margin: 0 -16px; }
+  .waitlist-table td:first-child, .waitlist-table th:first-child { padding-left: 16px; }
+  .waitlist-table td:last-child, .waitlist-table th:last-child { padding-right: 16px; }
   .waitlist-table td, .waitlist-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .waitlist-table td.wrap { white-space: normal; }
   .waitlist-table td, .waitlist-table th { padding: 6px; font-size: 12px; }

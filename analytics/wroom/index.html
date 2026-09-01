@@ -195,6 +195,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   }
   #gate .err { color: var(--bad); font-size: 12px; margin-top: 8px; min-height: 18px; }
   .empty { color: var(--muted); text-align: center; padding: 22px 0; font-size: 13px; }
+  .gate-mode { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .gate-mode .modes { display: flex; gap: 4px; }
+  .gate-mode button {
+    font: inherit; font-size: 12.5px; padding: 5px 11px; cursor: pointer;
+    border: 1px solid var(--border-strong); background: var(--surface-1); color: var(--text-secondary);
+  }
+  .gate-mode button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+  .gate-mode .count { color: var(--muted); font-size: 12.5px; }
 
   .note { color: var(--muted); font-size: 12px; margin: -6px 0 16px; }
   .bar-cell { display: flex; align-items: center; gap: 8px; }
@@ -275,6 +283,15 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     <div class="card__body">
       <div class="online-row"><span class="online-count" id="online-count">-</span><span class="sub" id="online-note">counted from ten-minute activity slices; refreshes each minute</span></div>
       <div class="chart-wrap"><div id="online-chart"></div></div>
+    </div>
+  </div>
+
+  <div class="card" data-card="wroom-intake">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Intake &middot; the alpha door</span><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div id="gate-mode" class="gate-mode"></div>
+      <div id="waitlist-table" style="min-height:80px;margin-top:12px"></div>
+      <div class="queue-note">Inviting mints a single-use key and emails it. The key works once, on one device; somebody who reinstalls needs a new one.</div>
     </div>
   </div>
 
@@ -533,7 +550,118 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       .then(function (d) { errorData = d; renderErrors(); })
       .catch(function () { errorData = null; renderErrors(); });
   }
-  function loadQueues() { loadReports(); loadErrors(); }
+  function loadQueues() { loadReports(); loadErrors(); loadIntake(); }
+
+  /* ---- intake: the alpha door -------------------------------------------
+     Two things that are really one job: whether new accounts can be created
+     at all, and who is waiting for a key. Inviting somebody mints a
+     single-use code and emails it, so the queue and the codes never have to
+     be reconciled by hand. */
+  var gateState = null;
+  var waitlist = null;
+  var waitlistStatus = "waiting";
+  var inviteInFlight = false;
+
+  function loadIntake() {
+    dashFetch("/signup-gate/")
+      .then(function (d) { gateState = d; renderGate(); })
+      .catch(function () { gateState = null; renderGate(); });
+    dashFetch("/signup-gate/waitlist?status=" + waitlistStatus)
+      .then(function (d) { waitlist = d; renderWaitlist(); })
+      .catch(function () { waitlist = null; renderWaitlist(); });
+  }
+
+  function renderGate() {
+    var wrap = document.getElementById("gate-mode");
+    wrap.textContent = "";
+    if (!gateState) {
+      wrap.appendChild(el("span", { class: "count", text: "Couldn't read the gate." }));
+      return;
+    }
+    wrap.appendChild(el("span", { class: "count", text: "New accounts:" }));
+    var modes = el("div", { class: "modes" });
+    [
+      ["open", "Open"],
+      ["invite", "Invite only"],
+      ["closed", "Closed"],
+    ].forEach(function (pair) {
+      var b = el("button", { text: pair[1] });
+      b.setAttribute("aria-pressed", gateState.mode === pair[0] ? "true" : "false");
+      b.addEventListener("click", function () {
+        if (gateState.mode === pair[0]) return;
+        b.disabled = true;
+        dashPost("/signup-gate/", { mode: pair[0] })
+          .then(function () { loadIntake(); })
+          .catch(function (e) { b.disabled = false; alert(e.message); });
+      });
+      modes.appendChild(b);
+    });
+    wrap.appendChild(modes);
+    wrap.appendChild(el("span", {
+      class: "count",
+      text: gateState.liveCodes + " live code" + (gateState.liveCodes === 1 ? "" : "s"),
+    }));
+  }
+
+  function renderWaitlist() {
+    var wrap = document.getElementById("waitlist-table");
+    wrap.textContent = "";
+    if (!waitlist) {
+      wrap.appendChild(el("div", { class: "empty", text: "Couldn't load the waitlist." }));
+      return;
+    }
+
+    var head = el("div", { class: "gate-mode" });
+    head.appendChild(el("span", {
+      class: "count",
+      text: waitlist.waiting + " waiting of " + waitlist.total,
+    }));
+    var tabs = el("div", { class: "modes" });
+    [["waiting", "Waiting"], ["invited", "Invited"], ["all", "All"]].forEach(function (pair) {
+      var b = el("button", { text: pair[1] });
+      b.setAttribute("aria-pressed", waitlistStatus === pair[0] ? "true" : "false");
+      b.addEventListener("click", function () {
+        waitlistStatus = pair[0];
+        loadIntake();
+      });
+      tabs.appendChild(b);
+    });
+    head.appendChild(tabs);
+    wrap.appendChild(head);
+
+    if (!waitlist.entries.length) {
+      wrap.appendChild(el("div", { class: "empty", text: "Nobody " + waitlistStatus + "." }));
+      return;
+    }
+
+    var body = el("tbody");
+    waitlist.entries.forEach(function (e) {
+      var tr = el("tr");
+      tr.appendChild(el("td", { text: e.email }));
+      tr.appendChild(el("td", { class: "sub", text: fmtWhen(e.createdAt) }));
+      var last = el("td");
+      if (e.invitedAt) {
+        /* The code is shown after the fact so a bounced email can be read
+           out over any other channel, rather than being lost with it. */
+        last.appendChild(el("span", { class: "sub", text: "sent " + fmtWhen(e.invitedAt) + " \u00b7 " + (e.inviteCode || "") }));
+      } else {
+        var b = el("button", { class: "act", text: "Invite" });
+        b.addEventListener("click", function () {
+          if (inviteInFlight) return;
+          if (!confirm("Email a key to " + e.email + "?")) return;
+          inviteInFlight = true;
+          b.disabled = true;
+          dashPost("/signup-gate/waitlist/invite", { email: e.email })
+            .then(function () { inviteInFlight = false; loadIntake(); })
+            .catch(function (err) { inviteInFlight = false; b.disabled = false; alert(err.message); });
+        });
+        last.appendChild(b);
+      }
+      tr.appendChild(last);
+      body.appendChild(tr);
+    });
+    wrap.appendChild(el("table", {}, [body]));
+  }
 
   function fmtWhen(ms) {
     if (!ms) return "";

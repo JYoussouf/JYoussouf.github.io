@@ -267,6 +267,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   }
   .queue-note { color: var(--muted); font-size: 12px; margin-top: 10px; }
   .table-wrap { overflow-x: auto; }
+  /* Nine columns of short answers. Tighter padding and no wrapping keeps a
+     row a row, and the wrapper scrolls rather than the page reflowing. */
+  .table-wrap td, .table-wrap th { white-space: nowrap; }
+  .table-wrap td.wrap { white-space: normal; }
   .table-wrap .mono { word-break: break-all; }
   /* The reported words, quoted: content, not metadata, so it reads at full
      secondary rather than muted. */
@@ -807,45 +811,43 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       return;
     }
 
-    var rows = [];
-    waitlist.entries.forEach(function (e) {
-      /* A handle-only row is keyed `discord:<handle>`; that is a key, not an
-         address, and must never be shown as one or offered a Send button. */
+    /* COLUMNS, not a name with everything stacked underneath it. The point
+       of asking five questions is that the answers can be COMPARED - who
+       writes daily, who is on Android, who has been waiting longest - and a
+       stack of subtitles is a list you have to read one entry at a time.
+
+       A blank answer prints as a dash rather than nothing, so an empty cell
+       reads as "did not say" instead of as a column that failed to render. */
+    var dash = function (v) { return v && String(v).trim() ? String(v) : "\u2014"; };
+    var rows = waitlist.entries.map(function (e) {
+      // A handle-only row is keyed `discord:<handle>`; that is a key, not an
+      // address, and must never be shown as one or offered a Send button.
       var mailable = e.email.indexOf("@") > 0 && e.email.indexOf("discord:") !== 0;
-      var who = e.name || e.discord || (mailable ? e.email : e.email.replace("discord:", "@"));
+      var handle = e.discord || (mailable ? "" : e.email.replace("discord:", ""));
 
-      var idCell = el("td");
-      idCell.appendChild(el("div", { text: who }));
-      var under = [];
-      if (mailable) under.push(e.email);
-      if (e.discord && e.discord !== who) under.push("@" + e.discord);
-      if (under.length) idCell.appendChild(el("div", { class: "sub", text: under.join(" \u00b7 ") }));
-      var bits = [];
-      if (e.device) bits.push(e.device);
-      if (e.writesOften) bits.push(e.writesOften);
-      if (e.writesWhere) bits.push("writes on " + e.writesWhere);
-      if (bits.length) idCell.appendChild(el("div", { class: "sub", text: bits.join(" \u00b7 ") }));
-
-      var stateCell = el("td", { class: "sub" });
-      stateCell.appendChild(el("div", {
-        text: e.invitedAt ? "sent " + fmtWhen(e.invitedAt) : "waiting since " + fmtWhen(e.createdAt),
-      }));
-      // The code, always visible once there is one: a key that only ever
-      // appeared in a prompt somebody dismissed has invited nobody.
-      if (e.inviteCode) stateCell.appendChild(el("div", { class: "mono", text: e.inviteCode }));
-
-      /* PRIMARY IS WHAT TO DO NEXT, secondary is the correction. Before an
-         invite that is send-or-mint; after one it is refresh, which revokes
-         the old key rather than leaving two live for one seat. */
       var actions = el("div", { class: "actions" });
       actions.appendChild(inviteBtn(e, mailable, false,
-        e.invitedAt ? (mailable ? "Resend" : "Show code") : (mailable ? "Email access code" : "Mint access code")));
-      if (e.invitedAt) actions.appendChild(inviteBtn(e, mailable, true, "Refresh code"));
+        e.invitedAt ? (mailable ? "Resend" : "Show code") : (mailable ? "Email code" : "Mint code")));
+      if (e.invitedAt) actions.appendChild(inviteBtn(e, mailable, true, "Refresh"));
 
-      rows.push(el("tr", {}, [idCell, stateCell, el("td", {}, [actions])]));
+      return el("tr", {}, [
+        el("td", { text: dash(e.name) }),
+        el("td", { class: "sub", text: handle ? "@" + handle : "\u2014" }),
+        el("td", { class: "sub", text: mailable ? e.email : "\u2014" }),
+        el("td", { class: "sub", text: dash(e.device) }),
+        el("td", { class: "sub", text: dash(e.writesOften) }),
+        el("td", { class: "sub", text: dash(e.writesWhere) }),
+        el("td", { class: "sub", text: e.invitedAt ? "sent " + fmtWhen(e.invitedAt) : fmtWhen(e.createdAt) }),
+        el("td", { class: "mono", text: e.inviteCode || "\u2014" }),
+        el("td", {}, [actions]),
+      ]);
     });
     wrap.appendChild(el("div", { class: "table-wrap" }, [table(
-      [{ label: "Who" }, { label: "State" }, { label: "Access code" }],
+      [
+        { label: "Name" }, { label: "Discord" }, { label: "Email" },
+        { label: "Devices" }, { label: "How often" }, { label: "Writes on" },
+        { label: "Waiting since" }, { label: "Code" }, { label: "" },
+      ],
       rows,
     )]));
   }

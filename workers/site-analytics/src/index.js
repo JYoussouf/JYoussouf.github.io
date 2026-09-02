@@ -13,7 +13,9 @@ export default {
   // knowing about at noon rather than after it has run out.
   async scheduled(_controller, env, ctx) {
     ctx.waitUntil(
-      checkUsage(env).catch((err) => console.error("usage watch failed", err)),
+      checkUsage(env)
+        .then((r) => console.log("usage watch:", JSON.stringify(r)))
+        .catch((err) => console.error("usage watch failed", err)),
     );
   },
 
@@ -717,10 +719,13 @@ const USAGE_THRESHOLDS = [99, 90];
 async function checkUsage(env, opts = {}) {
   const floor = opts.floor ?? null;   // test override for the threshold
   const record = opts.record !== false;
-  if (!env.DISCORD_WEBHOOK_URL) return;
+  /* SAYS WHAT IT DID. This returned nothing at all, so the route that called
+     it reported success on the strength of not having thrown - which is how a
+     silent no-op passed as a verified alarm. Every exit now names itself. */
+  if (!env.DISCORD_WEBHOOK_URL) return { sent: 0, why: "no webhook configured" };
   const token = String(env.CF_ANALYTICS_TOKEN || "");
   const account = String(env.CF_ACCOUNT_ID || "");
-  if (!token || !account) return;
+  if (!token || !account) return { sent: 0, why: "no cloudflare analytics token" };
 
   // 32 days, so a monthly allowance can be summed over the real month.
   const usage = await fetchCloudflareUsage(token, account, 32);
@@ -747,9 +752,14 @@ async function checkUsage(env, opts = {}) {
     const pct = against ? (100 * used) / against : 0;
     const hit = floor !== null ? (pct >= floor ? floor : undefined)
       : USAGE_THRESHOLDS.find((t) => pct >= t);
-    if (hit) breaches.push({ key: cat.key, label: cat.label, pct, used, limit: against, hit });
+    // `!== undefined`, not truthiness: a threshold of 0 is a real threshold
+    // and `if (hit)` silently discarded it. That is what made the test route
+    // answer "sent" while sending nothing, twice.
+    if (hit !== undefined) {
+      breaches.push({ key: cat.key, label: cat.label, pct, used, limit: against, hit });
+    }
   }
-  if (breaches.length === 0) return;
+  if (breaches.length === 0) return { sent: 0, why: "nothing at or above threshold" };
 
   // Which of these has already been said today.
   const fresh = [];
@@ -763,7 +773,7 @@ async function checkUsage(env, opts = {}) {
       .first();
     if (!seen) fresh.push({ ...b, id });
   }
-  if (fresh.length === 0) return;
+  if (fresh.length === 0) return { sent: 0, why: "already alerted today" };
 
   const fmt = (n, unit) =>
     unit === "bytes"
@@ -794,7 +804,8 @@ async function checkUsage(env, opts = {}) {
   });
   // Only remember it as said if it was actually delivered, so a Discord
   // outage does not silently consume the one alert this threshold gets.
-  if (!res.ok || !record) return;
+  if (!res.ok) return { sent: 0, why: `discord refused: ${res.status}` };
+  if (!record) return { sent: fresh.length, why: "sent, not recorded (test)" };
 
   for (const b of fresh) {
     await env.ANALYTICS_DB.prepare(
@@ -803,4 +814,5 @@ async function checkUsage(env, opts = {}) {
       .bind(b.id, Date.now())
       .run();
   }
+  return { sent: fresh.length, why: "sent and recorded" };
 }

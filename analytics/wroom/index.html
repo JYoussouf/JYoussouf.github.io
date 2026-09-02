@@ -321,6 +321,13 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      secondary rather than muted. */
   .excerpt { color: var(--text-secondary); font-style: italic; margin-top: 2px; max-width: 420px; }
   td.detail { color: var(--text-secondary); max-width: 260px; }
+  .sentry-link {
+    display: inline-block; font-weight: 600; font-size: 13px; text-decoration: none;
+    color: var(--text-primary); background: var(--surface-2);
+    border: 1px solid var(--border); padding: 8px 14px;
+  }
+  .sentry-link:hover { border-color: var(--accent); color: var(--accent); }
+  .sentry-note { color: var(--muted); font-size: 12px; margin-top: 10px; max-width: 62ch; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -383,13 +390,17 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
+  <!-- ERRORS LIVE IN SENTRY NOW. This card charted `client_errors`, which is
+       uncaught crashes in the app and nothing else - so it read "nothing
+       broke" through an afternoon when the feed threw on every load, because
+       a handled 500 is not a crash. Sentry sees those, groups them, and
+       pushes; a chart on a page somebody has to remember to open cannot. The
+       table and its endpoint are left in place, so no data is lost. -->
   <div class="card" data-tab="queues" data-card="wroom-errors">
-    <button class="card__head" aria-expanded="true"><span class="card__title">Client errors &middot; last 7 days</span><span class="chev">&#9660;</span></button>
+    <button class="card__head" aria-expanded="true"><span class="card__title">Errors</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
-      <div class="legend" id="errors-legend"></div>
-      <div class="chart-wrap"><div id="errors-chart" style="min-height:220px"></div></div>
-      <div id="errors-top" style="margin-top:12px"></div>
-      <div id="errors-table" style="margin-top:12px"></div>
+      <a class="sentry-link" href="https://sentry.io/issues/" target="_blank" rel="noopener noreferrer">Open in Sentry &rarr;</a>
+      <p class="sentry-note">Server errors are captured from the Worker and alert to email and Discord. App crashes are not in Sentry yet - that needs the mobile SDK and a native build.</p>
     </div>
   </div>
 
@@ -670,12 +681,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       .then(function (d) { reportRows = d.reports || []; reportsError = null; renderReports(); })
       .catch(function (e) { reportRows = null; reportsError = e.message; renderReports(); });
   }
-  function loadErrors() {
-    dashFetch("/errors?days=7")
-      .then(function (d) { errorData = d; renderErrors(); })
-      .catch(function () { errorData = null; renderErrors(); });
-  }
-
   /* ---- sections ----------------------------------------------------------
      Four, because thirteen cards on one page is a scroll rather than a
      dashboard, and because they answer different questions: what is true
@@ -779,7 +784,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     }), data.cached ? " (cached)" : ""]));
   }
 
-  function loadQueues() { loadReports(); loadErrors(); loadIntake(); }
+  function loadQueues() { loadReports(); loadIntake(); }
 
   /* ---- the waitlist ------------------------------------------------------
      Who is at the door and what has been sent to them. The signup-mode
@@ -1064,80 +1069,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     );
     var scroller = el("div", { class: "table-wrap" }, [tableEl]);
     wrap.appendChild(scroller);
-  }
-
-  var errorsShown = 30;
-  function renderErrors() {
-    var legend = document.getElementById("errors-legend");
-    var chartMount = document.getElementById("errors-chart");
-    var wrap = document.getElementById("errors-table");
-    var topWrap = document.getElementById("errors-top");
-    legend.textContent = ""; chartMount.textContent = ""; wrap.textContent = ""; topWrap.textContent = "";
-    if (errorData === null || !errorData) {
-      wrap.appendChild(el("div", { class: "empty", text: errorData === null ? "Couldn't load errors." : "" }));
-      return;
-    }
-    var byDay = (errorData.byDay || []).map(function (r) {
-      return { day: r.day, errors: (r.n || 0) - (r.fatals || 0), fatals: r.fatals || 0 };
-    });
-    stackedChart(chartMount, legend, byDay, [
-      { key: "errors", label: "Errors", color: "var(--warn)" },
-      { key: "fatals", label: "Crashes", color: "var(--bad)" }
-    ], 7, "Nothing broke in the last week.", "Client errors per day");
-
-    /* The rollup first: one line per distinct message is the view a crash
-       wave is actually read in. */
-    var top = errorData.byMessage || [];
-    if (top.length > 1) {
-      topWrap.appendChild(table(
-        [{ label: "Message" }, { label: "Count", num: 1 }, { label: "Crashes", num: 1 }, { label: "Last seen" }],
-        top.slice(0, 10).map(function (m) {
-          return el("tr", {}, [
-            el("td", { class: "mono", title: m.message, text: (m.message || "").slice(0, 120) + ((m.message || "").length > 120 ? "\u2026" : "") }),
-            el("td", { class: "num", text: num(m.n) }),
-            el("td", { class: "num", text: num(m.fatals) }),
-            el("td", { class: "sub", text: fmtWhen(m.last_seen) })
-          ]);
-        })
-      ));
-    }
-
-    var recent = errorData.recent || [];
-    if (!recent.length) return;
-    function paintRecent() {
-      wrap.textContent = "";
-      var body = [];
-      recent.slice(0, errorsShown).forEach(function (e) {
-        var msg = e.message || "";
-        var row = el("tr", {}, [
-          el("td", { class: "sub", text: fmtWhen(e.created_at) }),
-          el("td", {}, [el("span", { class: "badge " + (e.fatal ? "fatal" : "err"), text: e.fatal ? "crash" : "error" })]),
-          el("td", { class: "sub", text: e.platform + " " + (e.app_version || "?") + (e.update_id ? " \u00b7 " + e.update_id.slice(0, 8) : "") }),
-          el("td", { class: "mono", title: msg, text: msg.slice(0, 160) + (msg.length > 160 ? "\u2026" : "") })
-        ]);
-        row.style.cursor = e.stack ? "pointer" : "default";
-        if (e.stack) row.setAttribute("title", "Click for the stack trace");
-        body.push(row);
-        if (e.stack) {
-          var stackRow = el("tr", { class: "stack-row", hidden: "" }, [
-            el("td", { colspan: "4" }, [el("pre", { class: "stack", text: e.stack })])
-          ]);
-          row.addEventListener("click", function () { stackRow.hidden = !stackRow.hidden; });
-          body.push(stackRow);
-        }
-      });
-      var scroller = el("div", { class: "table-wrap" }, [table(
-        [{ label: "When" }, { label: "Kind" }, { label: "Build" }, { label: "Message \u00b7 click for stack" }],
-        body
-      )]);
-      wrap.appendChild(scroller);
-      if (recent.length > errorsShown) {
-        var more = el("button", { class: "show-more", text: "Show " + Math.min(50, recent.length - errorsShown) + " more of " + recent.length });
-        more.addEventListener("click", function () { errorsShown += 50; paintRecent(); });
-        wrap.appendChild(more);
-      }
-    }
-    paintRecent();
   }
 
   function paint() {

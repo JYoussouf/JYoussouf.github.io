@@ -315,11 +315,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   <div class="head">
     <div class="brand"><h1>wroom|</h1><span class="sub">the numbers</span></div>
     <div class="controls">
-      <a class="back" href="../">&larr; Pulse</a>
       <div class="ranges" id="ranges" role="group" aria-label="Date range"></div>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">&#9788;</button>
     </div>
   </div>
+
+  <div class="shell">
+  <nav class="rail" id="rail" aria-label="Projects"></nav>
+  <main>
 
   <div class="tabs" id="tabs" role="tablist" aria-label="Sections"></div>
 
@@ -415,9 +418,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       <div class="card__body"><div id="worldfunnel-table"></div></div>
     </div>
   </div>
+  </main>
+  </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
 
+<script src="../rail.js"></script>
 <script src="../cf-panels.js"></script>
 <script>
 (function () {
@@ -673,6 +679,19 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   try { currentTab = localStorage.getItem(TAB_STORAGE) || "live"; } catch (e) {}
   if (!TABS.some(function (t) { return t.key === currentTab; })) currentTab = "live";
 
+  /* The same rail Pulse draws, so crossing between the two does not feel
+     like leaving. wroom is the current row; everything else is a link home. */
+  function renderRail() {
+    Rail.render({
+      mount: document.getElementById("rail"),
+      current: "wroom",
+      base: "../",
+      local: [],
+      tallies: waitlist && waitlist.waiting ? { wroom: waitlist.waiting } : {},
+      colours: { wroom: "var(--series-1)" }
+    });
+  }
+
   function renderTabs() {
     var bar = document.getElementById("tabs");
     bar.textContent = "";
@@ -698,6 +717,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var ranges = document.getElementById("ranges");
     if (ranges) ranges.hidden = key !== "summary";
     renderTabs();
+    renderRail();
     syncCloudflare();
   }
 

@@ -103,40 +103,6 @@
   }
   .icon-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
 
-  /* ---- the shell: a project rail, and whatever that project is saying ----
-     Every project used to be a filter pill on one page, which made the page
-     feel like one report you kept narrowing. They are separate things with
-     separate questions, so each gets its own address and its own place in a
-     list you can read top to bottom. "All apps" stays, first, because the
-     pooled number is a real view and not the absence of a choice. */
-  .shell { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 26px; align-items: start; }
-  @media (max-width: 900px) { .shell { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
-
-  .rail { position: sticky; top: 74px; display: flex; flex-direction: column; gap: 2px; }
-  @media (max-width: 900px) { .rail { position: static; flex-direction: row; flex-wrap: wrap; } }
-  .rail .rail-group {
-    font-size: 10px; font-weight: 750; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.11em;
-    padding: 14px 10px 6px;
-  }
-  @media (max-width: 900px) { .rail .rail-group { width: 100%; padding: 8px 0 2px; } }
-  .rail a, .rail button {
-    display: flex; align-items: center; gap: 9px; width: 100%;
-    font: inherit; font-size: 13px; font-weight: 600; text-align: left; text-decoration: none;
-    color: var(--text-secondary); background: none; cursor: pointer;
-    border: 1px solid transparent; border-left: 2px solid transparent;
-    padding: 7px 10px;
-  }
-  .rail a:hover, .rail button:hover { color: var(--text-primary); background: var(--surface-1); }
-  .rail button[aria-current="true"] {
-    color: var(--text-primary); background: var(--surface-1);
-    border-color: var(--border); border-left-color: var(--accent);
-  }
-  .rail .dot { width: 8px; height: 8px; flex: none; }
-  .rail .tally { margin-left: auto; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .rail .out { color: var(--muted); font-weight: 500; }
-  .rail .out:hover { color: var(--accent); }
-
   .viewhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
   .viewhead h2 { font-size: 17px; font-weight: 750; letter-spacing: -0.01em; }
   .viewhead .sub { color: var(--muted); font-size: 12px; }
@@ -351,6 +317,7 @@
 </div>
 <div class="tooltip" id="tooltip"></div>
 
+<script src="rail.js"></script>
 <script src="cf-panels.js"></script>
 <script>
 (function () {
@@ -625,48 +592,43 @@
   }
 
   function railApps(data) {
-    var seen = {};
-    (data && data.apps ? data.apps : []).forEach(function (a) { seen[a.app] = true; });
-    var names = RAIL_ORDER.filter(function (a) { return seen[a] || APP_LABELS[a]; });
-    // Anything reporting that we have no label for still deserves a row.
-    Object.keys(seen).forEach(function (a) { if (names.indexOf(a) === -1) names.push(a); });
-    return names;
+    var known = {};
+    Rail.PROJECTS.forEach(function (p) { known[p.id] = true; });
+    var extra = [];
+    (data && data.apps ? data.apps : []).forEach(function (a) {
+      // Something is reporting sessions under a name the rail does not list.
+      // Better a row labelled with the raw key than a project with no way in.
+      if (!known[a.app] && !extra.some(function (e) { return e.id === a.app; })) {
+        extra.push({ id: a.app, label: labelFor(a.app) });
+      }
+    });
+    return extra;
   }
 
   function renderRail() {
-    var rail = document.getElementById("rail");
-    rail.textContent = "";
-    var route = currentRoute();
-
-    function item(id, label, colour, tally) {
-      var b = el("button", { "aria-current": String(route === id) });
-      if (colour) {
-        var d = el("i", { class: "dot" });
-        d.style.background = colour;
-        b.appendChild(d);
-      }
-      b.appendChild(document.createTextNode(label));
-      if (tally != null) b.appendChild(el("span", { class: "tally", text: String(tally) }));
-      b.addEventListener("click", function () { goto(id); });
-      rail.appendChild(b);
-      return b;
-    }
-
-    item("all", "All apps");
-
-    rail.appendChild(el("div", { class: "rail-group", text: "Projects" }));
-    railApps(lastData).forEach(function (app) {
-      var row = (lastData && lastData.apps ? lastData.apps : []).filter(function (a) { return a.app === app; });
-      var plays = row.reduce(function (n, a) { return n + (a.plays || 0); }, 0);
-      item(app, labelFor(app), colorFor(app), plays || null);
+    var apps = (lastData && lastData.apps) ? lastData.apps : [];
+    var tallies = {};
+    var colours = {};
+    apps.forEach(function (a) {
+      tallies[a.app] = (tallies[a.app] || 0) + (a.plays || 0);
+      colours[a.app] = colorFor(a.app);
     });
+    Object.keys(tallies).forEach(function (k) { if (!tallies[k]) delete tallies[k]; });
 
-    rail.appendChild(el("div", { class: "rail-group", text: "Account" }));
-    item("cloudflare", "Cloudflare");
-
-    rail.appendChild(el("div", { class: "rail-group", text: "Elsewhere" }));
-    var link = el("a", { class: "out", href: "wroom/", text: "wroom| →" });
-    rail.appendChild(link);
+    Rail.render({
+      mount: document.getElementById("rail"),
+      current: currentRoute(),
+      base: "",
+      // Pulse renders every project except wroom, which has its own page.
+      local: ["all", "cloudflare"].concat(Rail.PROJECTS
+        .filter(function (p) { return p.id !== "wroom"; })
+        .map(function (p) { return p.id; }))
+        .concat(railApps(lastData).map(function (e) { return e.id; })),
+      tallies: tallies,
+      colours: colours,
+      extra: railApps(lastData),
+      onSelect: function (id) { goto(id); }
+    });
   }
 
   function applyView() {

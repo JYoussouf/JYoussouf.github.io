@@ -115,13 +115,19 @@
     t.appendChild(el("div", { class: "t-row", text: fmtExact(p.value, cat.unit) + " of " + fmtExact(cat.budget, cat.unit) }));
     t.appendChild(el("div", { class: "t-row", text: pctOfLimit.toFixed(pctOfLimit >= 10 ? 0 : 2) + "% of the " + (cat.period === "month" ? "daily share" : "daily limit") }));
     if (p.partial) t.appendChild(el("div", { class: "t-row", text: "today, still filling" }));
-    // Flip to the left of the cursor near the right edge so the tip never
-    // hangs off the viewport and clips its own numbers.
+    /* Placement has one job beyond staying on screen: not covering the chart
+     * it is reading from. Sitting below-right of the cursor put it straight
+     * over the next few days' bars. So it goes ABOVE the cursor by default,
+     * clear of the row being pointed at, and only drops below when there is
+     * no room up there. Horizontally it flips near the right edge. */
     var w = t.offsetWidth || 200;
-    var x = ev.clientX + 14;
-    if (x + w > window.innerWidth - 8) x = ev.clientX - w - 14;
+    var h = t.offsetHeight || 64;
+    var x = ev.clientX + 16;
+    if (x + w > window.innerWidth - 8) x = ev.clientX - w - 16;
+    var y = ev.clientY - h - 16;
+    if (y < 8) y = ev.clientY + 20;
     t.style.left = Math.max(8, x) + "px";
-    t.style.top = Math.min(ev.clientY + 14, window.innerHeight - (t.offsetHeight || 60) - 8) + "px";
+    t.style.top = Math.min(y, window.innerHeight - h - 8) + "px";
   }
 
   function longDate(iso) {
@@ -209,9 +215,13 @@
       ]),
       el("div", { class: "qbody" }, [
         chart(cat),
+        // Just the date range. A centred "LIMIT" used to sit here, which read
+        // as an axis tick while the line it named was at the top of the chart,
+        // and the header states the limit anyway. A monthly allowance still
+        // gets a word, because plotting it per-day is not self-evident.
         el("div", { class: "qaxis" }, [
           el("span", { text: cat.series.length ? shortDate(cat.series[0].date) : "" }),
-          el("span", { text: cat.period === "month" ? "daily share of monthly limit" : "limit" }),
+          el("span", { text: cat.period === "month" ? "bars are the daily share of the monthly limit" : "" }),
           el("span", { text: cat.series.length ? shortDate(cat.series[cat.series.length - 1].date) : "" })
         ])
       ])

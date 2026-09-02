@@ -650,13 +650,11 @@ async function fetchCloudflareUsage(token, account, days) {
         peakDate = p.date;
       }
     });
-    // Today is still filling up, so it is never allowed to be "the peak" that
-    // a status is judged on - it would read as a dip every morning.
-    const settled = series.slice(0, -1);
-    let settledPeak = 0;
-    settled.forEach((p) => {
-      if (p.value > settledPeak) settledPeak = p.value;
-    });
+    // Today counts, part-day and all. A partial day can only ever RAISE a
+    // maximum, so including it cannot invent a dip - and if today has already
+    // crossed the cap by breakfast, that is the most important thing on the
+    // page. An earlier version withheld today from the status for fear of a
+    // morning dip, which is a hazard of reading the LATEST value, not the peak.
     const pct = budget ? (100 * peak) / budget : 0;
     const state = pct >= 100 ? "over" : pct >= 75 ? "near" : pct >= 40 ? "watch" : "clear";
     return {
@@ -669,7 +667,6 @@ async function fetchCloudflareUsage(token, account, days) {
       series,
       peak,
       peakDate,
-      settledPeak,
       pct,
       state,
       latest: series.length ? series[series.length - 1].value : 0,

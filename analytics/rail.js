@@ -33,13 +33,13 @@
   ];
 
   var CSS = [
-    ".shell{display:grid;grid-template-columns:196px minmax(0,1fr);gap:26px;align-items:start}",
-    "@media (max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:16px}}",
+    ".shell{display:grid;grid-template-columns:minmax(150px,196px) minmax(0,1fr);gap:26px;align-items:start}",
+    "@media (max-width:720px){.shell{grid-template-columns:minmax(0,1fr);gap:16px}}",
     ".rail{position:sticky;top:74px;display:flex;flex-direction:column;gap:2px}",
-    "@media (max-width:900px){.rail{position:static;flex-direction:row;flex-wrap:wrap}}",
+    "@media (max-width:720px){.rail{position:static;flex-direction:row;flex-wrap:wrap}}",
     ".rail .rail-group{font-size:10px;font-weight:750;color:var(--muted);text-transform:uppercase;",
       "letter-spacing:0.11em;padding:14px 10px 6px}",
-    "@media (max-width:900px){.rail .rail-group{width:100%;padding:8px 0 2px}}",
+    "@media (max-width:720px){.rail .rail-group{width:100%;padding:8px 0 2px}}",
     ".rail a,.rail button{display:flex;align-items:center;gap:9px;width:100%;font:inherit;font-size:13px;",
       "font-weight:600;text-align:left;text-decoration:none;color:var(--text-secondary);background:none;",
       "cursor:pointer;border:1px solid transparent;border-left:2px solid transparent;padding:7px 10px}",

@@ -41,6 +41,11 @@
     ".qbody svg .cf-bar{fill:var(--accent)}",
     ".qbody svg .cf-bar.over{fill:var(--bad)}",
     ".qbody svg .cf-bar.today{opacity:0.45}",
+    // A hovered bar brightens rather than changing colour, so the red of an
+    // over-limit day still means over-limit while it is under the cursor.
+    ".qbody svg .cf-bar.hot{filter:brightness(1.45)}",
+    ".qbody svg .cf-hit{fill:transparent;cursor:crosshair}",
+    ".qbody svg .cf-hit:hover{fill:var(--accent);fill-opacity:0.06}",
     ".qaxis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);",
       "text-transform:uppercase;letter-spacing:0.08em;padding-top:4px}",
     ".qnote{font-size:12px;color:var(--muted);margin-top:12px;max-width:80ch}",
@@ -86,6 +91,45 @@
   }
   function shortDate(iso) { var p = String(iso).split("-"); return p[1] + "-" + p[2]; }
 
+  /* One tooltip for every panel on the page, borrowed from the host if it
+   * has one so it inherits the dashboard's own styling. */
+  function tipEl() {
+    var t = document.getElementById("tooltip");
+    if (t) return t;
+    t = el("div", { class: "tooltip", id: "tooltip" });
+    document.body.appendChild(t);
+    return t;
+  }
+
+  function hideTip() {
+    var t = document.getElementById("tooltip");
+    if (t) t.style.display = "none";
+  }
+
+  function showTip(ev, cat, p) {
+    var t = tipEl();
+    var pctOfLimit = (100 * p.value) / cat.budget;
+    t.style.display = "block";
+    t.textContent = "";
+    t.appendChild(el("div", { class: "t-day", text: longDate(p.date) }));
+    t.appendChild(el("div", { class: "t-row", text: fmtExact(p.value, cat.unit) + " of " + fmtExact(cat.budget, cat.unit) }));
+    t.appendChild(el("div", { class: "t-row", text: pctOfLimit.toFixed(pctOfLimit >= 10 ? 0 : 2) + "% of the " + (cat.period === "month" ? "daily share" : "daily limit") }));
+    if (p.partial) t.appendChild(el("div", { class: "t-row", text: "today, still filling" }));
+    // Flip to the left of the cursor near the right edge so the tip never
+    // hangs off the viewport and clips its own numbers.
+    var w = t.offsetWidth || 200;
+    var x = ev.clientX + 14;
+    if (x + w > window.innerWidth - 8) x = ev.clientX - w - 14;
+    t.style.left = Math.max(8, x) + "px";
+    t.style.top = Math.min(ev.clientY + 14, window.innerHeight - (t.offsetHeight || 60) - 8) + "px";
+  }
+
+  function longDate(iso) {
+    var d = new Date(iso + "T12:00:00Z");
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+  }
+
   function chart(cat) {
     var W = 880, H = 112, TOP = 6;
     var n = cat.series.length || 1;
@@ -99,8 +143,9 @@
 
     svg.appendChild(svgEl("line", { class: "cf-base", x1: 0, y1: H, x2: W, y2: H }));
 
+    var bars = [];
     cat.series.forEach(function (p, i) {
-      if (!p.value) return;
+      if (!p.value) { bars.push(null); return; }
       // Clipped a hair above the cap so an over-limit day still reads as a
       // bar that broke the line rather than one that merely touched it.
       var h = Math.max(1.5, Math.min(p.value / cat.budget, 1.06) * (H - TOP));
@@ -114,15 +159,37 @@
         width: bw.toFixed(1),
         height: Math.min(h, H - 1).toFixed(1)
       });
-      var t = svgEl("title", {});
-      t.textContent = p.date + " · " + fmtExact(p.value, cat.unit) +
-        " · " + ((100 * p.value) / cat.budget).toFixed(1) + "% of limit";
-      r.appendChild(t);
       svg.appendChild(r);
+      bars.push(r);
     });
 
-    // Last, so the cap always sits on top of the bars that cross it.
+    // The cap sits above the bars that cross it, and below the hit columns.
     svg.appendChild(svgEl("line", { class: "cf-limit", x1: 0, y1: TOP, x2: W, y2: TOP }));
+
+    /* Hovering has to work on the whole column, not the bar. A quiet day is a
+     * 1.5px sliver 18px wide and chasing that with a mouse is not a feature,
+     * so each day gets a transparent full-height target and the bar inside it
+     * lights up. Added last so nothing is drawn over them. */
+    cat.series.forEach(function (p, i) {
+      var hit = svgEl("rect", {
+        class: "cf-hit",
+        x: (slot * i).toFixed(1),
+        y: 0,
+        width: slot.toFixed(1),
+        height: H
+      });
+      var point = { date: p.date, value: p.value, partial: i === n - 1 };
+      hit.addEventListener("mousemove", function (ev) {
+        showTip(ev, cat, point);
+        if (bars[i]) bars[i].classList.add("hot");
+      });
+      hit.addEventListener("mouseleave", function () {
+        hideTip();
+        if (bars[i]) bars[i].classList.remove("hot");
+      });
+      svg.appendChild(hit);
+    });
+
     return svg;
   }
 

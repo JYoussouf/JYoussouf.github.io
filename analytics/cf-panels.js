@@ -136,7 +136,25 @@
     return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   }
 
-  function chart(cat) {
+  /* The reading the header shows. It follows the cursor so the number in the
+   * corner always describes the bar being pointed at, and falls back to today
+   * when nothing is - which is the figure you actually came to the page for.
+   * Peak stays in its own field, because "have we ever breached" and "where
+   * are we right now" are two different questions and one number cannot be
+   * both. */
+  function stateFor(pct) {
+    return pct >= 100 ? "over" : pct >= 75 ? "near" : pct >= 40 ? "watch" : "clear";
+  }
+
+  function setReading(pctNode, cat, point) {
+    if (!pctNode) return;
+    var pct = (100 * point.value) / cat.budget;
+    var when = point.partial ? "today" : shortDate(point.date);
+    pctNode.textContent = (pct >= 10 ? pct.toFixed(0) : pct.toFixed(2)) + "% of limit · " + when;
+    pctNode.className = "pct " + stateFor(pct);
+  }
+
+  function chart(cat, pctNode) {
     var W = 880, H = 112, TOP = 6;
     var n = cat.series.length || 1;
     var slot = W / n;
@@ -187,10 +205,12 @@
       var point = { date: p.date, value: p.value, partial: i === n - 1 };
       hit.addEventListener("mousemove", function (ev) {
         showTip(ev, cat, point);
+        setReading(pctNode, cat, point);
         if (bars[i]) bars[i].classList.add("hot");
       });
       hit.addEventListener("mouseleave", function () {
         hideTip();
+        setReading(pctNode, cat, todayPoint(cat));
         if (bars[i]) bars[i].classList.remove("hot");
       });
       svg.appendChild(hit);
@@ -199,22 +219,31 @@
     return svg;
   }
 
+  function todayPoint(cat) {
+    var last = cat.series.length ? cat.series[cat.series.length - 1] : { date: "", value: 0 };
+    return { date: last.date, value: last.value, partial: true };
+  }
+
   function panel(cat) {
     var limitText = fmtExact(cat.limit, cat.unit) +
       (cat.period === "day" ? " / day" : cat.period === "month" ? " / month" : "");
-    var pctText = (cat.pct >= 10 ? cat.pct.toFixed(0) : cat.pct.toFixed(2)) + "%";
 
+    var pctNode = el("span", { class: "pct" });
+    setReading(pctNode, cat, todayPoint(cat));
+
+    // The card's edge still answers the peak: a category that broke its cap
+    // this month should look broken even while today happens to be quiet.
     return el("div", { class: "qcard " + cat.state }, [
       el("div", { class: "qhead" }, [
         el("div", { class: "qtitle", text: cat.label }),
         el("div", { class: "qmeta" }, [
           el("span", { text: "limit " + limitText }),
           el("span", { text: "peak " + fmtExact(cat.peak, cat.unit) + (cat.peakDate ? " · " + shortDate(cat.peakDate) : "") }),
-          el("span", { class: "pct " + cat.state, text: pctText + " of limit" })
+          pctNode
         ])
       ]),
       el("div", { class: "qbody" }, [
-        chart(cat),
+        chart(cat, pctNode),
         // Just the date range. A centred "LIMIT" used to sit here, which read
         // as an axis tick while the line it named was at the top of the chart,
         // and the header states the limit anyway. A monthly allowance still

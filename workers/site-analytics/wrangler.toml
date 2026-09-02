@@ -22,3 +22,8 @@ CF_ACCOUNT_ID = "9ad7a6b011f4a53c4ffb8b42bc85dba4"
 binding = "TIMMIES_DB"
 database_name = "timmies-passport-db"
 database_id = "fc079bea-6a90-47df-b833-f88955693786"
+
+# The usage watch: hourly, so a daily allowance 90% spent at noon is known at
+# noon. See checkUsage in src/index.js.
+[triggers]
+crons = ["7 * * * *"]

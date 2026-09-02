@@ -9,6 +9,14 @@ const MAX_META_CHARS = 120;
 const MAX_REFERRER_CHARS = 100;
 
 export default {
+  // Hourly, because a daily allowance that is 90% spent at noon is worth
+  // knowing about at noon rather than after it has run out.
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(
+      checkUsage(env).catch((err) => console.error("usage watch failed", err)),
+    );
+  },
+
   async fetch(request, env) {
     try {
       return await routeRequest(request, env);
@@ -681,4 +689,118 @@ async function fetchCloudflareUsage(token, account, days) {
     categories,
     workerErrors: dates.map((d) => ({ date: d, value: workerErrors[d] || 0 })),
   };
+}
+
+/* =========================================================================
+ * THE USAGE WATCH.
+ *
+ * Cloudflare has no notification for any of this. Their only usage alert is
+ * Usage Based Billing, which is Professional plan and up and is about money
+ * rather than about free-tier ceilings - so there is nothing to buy here and
+ * the choice is a small cron or nothing.
+ *
+ * WHAT IT WATCHES, and why the comparison differs per category: a daily
+ * allowance (D1 rows, Worker requests) is judged on TODAY, because that is
+ * the number that runs out at midnight. A monthly allowance (R2 operations)
+ * is judged on the month to date, because that is what actually accumulates.
+ * Storage is a level, so it is judged as it stands. The dashboard plots
+ * monthly allowances as a daily share to keep the panels comparable; that is
+ * a drawing decision and would be the wrong thing to alert on.
+ *
+ * ONCE PER CATEGORY PER THRESHOLD PER UTC DAY. Hourly checks against a
+ * number that only rises would otherwise mean fourteen identical messages
+ * between crossing 90% and midnight. The state lives in D1 rather than in a
+ * variable, because a Worker isolate does not survive between cron ticks.
+ * ========================================================================= */
+const USAGE_THRESHOLDS = [99, 90];
+
+async function checkUsage(env, opts = {}) {
+  const floor = opts.floor ?? null;   // test override for the threshold
+  const record = opts.record !== false;
+  if (!env.DISCORD_WEBHOOK_URL) return;
+  const token = String(env.CF_ANALYTICS_TOKEN || "");
+  const account = String(env.CF_ACCOUNT_ID || "");
+  if (!token || !account) return;
+
+  // 32 days, so a monthly allowance can be summed over the real month.
+  const usage = await fetchCloudflareUsage(token, account, 32);
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+
+  const breaches = [];
+  for (const cat of usage.categories) {
+    // What is actually at risk, per the note above.
+    let used;
+    let against;
+    if (cat.period === "month") {
+      used = cat.series
+        .filter((p) => p.date.startsWith(month))
+        .reduce((a, b) => a + b.value, 0);
+      against = cat.limit;
+    } else if (cat.period === "point") {
+      used = cat.latest;
+      against = cat.limit;
+    } else {
+      used = cat.latest;
+      against = cat.limit;
+    }
+    const pct = against ? (100 * used) / against : 0;
+    const hit = floor !== null ? (pct >= floor ? floor : undefined)
+      : USAGE_THRESHOLDS.find((t) => pct >= t);
+    if (hit) breaches.push({ key: cat.key, label: cat.label, pct, used, limit: against, hit });
+  }
+  if (breaches.length === 0) return;
+
+  // Which of these has already been said today.
+  const fresh = [];
+  for (const b of breaches) {
+    const id = `${today}:${b.key}:${b.hit}`;
+    if (!record) { fresh.push({ ...b, id }); continue; }
+    const seen = await env.ANALYTICS_DB.prepare(
+      "SELECT 1 FROM usage_alerts WHERE id = ?",
+    )
+      .bind(id)
+      .first();
+    if (!seen) fresh.push({ ...b, id });
+  }
+  if (fresh.length === 0) return;
+
+  const fmt = (n, unit) =>
+    unit === "bytes"
+      ? `${(n / 1073741824).toFixed(2)} GB`
+      : Math.round(n).toLocaleString();
+
+  const lines = fresh.map(
+    (b) =>
+      `**${b.label}** — ${b.pct.toFixed(0)}% of limit (${fmt(b.used, "count")} of ${fmt(
+        b.limit,
+        "count",
+      )})`,
+  );
+  const worst = Math.max(...fresh.map((b) => b.hit));
+  const body = {
+    content:
+      `${opts.floor !== undefined && opts.floor !== null ? "🧪 *test* — " : ""}${
+        worst >= 99 ? "🔴" : "🟠"
+      } **Cloudflare free tier — ${worst}%+ used**\n` +
+      lines.join("\n") +
+      `\nDaily allowances reset at UTC midnight. <https://joseppy.ca/analytics/#/cloudflare>`,
+  };
+
+  const res = await fetch(env.DISCORD_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  // Only remember it as said if it was actually delivered, so a Discord
+  // outage does not silently consume the one alert this threshold gets.
+  if (!res.ok || !record) return;
+
+  for (const b of fresh) {
+    await env.ANALYTICS_DB.prepare(
+      "INSERT OR IGNORE INTO usage_alerts (id, created_at) VALUES (?, ?)",
+    )
+      .bind(b.id, Date.now())
+      .run();
+  }
 }

@@ -68,7 +68,7 @@
     color: var(--text-primary);
     font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
     padding: 0 28px 56px;
-    max-width: 1280px;
+    max-width: 1560px;
     margin: 0 auto;
   }
   /* HARD LINES. Panels are square-cornered graphite slabs: a 1px steel border,
@@ -284,8 +284,16 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .waitlist-table { table-layout: fixed; width: calc(100% + 32px); margin: 0 -16px; }
   .waitlist-table td:first-child, .waitlist-table th:first-child { padding-left: 16px; }
   .waitlist-table td:last-child, .waitlist-table th:last-child { padding-right: 16px; }
-  .waitlist-table td, .waitlist-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .waitlist-table td.wrap { white-space: normal; }
+  /* WRAP, NEVER CLIP. This was nowrap+ellipsis on every cell so nine columns
+     would fit on one line, and the bet stopped paying the moment the project
+     rail took 220px off the width: names, handles, emails and both dates were
+     all being cut, and an address you cannot read is not a column, it is a
+     rumour. Cells wrap and the row gets taller. Only genuinely atomic strings
+     - the access code and the buttons - still refuse to break. */
+  .waitlist-table td, .waitlist-table th { white-space: normal; overflow-wrap: anywhere; }
+  .waitlist-table td.mono, .waitlist-table th.mono { white-space: nowrap; overflow-wrap: normal; }
+  /* A date is short enough to hold its line, and reads badly split across two. */
+  .waitlist-table td.when { white-space: nowrap; }
   .waitlist-table td, .waitlist-table th { padding: 6px; font-size: 12px; }
   /* WHERE SOMEBODY IS, at a glance, because the queue is scanned far more
      often than it is read. Nothing until a key goes out; amber while it is
@@ -855,12 +863,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
            out - and the second is the question being asked while wondering
            whether a resend worked. */
         el("td", {
-          class: "sub",
+          class: "sub when",
           text: fmtWhen(e.createdAt).replace(" UTC", ""),
           title: fmtWhen(e.createdAt),
         }),
         el("td", {
-          class: "sub",
+          class: "sub when",
           text: e.lastSentAt
             ? (e.redeemed ? "in \u00b7 " : "") + fmtWhen(e.lastSentAt).replace(" UTC", "")
             : "\u2014",
@@ -881,7 +889,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     tbl.className = "waitlist-table";
     /* Fixed widths, because `auto` gives the long free-text columns whatever
        they ask for and squeezes the ones somebody is actually scanning. */
-    var cols = el("colgroup", {}, ["8%", "10%", "14%", "8%", "12%", "12%", "8%", "8%", "8%", "12%"].map(
+    var cols = el("colgroup", {}, ["9%", "11%", "15%", "6%", "10%", "10%", "9%", "10%", "8%", "12%"].map(
       function (w) { return el("col", { style: "width:" + w }); }
     ));
     tbl.insertBefore(cols, tbl.firstChild);

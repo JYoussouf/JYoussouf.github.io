@@ -282,12 +282,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      eats the padding; the outer cells put it back so the text still lines up
      with everything above. */
   /* A floor, so the table never has to choose between hiding a value and
-     fitting. Above 1040px of table it lays out to the card; below it, the
+     fitting. Above 1100px of table it lays out to the card; below it, the
      card scrolls sideways and everything stays readable. Without this,
      `table-layout: fixed` obeys the container at any width and the cells
      that must not wrap - dates, codes, buttons - get shaved instead. */
   #waitlist-table { overflow-x: auto; margin: 0 -16px; }
-  .waitlist-table { table-layout: fixed; width: 100%; min-width: 1040px; }
+  .waitlist-table { table-layout: fixed; width: 100%; min-width: 1100px; }
   #waitlist-table > .waitlist-table { width: calc(100% - 0px); }
   .waitlist-table td:first-child, .waitlist-table th:first-child { padding-left: 16px; }
   .waitlist-table td:last-child, .waitlist-table th:last-child { padding-right: 16px; }
@@ -297,7 +297,13 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      all being cut, and an address you cannot read is not a column, it is a
      rumour. Cells wrap and the row gets taller. Only genuinely atomic strings
      - the access code and the buttons - still refuse to break. */
-  .waitlist-table td, .waitlist-table th { white-space: normal; overflow-wrap: anywhere; }
+  .waitlist-table td, .waitlist-table th { white-space: normal; overflow-wrap: break-word; }
+  /* A header is one short word and must never be split: "DEVIC / ES" is not a
+     column name. `anywhere` did that - it breaks mid-word the moment the box
+     is tight, where `break-word` only breaks a token that cannot fit on a
+     line of its own, which is what an email address needs and what a word
+     like "Devices" or "sometimes" never does. */
+  .waitlist-table th { overflow-wrap: normal; }
   .waitlist-table td.mono, .waitlist-table th.mono { white-space: nowrap; overflow-wrap: normal; }
   /* A date is short enough to hold its line, and reads badly split across two. */
   .waitlist-table td.when { white-space: nowrap; }
@@ -896,7 +902,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     tbl.className = "waitlist-table";
     /* Fixed widths, because `auto` gives the long free-text columns whatever
        they ask for and squeezes the ones somebody is actually scanning. */
-    var cols = el("colgroup", {}, ["9%", "11%", "15%", "6%", "10%", "10%", "9%", "10%", "8%", "12%"].map(
+    var cols = el("colgroup", {}, ["9%", "10%", "14%", "9%", "9%", "10%", "9%", "10%", "8%", "12%"].map(
       function (w) { return el("col", { style: "width:" + w }); }
     ));
     tbl.insertBefore(cols, tbl.firstChild);

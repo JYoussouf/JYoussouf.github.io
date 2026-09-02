@@ -189,9 +189,16 @@
       inFlight = true;
       fetch(API + "/api/cloudflare?days=" + (opts.days || 30), { headers: { "x-dash-key": key } })
         .then(function (res) {
-          return res.json().then(function (body) {
+          // Text first, then parse. The worker always answers JSON, but
+          // nothing between here and it promises to: an edge 502 or a
+          // challenge page arrives as HTML, and parsing that up front would
+          // replace every message below with "Unexpected token '<'".
+          return res.text().then(function (raw) {
+            var body = null;
+            try { body = JSON.parse(raw); } catch (e) {}
             if (res.status === 401) throw new Error("Wrong or missing Pulse key for the Cloudflare data.");
             if (!res.ok) throw new Error((body && body.error) || ("Request failed: " + res.status));
+            if (!body) throw new Error("Cloudflare data came back unreadable (HTTP " + res.status + ").");
             return body;
           });
         })

@@ -782,11 +782,21 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         el("td", { class: "sub wrap", text: dash(e.writesOften) }),
         el("td", { class: "sub wrap", text: dash(e.writesWhere) }),
         // "UTC" lives in nothing but every cell otherwise; the column says it.
+        /* Two facts, two columns. They were one, which meant a row could
+           not say both when somebody joined and when their key last went
+           out - and the second is the question being asked while wondering
+           whether a resend worked. */
         el("td", {
           class: "sub",
-          text: (e.redeemed ? "in \u00b7 " : e.invitedAt && !e.codeRevoked ? "sent \u00b7 " : "") +
-            fmtWhen(e.invitedAt || e.createdAt).replace(" UTC", ""),
-          title: fmtWhen(e.invitedAt || e.createdAt),
+          text: fmtWhen(e.createdAt).replace(" UTC", ""),
+          title: fmtWhen(e.createdAt),
+        }),
+        el("td", {
+          class: "sub",
+          text: e.lastSentAt
+            ? (e.redeemed ? "in \u00b7 " : "") + fmtWhen(e.lastSentAt).replace(" UTC", "")
+            : "\u2014",
+          title: e.lastSentAt ? fmtWhen(e.lastSentAt) : "",
         }),
         el("td", { class: "mono", text: e.inviteCode || "\u2014" }),
         el("td", {}, [actions]),
@@ -796,14 +806,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       [
         { label: "Name" }, { label: "Discord" }, { label: "Email" },
         { label: "Devices" }, { label: "How often" }, { label: "Writes on" },
-        { label: "Since (UTC)" }, { label: "Code" }, { label: "" },
+        { label: "Joined (UTC)" }, { label: "Last sent" }, { label: "Code" }, { label: "" },
       ],
       rows,
     );
     tbl.className = "waitlist-table";
     /* Fixed widths, because `auto` gives the long free-text columns whatever
        they ask for and squeezes the ones somebody is actually scanning. */
-    var cols = el("colgroup", {}, ["9%", "11%", "15%", "9%", "13%", "13%", "10%", "8%", "12%"].map(
+    var cols = el("colgroup", {}, ["8%", "10%", "14%", "8%", "12%", "12%", "8%", "8%", "8%", "12%"].map(
       function (w) { return el("col", { style: "width:" + w }); }
     ));
     tbl.insertBefore(cols, tbl.firstChild);

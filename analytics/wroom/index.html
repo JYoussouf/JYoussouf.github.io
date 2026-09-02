@@ -757,8 +757,13 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var rows = waitlist.entries.map(function (e) {
       // A handle-only row is keyed `discord:<handle>`; that is a key, not an
       // address, and must never be shown as one or offered a Send button.
-      var mailable = e.email.indexOf("@") > 0 && e.email.indexOf("discord:") !== 0;
-      var handle = e.discord || (mailable ? "" : e.email.replace("discord:", ""));
+      /* Where a key would actually go, which the server works out - the
+         row's own key when that is an address, otherwise the account matched
+         to its handle. Empty means there is nowhere to send and the row gets
+         a minted code instead. */
+      var mailTo = e.mailTo || "";
+      var mailable = !!mailTo;
+      var handle = e.discord || e.email.replace("discord:", "");
 
       var actions = el("div", { class: "actions" });
       actions.appendChild(inviteBtn(e, mailable, false,
@@ -772,7 +777,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       return el("tr", { class: state }, [
         el("td", { text: dash(e.name) }),
         el("td", { class: "sub", text: handle ? "@" + handle : "\u2014" }),
-        el("td", { class: "sub", text: mailable ? e.email : "\u2014" }),
+        el("td", { class: "sub", text: mailTo || "\u2014", title: mailTo }),
         el("td", { class: "sub", text: dash(e.device) }),
         el("td", { class: "sub wrap", text: dash(e.writesOften) }),
         el("td", { class: "sub wrap", text: dash(e.writesWhere) }),
@@ -818,7 +823,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       var ask = force
         ? "Replace " + who + "'s code? The one they have stops working."
         : mailable
-          ? (e.invitedAt ? "Send the same code to " + e.email + " again?" : "Email an access code to " + e.email + "?")
+          ? (e.invitedAt ? "Send the same code to " + mailTo + " again?" : "Email an access code to " + mailTo + "?")
           : "Mint a code for " + who + "?";
       if (!confirm(ask)) return;
       inviteInFlight = true;

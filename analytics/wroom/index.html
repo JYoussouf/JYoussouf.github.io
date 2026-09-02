@@ -817,7 +817,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       if (inviteInFlight) return;
       var ask = force
         ? "Replace " + who + "'s code? The one they have stops working."
-        : (mailable ? "Email an access code to " + e.email + "?" : "Mint a code for " + who + "?");
+        : mailable
+          ? (e.invitedAt ? "Send the same code to " + e.email + " again?" : "Email an access code to " + e.email + "?")
+          : "Mint a code for " + who + "?";
       if (!confirm(ask)) return;
       inviteInFlight = true;
       b.disabled = true;

@@ -193,6 +193,38 @@
   .funnel-track { flex: 1; height: 22px; background: var(--grid); border-radius: 7px; overflow: hidden; }
   .funnel-fill { height: 100%; border-radius: 7px; min-width: 3px; }
   .funnel-num { width: 120px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  /* ---- Cloudflare quota view ---- */
+  .views { display: flex; gap: 2px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px; padding: 2px; }
+  .views button {
+    font: inherit; font-size: 13px; border: none; background: none; color: var(--muted);
+    padding: 5px 13px; border-radius: 999px; cursor: pointer;
+  }
+  .views button:hover { color: var(--text-primary); }
+  .views button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); }
+
+  .quota { display: grid; gap: 16px; }
+  .quota .qcard { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .quota .qcard.over { border-color: #e34948; }
+  .quota .qcard.near { border-color: #eda100; }
+  .qhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 13px 16px 10px; }
+  .qhead h2 { font-size: 13px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.01em; }
+  .qmeta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .qmeta .pct { font-weight: 650; color: #0ca30c; }
+  .qmeta .pct.watch { color: var(--text-secondary); }
+  .qmeta .pct.near { color: #eda100; }
+  .qmeta .pct.over { color: #e34948; }
+  .qbody { padding: 0 16px 12px; }
+  .qbody svg { display: block; width: 100%; height: auto; }
+  .qbody svg .limit-line { stroke: #e34948; stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+  .qbody svg .base-line { stroke: var(--baseline); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .qbody svg .bar { fill: var(--accent); }
+  .qbody svg .bar.over { fill: #e34948; }
+  .qbody svg .bar.partial { fill: var(--accent); opacity: 0.45; }
+  .qaxis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; padding-top: 2px; }
+  .qnote { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  #cf-status { font-size: 12px; color: var(--muted); }
+  #cf-error { color: #e34948; font-size: 13px; padding: 14px 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -208,12 +240,14 @@
   <div class="head">
     <div class="brand"><h1>Pulse</h1><span class="sub">joseppy.ca</span></div>
     <div class="controls">
+      <div class="views" id="views" role="group" aria-label="View"></div>
       <a class="sibling" href="wroom/">wroom| &rarr;</a>
       <div class="ranges" id="ranges" role="group" aria-label="Date range"></div>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">&#9788;</button>
     </div>
   </div>
 
+  <div id="product-view">
   <div class="apptabs" id="apptabs" role="group" aria-label="App filter"></div>
   <div class="highlights" id="highlights"></div>
   <div class="tiles" id="tiles"></div>
@@ -262,6 +296,14 @@
   <div class="card" data-card="recent">
     <button class="card__head"><h2>Recent sessions</h2><span class="chev">&#9660;</span></button>
     <div class="card__body"><div id="recent-table"></div></div>
+  </div>
+  </div>
+
+  <div id="cloudflare-view" hidden>
+    <div class="highlights" id="cf-highlights"></div>
+    <div id="cf-error" hidden></div>
+    <div class="quota" id="cf-quota"></div>
+    <p class="qnote">Free-tier limits are account-wide: every D1 database shares one read budget and every Worker shares one request budget. Monthly allowances are plotted against a steady daily share of the month, so all panels read on the same scale. The final bar is today, still filling.</p>
   </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
@@ -414,6 +456,7 @@
     document.getElementById("gate").hidden = true;
     document.getElementById("dash").hidden = false;
     paint();
+    applyView();
   }
 
   /*
@@ -1014,6 +1057,216 @@
     );
   }
 
+  /* =====================================================================
+   * Cloudflare quota view.
+   *
+   * The product tabs above filter one dataset by app. This is a different
+   * question entirely - how close the whole account is to the free-tier
+   * walls - so it is a view, not another app tab, and it swaps the body
+   * rather than filtering it.
+   *
+   * Every panel is drawn to its own limit: the dashed line at the top of a
+   * chart IS that category's cap, so bar height reads directly as a
+   * fraction of the limit and the panels are comparable to each other even
+   * though their units are not.
+   * ===================================================================== */
+  var VIEW_STORAGE = "sa_view";
+  var currentView = "product";
+  try { currentView = localStorage.getItem(VIEW_STORAGE) || "product"; } catch (e) {}
+  var cfData = null;
+  var cfTimer = null;
+  var cfInFlight = false;
+
+  var VIEWS = [{ id: "product", label: "Product" }, { id: "cloudflare", label: "Cloudflare" }];
+
+  function renderViews() {
+    var wrap = document.getElementById("views");
+    wrap.textContent = "";
+    VIEWS.forEach(function (v) {
+      var b = el("button", { text: v.label, "aria-pressed": String(currentView === v.id) });
+      b.addEventListener("click", function () { setView(v.id); });
+      wrap.appendChild(b);
+    });
+  }
+
+  function setView(v) {
+    currentView = v;
+    try { localStorage.setItem(VIEW_STORAGE, v); } catch (e) {}
+    applyView();
+  }
+
+  function applyView() {
+    var cf = currentView === "cloudflare";
+    document.getElementById("product-view").hidden = cf;
+    document.getElementById("cloudflare-view").hidden = !cf;
+    document.getElementById("ranges").hidden = cf;
+    renderViews();
+    if (cf) { loadCloudflare(); startCloudflarePolling(); }
+    else { stopCloudflarePolling(); }
+  }
+
+  /* Live, but only while somebody is looking: a background tab polling a
+   * rate-limited upstream every minute is how you get throttled for nothing. */
+  function startCloudflarePolling() {
+    stopCloudflarePolling();
+    cfTimer = setInterval(function () {
+      if (document.hidden || currentView !== "cloudflare") return;
+      loadCloudflare();
+    }, 60000);
+  }
+  function stopCloudflarePolling() {
+    if (cfTimer) { clearInterval(cfTimer); cfTimer = null; }
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && currentView === "cloudflare") loadCloudflare();
+  });
+
+  function loadCloudflare() {
+    if (cfInFlight) return;
+    cfInFlight = true;
+    fetch(API + "/api/cloudflare?days=30", { headers: { "x-dash-key": getKey() } })
+      .then(function (res) {
+        if (res.status === 401) { showGate(getKey() ? "Wrong key." : ""); throw new Error("unauthorized"); }
+        return res.json().then(function (body) {
+          if (!res.ok) throw new Error(body && body.error ? body.error : "request failed: " + res.status);
+          return body;
+        });
+      })
+      .then(function (data) { cfData = data; renderCloudflare(); })
+      .catch(function (err) {
+        if (err.message === "unauthorized") return;
+        var box = document.getElementById("cf-error");
+        box.hidden = false;
+        box.textContent = err.message;
+      })
+      .finally(function () { cfInFlight = false; });
+  }
+
+  function fmtBytes(n) {
+    if (n >= 1073741824) return (n / 1073741824).toFixed(2) + " GB";
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + " MB";
+    if (n >= 1024) return (n / 1024).toFixed(0) + " KB";
+    return n + " B";
+  }
+  function fmtCount(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(n >= 10000000 ? 0 : 2) + "M";
+    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k";
+    return String(Math.round(n));
+  }
+  function fmtValue(n, unit) { return unit === "bytes" ? fmtBytes(n) : fmtCount(n); }
+  function fmtExact(n, unit) {
+    return unit === "bytes" ? fmtBytes(n) : Math.round(n).toLocaleString();
+  }
+  function shortDate(iso) {
+    var p = iso.split("-");
+    return p[1] + "-" + p[2];
+  }
+
+  function renderCloudflare() {
+    if (!cfData) return;
+    document.getElementById("cf-error").hidden = true;
+    renderCloudflareHighlights();
+
+    var wrap = document.getElementById("cf-quota");
+    wrap.textContent = "";
+    (cfData.categories || []).forEach(function (cat) {
+      wrap.appendChild(quotaPanel(cat));
+    });
+  }
+
+  function renderCloudflareHighlights() {
+    var wrap = document.getElementById("cf-highlights");
+    wrap.textContent = "";
+    var cats = cfData.categories || [];
+    var worst = cats.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
+    if (worst) {
+      wrap.appendChild(chip(worst.pct >= 75, [
+        "Closest to a limit: ",
+        el("strong", { text: worst.label }),
+        " at ",
+        el("strong", { text: worst.pct.toFixed(worst.pct >= 10 ? 0 : 1) + "%" })
+      ]));
+    }
+    var breached = cats.filter(function (c) { return c.pct >= 100; });
+    wrap.appendChild(chip(breached.length > 0, breached.length
+      ? [el("strong", { text: String(breached.length) }), " " + (breached.length === 1 ? "category has" : "categories have") + " gone over"]
+      : ["No category over its limit"]));
+    var errs = (cfData.workerErrors || []).reduce(function (a, b) { return a + b.value; }, 0);
+    if (errs) {
+      wrap.appendChild(chip(true, [el("strong", { text: String(errs) }), " Worker errors in " + cfData.days + " days"]));
+    }
+    var when = new Date(cfData.generatedAt);
+    wrap.appendChild(chip(false, ["Updated ", el("strong", {
+      text: when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    }), cfData.cached ? " (cached)" : ""]));
+  }
+
+  function quotaPanel(cat) {
+    var card = el("div", { class: "qcard " + cat.state });
+    var pctText = cat.pct >= 10 ? cat.pct.toFixed(0) : cat.pct.toFixed(2);
+    var limitText = fmtExact(cat.limit, cat.unit) +
+      (cat.period === "day" ? " / day" : cat.period === "month" ? " / month" : "");
+
+    var head = el("div", { class: "qhead" }, [
+      el("h2", { text: cat.label }),
+      el("div", { class: "qmeta" }, [
+        el("span", { text: "limit " + limitText }),
+        el("span", { text: "peak " + fmtExact(cat.peak, cat.unit) + (cat.peakDate ? " on " + shortDate(cat.peakDate) : "") }),
+        el("span", { class: "pct " + cat.state, text: pctText + "% of limit" })
+      ])
+    ]);
+    card.appendChild(head);
+
+    var body = el("div", { class: "qbody" });
+    body.appendChild(quotaChart(cat));
+    body.appendChild(el("div", { class: "qaxis" }, [
+      el("span", { text: cat.series.length ? shortDate(cat.series[0].date) : "" }),
+      el("span", { text: cat.period === "month" ? "daily share of monthly limit" : "limit" }),
+      el("span", { text: cat.series.length ? shortDate(cat.series[cat.series.length - 1].date) : "" })
+    ]));
+    card.appendChild(body);
+    return card;
+  }
+
+  function quotaChart(cat) {
+    var W = 880, H = 118, TOP = 6;
+    var n = cat.series.length || 1;
+    var slot = W / n;
+    var bw = Math.max(2, Math.min(18, slot * 0.62));
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + (H + 4), role: "img" });
+    svg.setAttribute("aria-label",
+      cat.label + ": daily usage against a limit of " + fmtExact(cat.limit, cat.unit) +
+      ". Peak " + fmtExact(cat.peak, cat.unit) + ", " + cat.pct.toFixed(1) + " percent of the limit.");
+
+    svg.appendChild(svgEl("line", { class: "base-line", x1: 0, y1: H, x2: W, y2: H }));
+
+    cat.series.forEach(function (p, i) {
+      if (!p.value) return;
+      var frac = p.value / cat.budget;
+      var h = Math.max(1.5, Math.min(frac, 1.06) * (H - TOP));
+      var x = slot * i + (slot - bw) / 2;
+      var cls = "bar";
+      if (p.value > cat.budget) cls += " over";
+      else if (i === n - 1) cls += " partial";
+      var r = svgEl("rect", {
+        class: cls,
+        x: x.toFixed(1),
+        y: Math.max(1, H - h).toFixed(1),
+        width: bw.toFixed(1),
+        height: Math.min(h, H - 1).toFixed(1),
+        rx: 1
+      });
+      r.appendChild(svgEl("title", {}));
+      r.lastChild.textContent = p.date + ": " + fmtExact(p.value, cat.unit) +
+        " (" + ((100 * p.value) / cat.budget).toFixed(1) + "% of limit)";
+      svg.appendChild(r);
+    });
+
+    // Drawn last so the cap always sits on top of the bars that cross it.
+    svg.appendChild(svgEl("line", { class: "limit-line", x1: 0, y1: TOP, x2: W, y2: TOP }));
+    return svg;
+  }
+
   /* ---------- init ---------- */
   document.getElementById("key-input").addEventListener("keydown", function (ev) {
     if (ev.key !== "Enter") return;
@@ -1029,7 +1282,8 @@
     history.replaceState(null, "", location.pathname + location.search);
   }
 
-  if (getKey()) load(currentDays);
+  renderViews();
+  if (getKey()) { load(currentDays); }
   else showGate("");
 })();
 </script>

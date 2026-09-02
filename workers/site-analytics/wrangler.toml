@@ -14,6 +14,9 @@ database_id = "159ea1ea-231d-4859-a5fa-ed8a17c9e3e2"
 
 [vars]
 ALLOWED_ORIGINS = "https://joseppy.ca,https://www.joseppy.ca,https://jyoussouf.github.io,https://mytimmiespassport.com,https://timmies-passport.pages.dev"
+# Account id is not a secret; the read-only analytics token is, and lives in
+# the CF_ANALYTICS_TOKEN secret.
+CF_ACCOUNT_ID = "9ad7a6b011f4a53c4ffb8b42bc85dba4"
 
 [[d1_databases]]
 binding = "TIMMIES_DB"

@@ -36,6 +36,11 @@ async function routeRequest(request, env) {
     return getStats(request, env, url);
   }
 
+  if (url.pathname === "/api/cloudflare" && request.method === "GET") {
+    await assertDashKey(request, env);
+    return getCloudflare(request, env, url);
+  }
+
   if ((url.pathname === "/" || url.pathname === "/dash") && request.method === "GET") {
     return Response.redirect(DASH_URL, 302);
   }
@@ -409,5 +414,274 @@ function securityHeaders() {
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  };
+}
+
+/* =========================================================================
+ * Cloudflare quota view.
+ *
+ * The product numbers above come from our own D1. These come from
+ * Cloudflare's own GraphQL analytics, and answer a different question: how
+ * close is this account to the free-tier walls it actually runs against.
+ *
+ * Two things about those walls that are easy to get wrong, and that this
+ * endpoint deliberately encodes:
+ *
+ *   - They are ACCOUNT-WIDE, not per project. Every D1 database on the
+ *     account shares one 5,000,000 rows/day read budget, and every Worker
+ *     shares one 100,000 requests/day. So nothing here filters by script or
+ *     database: a per-project number would read as safe while the account
+ *     was already over.
+ *   - Some are daily and some are monthly. A monthly limit is shown against
+ *     a daily budget of limit/30 so every panel plots on the same axis -
+ *     the response marks which is which so the UI can say so.
+ *
+ * The token is a read-only Account Analytics token in CF_ANALYTICS_TOKEN.
+ * It is never returned to the browser; the dashboard key gates this route
+ * exactly like /api/stats.
+ * ========================================================================= */
+
+const CF_GRAPHQL = "https://api.cloudflare.com/client/v4/graphql";
+const CF_CACHE_SECONDS = 300;
+const GIB = 1024 * 1024 * 1024;
+
+const CF_LIMITS = {
+  d1RowsRead: { label: "D1 rows read", limit: 5000000, period: "day", unit: "count" },
+  d1RowsWritten: { label: "D1 rows written", limit: 100000, period: "day", unit: "count" },
+  workerRequests: { label: "Worker requests", limit: 100000, period: "day", unit: "count" },
+  d1Storage: { label: "D1 storage", limit: 5 * GIB, period: "point", unit: "bytes" },
+  r2Storage: { label: "R2 storage", limit: 10 * GIB, period: "point", unit: "bytes" },
+  r2ClassA: { label: "R2 class A operations", limit: 1000000, period: "month", unit: "count" },
+  r2ClassB: { label: "R2 class B operations", limit: 10000000, period: "month", unit: "count" },
+};
+
+/* R2 bills writes and listings as class A and reads as class B. Anything we
+ * have not seen before counts as B, which is the cheaper budget by 10x, so an
+ * unknown operation can only ever understate class A - never flatter it. */
+const R2_CLASS_A = new Set([
+  "PutObject",
+  "CopyObject",
+  "ListObjects",
+  "DeleteObject",
+  "DeleteObjects",
+  "CreateMultipartUpload",
+  "UploadPart",
+  "UploadPartCopy",
+  "CompleteMultipartUpload",
+  "AbortMultipartUpload",
+  "ListMultipartUploads",
+  "ListParts",
+  "PutBucket",
+]);
+
+async function getCloudflare(request, env, url) {
+  const days = clampInt(url.searchParams.get("days"), 30, 1, 90);
+  const token = String(env.CF_ANALYTICS_TOKEN || "");
+  const account = String(env.CF_ACCOUNT_ID || "");
+  if (!token || !account) {
+    return json(
+      { error: "Cloudflare analytics not configured. Set CF_ANALYTICS_TOKEN and CF_ACCOUNT_ID." },
+      503,
+      request,
+      env
+    );
+  }
+
+  // The GraphQL API is slow and rate-limited, and this data only moves once a
+  // minute at best, so a shared edge cache keyed on the day count keeps a
+  // dashboard left open from hammering it.
+  const cacheKey = new Request(new URL("/__cf-cache/" + days, url.origin).toString(), { method: "GET" });
+  const cache = caches.default;
+  const hit = await cache.match(cacheKey);
+  if (hit) {
+    const cached = await hit.json();
+    return json({ ...cached, cached: true }, 200, request, env);
+  }
+
+  const payload = await fetchCloudflareUsage(token, account, days);
+  const body = JSON.stringify(payload);
+  await cache.put(
+    cacheKey,
+    new Response(body, {
+      headers: { "Content-Type": "application/json", "Cache-Control": "max-age=" + CF_CACHE_SECONDS },
+    })
+  );
+  return json(payload, 200, request, env);
+}
+
+async function fetchCloudflareUsage(token, account, days) {
+  const end = new Date();
+  const start = new Date(end.getTime() - (days - 1) * 86400000);
+  const dayStart = start.toISOString().slice(0, 10);
+  const dayEnd = end.toISOString().slice(0, 10);
+
+  const query = `query Usage($a: String!, $ts: Time!, $te: Time!, $ds: Date!, $de: Date!) {
+    viewer {
+      accounts(filter: { accountTag: $a }) {
+        workers: workersInvocationsAdaptive(
+          limit: 10000
+          filter: { datetime_geq: $ts, datetime_leq: $te }
+          orderBy: [date_ASC]
+        ) { sum { requests errors } dimensions { date } }
+        d1: d1AnalyticsAdaptiveGroups(
+          limit: 10000
+          filter: { date_geq: $ds, date_leq: $de }
+          orderBy: [date_ASC]
+        ) { sum { rowsRead rowsWritten } dimensions { date databaseId } }
+        d1Storage: d1StorageAdaptiveGroups(
+          limit: 10000
+          filter: { date_geq: $ds, date_leq: $de }
+          orderBy: [date_ASC]
+        ) { max { databaseSizeBytes } dimensions { date databaseId } }
+        r2Ops: r2OperationsAdaptiveGroups(
+          limit: 10000
+          filter: { date_geq: $ds, date_leq: $de }
+          orderBy: [date_ASC]
+        ) { sum { requests } dimensions { date actionType } }
+        r2Storage: r2StorageAdaptiveGroups(
+          limit: 10000
+          filter: { date_geq: $ds, date_leq: $de }
+          orderBy: [date_ASC]
+        ) { max { payloadSize } dimensions { date bucketName } }
+      }
+    }
+  }`;
+
+  const res = await fetch(CF_GRAPHQL, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query,
+      variables: {
+        a: account,
+        ts: start.toISOString(),
+        te: end.toISOString(),
+        ds: dayStart,
+        de: dayEnd,
+      },
+    }),
+  });
+
+  const body = await res.json();
+  if (body.errors && body.errors.length) {
+    const err = new Error("cloudflare analytics: " + (body.errors[0].message || "query failed"));
+    err.status = 502;
+    throw err;
+  }
+  const acct = body?.data?.viewer?.accounts?.[0];
+  if (!acct) {
+    const err = new Error("cloudflare analytics returned no account");
+    err.status = 502;
+    throw err;
+  }
+
+  // Every series is keyed by day so the panels share one x-axis even where a
+  // category had no activity at all that day.
+  const dates = [];
+  for (let i = 0; i < days; i += 1) {
+    dates.push(new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10));
+  }
+  const blank = () => Object.fromEntries(dates.map((d) => [d, 0]));
+
+  const workerRequests = blank();
+  const workerErrors = blank();
+  (acct.workers || []).forEach((r) => {
+    const d = r.dimensions.date;
+    if (!(d in workerRequests)) return;
+    workerRequests[d] += r.sum.requests || 0;
+    workerErrors[d] += r.sum.errors || 0;
+  });
+
+  const d1RowsRead = blank();
+  const d1RowsWritten = blank();
+  (acct.d1 || []).forEach((r) => {
+    const d = r.dimensions.date;
+    if (!(d in d1RowsRead)) return;
+    d1RowsRead[d] += r.sum.rowsRead || 0;
+    d1RowsWritten[d] += r.sum.rowsWritten || 0;
+  });
+
+  // Storage is a level, not a flow: sum each database's own high-water mark
+  // for the day, rather than adding numbers from different databases' days.
+  const d1Storage = blank();
+  const d1PerDay = {};
+  (acct.d1Storage || []).forEach((r) => {
+    const d = r.dimensions.date;
+    if (!(d in d1Storage)) return;
+    (d1PerDay[d] = d1PerDay[d] || {})[r.dimensions.databaseId] = r.max.databaseSizeBytes || 0;
+  });
+  Object.entries(d1PerDay).forEach(([d, m]) => {
+    d1Storage[d] = Object.values(m).reduce((a, b) => a + b, 0);
+  });
+
+  const r2Storage = blank();
+  const r2PerDay = {};
+  (acct.r2Storage || []).forEach((r) => {
+    const d = r.dimensions.date;
+    if (!(d in r2Storage)) return;
+    (r2PerDay[d] = r2PerDay[d] || {})[r.dimensions.bucketName] = r.max.payloadSize || 0;
+  });
+  Object.entries(r2PerDay).forEach(([d, m]) => {
+    r2Storage[d] = Object.values(m).reduce((a, b) => a + b, 0);
+  });
+
+  const r2ClassA = blank();
+  const r2ClassB = blank();
+  (acct.r2Ops || []).forEach((r) => {
+    const d = r.dimensions.date;
+    if (!(d in r2ClassA)) return;
+    const bucket = R2_CLASS_A.has(r.dimensions.actionType) ? r2ClassA : r2ClassB;
+    bucket[d] += r.sum.requests || 0;
+  });
+
+  const raw = { d1RowsRead, d1RowsWritten, workerRequests, d1Storage, r2Storage, r2ClassA, r2ClassB };
+
+  const categories = Object.entries(CF_LIMITS).map(([key, meta]) => {
+    const series = dates.map((d) => ({ date: d, value: raw[key][d] || 0 }));
+    // A monthly allowance is plotted against the daily slice of it that a
+    // steady month would spend, so every panel shares one "fraction of the
+    // limit" y-axis.
+    const budget = meta.period === "month" ? meta.limit / 30 : meta.limit;
+    let peak = 0;
+    let peakDate = null;
+    series.forEach((p) => {
+      if (p.value > peak) {
+        peak = p.value;
+        peakDate = p.date;
+      }
+    });
+    // Today is still filling up, so it is never allowed to be "the peak" that
+    // a status is judged on - it would read as a dip every morning.
+    const settled = series.slice(0, -1);
+    let settledPeak = 0;
+    settled.forEach((p) => {
+      if (p.value > settledPeak) settledPeak = p.value;
+    });
+    const pct = budget ? (100 * peak) / budget : 0;
+    const state = pct >= 100 ? "over" : pct >= 75 ? "near" : pct >= 40 ? "watch" : "clear";
+    return {
+      key,
+      label: meta.label,
+      unit: meta.unit,
+      period: meta.period,
+      limit: meta.limit,
+      budget,
+      series,
+      peak,
+      peakDate,
+      settledPeak,
+      pct,
+      state,
+      latest: series.length ? series[series.length - 1].value : 0,
+    };
+  });
+
+  return {
+    days,
+    dates,
+    generatedAt: new Date().toISOString(),
+    partialDate: dates[dates.length - 1],
+    categories,
+    workerErrors: dates.map((d) => ({ date: d, value: workerErrors[d] || 0 })),
   };
 }

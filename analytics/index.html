@@ -7,136 +7,205 @@
 <title>Pulse · joseppy.ca</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#128200;</text></svg>">
 <style>
+  /* Palette and hard-line treatment are the wroom dashboard's, so the two
+     pages read as one product rather than two tools that happen to share a
+     domain. Square corners, 1px steel borders, a faint top sheen, no
+     shadows. See analytics/wroom/index.html for the original. */
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0d0d0d;
-    --surface-1: #1a1a19;
-    --surface-2: #222221;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted: #898781;
-    --grid: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.10);
-    --accent: #3987e5;
-    --accent-soft: rgba(57, 135, 229, 0.14);
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
+    --page: #0a0c0e;
+    --surface-1: #14171a;
+    --surface-2: #1b1f23;
+    --sheen: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 42%);
+    --text-primary: #f2f5f7;
+    --text-secondary: #aeb6bd;
+    --muted: #8a939b;
+    --grid: #23282d;
+    --baseline: #3a4148;
+    --border: #2a3036;
+    --border-strong: #3a4148;
+    --accent: #3aa0ff;
+    --accent-soft: rgba(58, 160, 255, 0.12);
+    --ok: #2fd076;
+    --warn: #ffb224;
+    --bad: #ff5d5d;
+    --series-1: #3aa0ff;
+    --series-2: #ff7a2f;
+    --series-3: #2fd076;
+    --series-4: #ffc53d;
+    --series-5: #ff5d8f;
+    --series-6: #29c8c8;
+    --series-7: #a48fff;
+    --series-8: #ff5d5d;
   }
   :root[data-theme="light"] {
     color-scheme: light;
-    --page: #f9f9f7;
-    --surface-1: #fcfcfb;
-    --surface-2: #f2f1ee;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --muted: #898781;
-    --grid: #e1e0d9;
-    --baseline: #c3c2b7;
-    --border: rgba(11, 11, 11, 0.10);
-    --accent: #2a78d6;
-    --accent-soft: rgba(42, 120, 214, 0.10);
-    --series-1: #2a78d6;
-    --series-2: #eb6834;
-    --series-3: #1baf7a;
-    --series-4: #eda100;
-    --series-5: #e87ba4;
-    --series-6: #008300;
-    --series-7: #4a3aa7;
-    --series-8: #e34948;
+    --page: #eef0f2;
+    --surface-1: #ffffff;
+    --surface-2: #f3f5f7;
+    --sheen: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0) 42%);
+    --text-primary: #14181c;
+    --text-secondary: #454c53;
+    --muted: #5f676e;
+    --grid: #dde1e5;
+    --baseline: #b8bfc6;
+    --border: #ccd2d8;
+    --border-strong: #aab2ba;
+    --accent: #0b6fd6;
+    --accent-soft: rgba(11, 111, 214, 0.10);
+    --ok: #0f9d55;
+    --warn: #8a5a00;
+    --bad: #d63a3a;
+    --series-1: #0b6fd6;
+    --series-2: #d95d16;
+    --series-3: #0f9d55;
+    --series-4: #c79400;
+    --series-5: #d6407a;
+    --series-6: #0a9e9e;
+    --series-7: #6a53d6;
+    --series-8: #d63a3a;
   }
   * { box-sizing: border-box; margin: 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   body {
     background: var(--page);
     color: var(--text-primary);
-    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-    padding: 0 24px 48px;
-    max-width: 1080px;
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 28px 56px;
+    max-width: 1400px;
     margin: 0 auto;
   }
   .head {
     position: sticky; top: 0; z-index: 5;
     background: var(--page);
     display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-    padding: 18px 0 14px;
-    border-bottom: 1px solid var(--grid);
-    margin-bottom: 20px;
+    padding: 16px 0 12px;
+    border-bottom: 2px solid var(--border-strong);
+    margin-bottom: 18px;
   }
   .brand { display: flex; align-items: baseline; gap: 10px; }
-  .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-  .brand .sub { color: var(--muted); font-size: 13px; }
+  .brand h1 { font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
+  .brand .sub { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
   .controls { display: flex; align-items: center; gap: 8px; }
-  .ranges { display: flex; gap: 2px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 2px; }
-  .ranges button {
-    font: inherit; font-size: 13px; color: var(--text-secondary); background: none;
-    border: none; border-radius: 8px; padding: 4px 11px; cursor: pointer;
-  }
-  .ranges button:hover { color: var(--text-primary); }
-  .ranges button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); font-weight: 600; }
-  .icon-btn {
-    font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
-    background: var(--surface-1); color: var(--text-secondary);
-    border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
-  }
-  .icon-btn:hover { color: var(--text-primary); }
-  /* Link to the sibling dashboard. Two pages, one instrument. */
-  .head .sibling { color: var(--muted); text-decoration: none; font-size: 13px; }
-  .head .sibling:hover { color: var(--text-primary); }
 
-  .highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .ranges { display: flex; background: var(--surface-1); border: 1px solid var(--border); }
+  .ranges button {
+    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); background: none;
+    border: none; border-right: 1px solid var(--border); padding: 6px 12px; cursor: pointer;
+  }
+  .ranges button:last-child { border-right: none; }
+  .ranges button:hover { color: var(--text-primary); }
+  .ranges button[aria-pressed="true"] { color: var(--page); background: var(--accent); }
+  .icon-btn {
+    font: inherit; font-size: 14px; line-height: 1; cursor: pointer;
+    background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); padding: 7px 10px;
+  }
+  .icon-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+
+  /* ---- the shell: a project rail, and whatever that project is saying ----
+     Every project used to be a filter pill on one page, which made the page
+     feel like one report you kept narrowing. They are separate things with
+     separate questions, so each gets its own address and its own place in a
+     list you can read top to bottom. "All apps" stays, first, because the
+     pooled number is a real view and not the absence of a choice. */
+  .shell { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 26px; align-items: start; }
+  @media (max-width: 900px) { .shell { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+
+  .rail { position: sticky; top: 74px; display: flex; flex-direction: column; gap: 2px; }
+  @media (max-width: 900px) { .rail { position: static; flex-direction: row; flex-wrap: wrap; } }
+  .rail .rail-group {
+    font-size: 10px; font-weight: 750; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.11em;
+    padding: 14px 10px 6px;
+  }
+  @media (max-width: 900px) { .rail .rail-group { width: 100%; padding: 8px 0 2px; } }
+  .rail a, .rail button {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    font: inherit; font-size: 13px; font-weight: 600; text-align: left; text-decoration: none;
+    color: var(--text-secondary); background: none; cursor: pointer;
+    border: 1px solid transparent; border-left: 2px solid transparent;
+    padding: 7px 10px;
+  }
+  .rail a:hover, .rail button:hover { color: var(--text-primary); background: var(--surface-1); }
+  .rail button[aria-current="true"] {
+    color: var(--text-primary); background: var(--surface-1);
+    border-color: var(--border); border-left-color: var(--accent);
+  }
+  .rail .dot { width: 8px; height: 8px; flex: none; }
+  .rail .tally { margin-left: auto; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rail .out { color: var(--muted); font-weight: 500; }
+  .rail .out:hover { color: var(--accent); }
+
+  .viewhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .viewhead h2 { font-size: 17px; font-weight: 750; letter-spacing: -0.01em; }
+  .viewhead .sub { color: var(--muted); font-size: 12px; }
+
+  .highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .chip {
     display: inline-flex; align-items: center; gap: 7px;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
-    padding: 6px 13px; font-size: 13px; color: var(--text-secondary);
+    background: var(--surface-1); border: 1px solid var(--border);
+    padding: 5px 12px; font-size: 12.5px; color: var(--text-secondary);
   }
-  .chip strong { color: var(--text-primary); font-weight: 600; }
-  .chip.hot { background: var(--accent-soft); border-color: var(--accent); color: var(--text-primary); }
-  .chip.hot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
-  .chip .up { color: #0ca30c; }
-  .chip .down { color: #e34948; }
+  .chip strong { color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chip.hot { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); }
+  .chip.hot::before { content: ""; width: 7px; height: 7px; background: var(--accent); flex: none; }
+  .chip .up { color: var(--ok); }
+  .chip .down { color: var(--bad); }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
-  .tile .label { color: var(--muted); font-size: 12px; }
-  .tile .value { font-size: 27px; font-weight: 650; margin-top: 2px; letter-spacing: -0.01em; }
-  .tile .delta { font-size: 12px; margin-top: 2px; color: var(--muted); }
-  .tile .delta .up { color: #0ca30c; }
-  .tile .delta .down { color: #e34948; }
+  /* KPI band: one slab, hairline-divided. */
+  .tiles {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    background: var(--surface-1); background-image: var(--sheen);
+    border: 1px solid var(--border); margin-bottom: 16px;
+  }
+  .tile { padding: 13px 16px 12px; border-right: 1px solid var(--grid); }
+  .tile:last-child { border-right: none; }
+  .tile .label { color: var(--muted); font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.09em; }
+  .tile .value { font-size: 28px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .tile .delta { font-size: 12px; margin-top: 1px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .delta .up { color: var(--ok); font-weight: 600; }
+  .tile .delta .down { color: var(--bad); font-weight: 600; }
 
-  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px; overflow: hidden; }
+  .card {
+    background: var(--surface-1); background-image: var(--sheen);
+    border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden;
+  }
   .card__head {
     width: 100%; display: flex; align-items: center; justify-content: space-between;
-    font: inherit; background: none; border: none; color: inherit; cursor: pointer;
-    padding: 13px 16px; text-align: left;
+    font: inherit; background: none; border: none; border-bottom: 1px solid var(--grid);
+    color: inherit; cursor: pointer;
+    padding: 11px 16px; text-align: left;
   }
-  .card__head h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.01em; }
-  .card__head .chev { color: var(--muted); font-size: 11px; transition: transform 0.15s; }
+  .card__head h2 {
+    font-size: 11px; font-weight: 750; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .card__head .chev { color: var(--muted); font-size: 10px; transition: transform 0.15s; }
+  .card.collapsed .card__head { border-bottom: none; }
   .card.collapsed .card__head .chev { transform: rotate(-90deg); }
-  .card__body { padding: 0 16px 16px; }
-  .card.collapsed .card__body { display: none; }
-
+  .card__body { padding: 14px 16px 16px; }
   .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
-  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend i { width: 10px; height: 10px; display: inline-block; }
   .chart-wrap { overflow-x: auto; }
-  svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+  svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
 
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .cols .card { margin-bottom: 16px; }
   @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } body { padding: 0 14px 40px; } }
 
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; color: var(--muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+  th {
+    text-align: left; color: var(--muted); font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 8px; border-bottom: 1px solid var(--border-strong);
+  }
   td { padding: 6px 8px; border-bottom: 1px solid var(--grid); }
   tr:last-child td { border-bottom: none; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+  .dot { width: 8px; height: 8px; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; }
   .sub { color: var(--muted); font-size: 12px; }
   .show-more {
     display: block; width: 100%; margin-top: 8px; padding: 6px;
@@ -165,10 +234,10 @@
 
   .tooltip {
     position: fixed; pointer-events: none; z-index: 10; display: none;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.28); white-space: nowrap;
+    background: var(--surface-2); border: 1px solid var(--border-strong);
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.45); white-space: nowrap;
   }
-  .tooltip .t-day { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .t-day { font-weight: 700; margin-bottom: 4px; }
   .tooltip .t-row { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
 
   #gate { max-width: 320px; margin: 18vh auto 0; text-align: center; }
@@ -194,37 +263,7 @@
   .funnel-fill { height: 100%; border-radius: 7px; min-width: 3px; }
   .funnel-num { width: 120px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
 
-  /* ---- Cloudflare quota view ---- */
-  .views { display: flex; gap: 2px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px; padding: 2px; }
-  .views button {
-    font: inherit; font-size: 13px; border: none; background: none; color: var(--muted);
-    padding: 5px 13px; border-radius: 999px; cursor: pointer;
-  }
-  .views button:hover { color: var(--text-primary); }
-  .views button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-2); }
 
-  .quota { display: grid; gap: 16px; }
-  .quota .qcard { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-  .quota .qcard.over { border-color: #e34948; }
-  .quota .qcard.near { border-color: #eda100; }
-  .qhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 13px 16px 10px; }
-  .qhead h2 { font-size: 13px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.01em; }
-  .qmeta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .qmeta .pct { font-weight: 650; color: #0ca30c; }
-  .qmeta .pct.watch { color: var(--text-secondary); }
-  .qmeta .pct.near { color: #eda100; }
-  .qmeta .pct.over { color: #e34948; }
-  .qbody { padding: 0 16px 12px; }
-  .qbody svg { display: block; width: 100%; height: auto; }
-  .qbody svg .limit-line { stroke: #e34948; stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
-  .qbody svg .base-line { stroke: var(--baseline); stroke-width: 1; vector-effect: non-scaling-stroke; }
-  .qbody svg .bar { fill: var(--accent); }
-  .qbody svg .bar.over { fill: #e34948; }
-  .qbody svg .bar.partial { fill: var(--accent); opacity: 0.45; }
-  .qaxis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; padding-top: 2px; }
-  .qnote { font-size: 12px; color: var(--muted); margin-top: 10px; }
-  #cf-status { font-size: 12px; color: var(--muted); }
-  #cf-error { color: #e34948; font-size: 13px; padding: 14px 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -240,15 +279,17 @@
   <div class="head">
     <div class="brand"><h1>Pulse</h1><span class="sub">joseppy.ca</span></div>
     <div class="controls">
-      <div class="views" id="views" role="group" aria-label="View"></div>
-      <a class="sibling" href="wroom/">wroom| &rarr;</a>
       <div class="ranges" id="ranges" role="group" aria-label="Date range"></div>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">&#9788;</button>
     </div>
   </div>
 
+  <div class="shell">
+  <nav class="rail" id="rail" aria-label="Projects"></nav>
+  <main>
+
   <div id="product-view">
-  <div class="apptabs" id="apptabs" role="group" aria-label="App filter"></div>
+  <div class="viewhead"><h2 id="view-title">All apps</h2><span class="sub" id="view-sub"></span></div>
   <div class="highlights" id="highlights"></div>
   <div class="tiles" id="tiles"></div>
 
@@ -300,14 +341,17 @@
   </div>
 
   <div id="cloudflare-view" hidden>
+    <div class="viewhead"><h2>Cloudflare</h2><span class="sub">Free-tier usage against every limit, account-wide</span></div>
     <div class="highlights" id="cf-highlights"></div>
-    <div id="cf-error" hidden></div>
-    <div class="quota" id="cf-quota"></div>
-    <p class="qnote">Free-tier limits are account-wide: every D1 database shares one read budget and every Worker shares one request budget. Monthly allowances are plotted against a steady daily share of the month, so all panels read on the same scale. The final bar is today, still filling.</p>
+    <div id="cf-mount"></div>
+  </div>
+
+  </main>
   </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
 
+<script src="cf-panels.js"></script>
 <script>
 (function () {
   "use strict";
@@ -348,7 +392,11 @@
   var leaderboardLoaded = false;
   var APP_STORAGE = "sa_app";
   var currentApp = "";
+  var VIEW_STORAGE = "sa_view";
+  var currentView = "product";
   try { currentApp = localStorage.getItem(APP_STORAGE) || ""; } catch (e) {}
+  try { currentView = localStorage.getItem(VIEW_STORAGE) || "product"; } catch (e) {}
+  if (currentView !== "cloudflare") currentView = "product";
   var lastData = null;
   /* How the passport holders table is sorted, or null for the order the worker
      sent it in - by stamp count, which is the leaderboard view of the same
@@ -456,7 +504,7 @@
     document.getElementById("gate").hidden = true;
     document.getElementById("dash").hidden = false;
     paint();
-    applyView();
+    goto(currentRoute(), true);
   }
 
   /*
@@ -516,7 +564,8 @@
     if (!lastData) return;
     var v = view(lastData);
     renderRanges();
-    renderAppTabs(lastData);
+    renderRail();
+    renderViewHead(v);
     if (currentApp) {
       document.getElementById("highlights").textContent = "";
     } else {
@@ -536,29 +585,148 @@
     if (!leaderboardLoaded) { leaderboardLoaded = true; loadLeaderboard(); }
   }
 
-  function renderAppTabs(data) {
-    var wrap = document.getElementById("apptabs");
-    wrap.textContent = "";
-    var names = (data.apps || []).map(function (a) { return a.app; });
-    names.sort(function (a, b) { return slotFor(a) - slotFor(b); });
-    // A selected app with no sessions in this range still deserves its tab.
-    if (currentApp && names.indexOf(currentApp) === -1) names.push(currentApp);
-    var all = el("button", { text: "All apps", "aria-pressed": String(currentApp === "") });
-    all.addEventListener("click", function () { setApp(""); });
-    wrap.appendChild(all);
-    names.forEach(function (app) {
-      var b = el("button", { "aria-pressed": String(currentApp === app) }, [el("i", { class: "dot" })]);
-      b.firstChild.style.background = colorFor(app);
-      b.appendChild(document.createTextNode(labelFor(app)));
-      b.addEventListener("click", function () { setApp(app); });
-      wrap.appendChild(b);
-    });
+  /* =====================================================================
+   * The project rail.
+   *
+   * Each project is its own destination with its own address (#/timmies),
+   * not a filter pill, because they are separate products people ask
+   * separate questions about. "All apps" is first and is a real view - the
+   * pooled number, not the absence of a filter. Cloudflare sits at the
+   * bottom under its own heading, because it is about the account rather
+   * than about any one project.
+   * ===================================================================== */
+  var RAIL_ORDER = ["portfolio", "northern_eh", "the_great_puppy_detective", "timmies_passport", "spotify_venn", "q1_wrapped"];
+  var cfPanels = null;
+
+  function routeFromHash() {
+    var m = String(location.hash || "").match(/^#\/([a-z0-9_]+)$/i);
+    return m ? m[1] : null;
   }
 
-  function setApp(app) {
-    currentApp = app;
-    try { localStorage.setItem(APP_STORAGE, app); } catch (e) {}
-    paint();
+  function currentRoute() {
+    if (currentView === "cloudflare") return "cloudflare";
+    return currentApp || "all";
+  }
+
+  function goto(route, push) {
+    if (route === "cloudflare") { currentView = "cloudflare"; }
+    else {
+      currentView = "product";
+      currentApp = route === "all" ? "" : route;
+      try { localStorage.setItem(APP_STORAGE, currentApp); } catch (e) {}
+    }
+    try { localStorage.setItem(VIEW_STORAGE, currentView); } catch (e) {}
+    if (push !== false) {
+      var want = "#/" + route;
+      if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
+    }
+    applyView();
+    if (currentView === "product") paint();
+  }
+
+  function railApps(data) {
+    var seen = {};
+    (data && data.apps ? data.apps : []).forEach(function (a) { seen[a.app] = true; });
+    var names = RAIL_ORDER.filter(function (a) { return seen[a] || APP_LABELS[a]; });
+    // Anything reporting that we have no label for still deserves a row.
+    Object.keys(seen).forEach(function (a) { if (names.indexOf(a) === -1) names.push(a); });
+    return names;
+  }
+
+  function renderRail() {
+    var rail = document.getElementById("rail");
+    rail.textContent = "";
+    var route = currentRoute();
+
+    function item(id, label, colour, tally) {
+      var b = el("button", { "aria-current": String(route === id) });
+      if (colour) {
+        var d = el("i", { class: "dot" });
+        d.style.background = colour;
+        b.appendChild(d);
+      }
+      b.appendChild(document.createTextNode(label));
+      if (tally != null) b.appendChild(el("span", { class: "tally", text: String(tally) }));
+      b.addEventListener("click", function () { goto(id); });
+      rail.appendChild(b);
+      return b;
+    }
+
+    item("all", "All apps");
+
+    rail.appendChild(el("div", { class: "rail-group", text: "Projects" }));
+    railApps(lastData).forEach(function (app) {
+      var row = (lastData && lastData.apps ? lastData.apps : []).filter(function (a) { return a.app === app; });
+      var plays = row.reduce(function (n, a) { return n + (a.plays || 0); }, 0);
+      item(app, labelFor(app), colorFor(app), plays || null);
+    });
+
+    rail.appendChild(el("div", { class: "rail-group", text: "Account" }));
+    item("cloudflare", "Cloudflare");
+
+    rail.appendChild(el("div", { class: "rail-group", text: "Elsewhere" }));
+    var link = el("a", { class: "out", href: "wroom/", text: "wroom| →" });
+    rail.appendChild(link);
+  }
+
+  function applyView() {
+    var cf = currentView === "cloudflare";
+    document.getElementById("product-view").hidden = cf;
+    document.getElementById("cloudflare-view").hidden = !cf;
+    document.getElementById("ranges").hidden = cf;
+    renderRail();
+    if (cf) {
+      if (!cfPanels) {
+        cfPanels = CloudflarePanels.create(document.getElementById("cf-mount"), {
+          days: 30,
+          onMeta: renderCloudflareHighlights
+        });
+      }
+      cfPanels.start();
+    } else if (cfPanels) {
+      cfPanels.stop();
+    }
+  }
+
+  function renderCloudflareHighlights(data) {
+    var wrap = document.getElementById("cf-highlights");
+    wrap.textContent = "";
+    var cats = data.categories || [];
+    var worst = cats.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
+    if (worst) {
+      wrap.appendChild(chip(worst.pct >= 75, [
+        "Closest to a limit: ", el("strong", { text: worst.label }),
+        " at ", el("strong", { text: worst.pct.toFixed(worst.pct >= 10 ? 0 : 1) + "%" })
+      ]));
+    }
+    var over = cats.filter(function (c) { return c.pct >= 100; });
+    wrap.appendChild(chip(over.length > 0, over.length
+      ? [el("strong", { text: String(over.length) }), " " + (over.length === 1 ? "category has" : "categories have") + " gone over"]
+      : ["No category over its limit"]));
+    var errs = (data.workerErrors || []).reduce(function (a, b) { return a + b.value; }, 0);
+    if (errs) wrap.appendChild(chip(true, [el("strong", { text: String(errs) }), " Worker errors in " + data.days + " days"]));
+    var when = new Date(data.generatedAt);
+    wrap.appendChild(chip(false, ["Updated ", el("strong", {
+      text: when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    }), data.cached ? " (cached)" : ""]));
+  }
+
+  window.addEventListener("hashchange", function () {
+    var r = routeFromHash();
+    if (r && r !== currentRoute()) goto(r, false);
+  });
+
+  function setApp(app) { goto(app || "all"); }
+
+  /* The rail sits in the periphery, so the column says out loud which
+     project these numbers belong to and over what window. */
+  function renderViewHead(v) {
+    document.getElementById("view-title").textContent = currentApp ? labelFor(currentApp) : "All apps";
+    var range = RANGES.filter(function (r) { return r.d === currentDays; })[0];
+    var parts = [];
+    if (range) parts.push(range.d >= 3650 ? "all time" : "last " + range.label);
+    if (v && v.totals) parts.push((v.totals.plays || 0).toLocaleString() + " plays");
+    document.getElementById("view-sub").textContent = parts.join(" · ");
   }
 
   /*
@@ -1057,216 +1225,6 @@
     );
   }
 
-  /* =====================================================================
-   * Cloudflare quota view.
-   *
-   * The product tabs above filter one dataset by app. This is a different
-   * question entirely - how close the whole account is to the free-tier
-   * walls - so it is a view, not another app tab, and it swaps the body
-   * rather than filtering it.
-   *
-   * Every panel is drawn to its own limit: the dashed line at the top of a
-   * chart IS that category's cap, so bar height reads directly as a
-   * fraction of the limit and the panels are comparable to each other even
-   * though their units are not.
-   * ===================================================================== */
-  var VIEW_STORAGE = "sa_view";
-  var currentView = "product";
-  try { currentView = localStorage.getItem(VIEW_STORAGE) || "product"; } catch (e) {}
-  var cfData = null;
-  var cfTimer = null;
-  var cfInFlight = false;
-
-  var VIEWS = [{ id: "product", label: "Product" }, { id: "cloudflare", label: "Cloudflare" }];
-
-  function renderViews() {
-    var wrap = document.getElementById("views");
-    wrap.textContent = "";
-    VIEWS.forEach(function (v) {
-      var b = el("button", { text: v.label, "aria-pressed": String(currentView === v.id) });
-      b.addEventListener("click", function () { setView(v.id); });
-      wrap.appendChild(b);
-    });
-  }
-
-  function setView(v) {
-    currentView = v;
-    try { localStorage.setItem(VIEW_STORAGE, v); } catch (e) {}
-    applyView();
-  }
-
-  function applyView() {
-    var cf = currentView === "cloudflare";
-    document.getElementById("product-view").hidden = cf;
-    document.getElementById("cloudflare-view").hidden = !cf;
-    document.getElementById("ranges").hidden = cf;
-    renderViews();
-    if (cf) { loadCloudflare(); startCloudflarePolling(); }
-    else { stopCloudflarePolling(); }
-  }
-
-  /* Live, but only while somebody is looking: a background tab polling a
-   * rate-limited upstream every minute is how you get throttled for nothing. */
-  function startCloudflarePolling() {
-    stopCloudflarePolling();
-    cfTimer = setInterval(function () {
-      if (document.hidden || currentView !== "cloudflare") return;
-      loadCloudflare();
-    }, 60000);
-  }
-  function stopCloudflarePolling() {
-    if (cfTimer) { clearInterval(cfTimer); cfTimer = null; }
-  }
-  document.addEventListener("visibilitychange", function () {
-    if (!document.hidden && currentView === "cloudflare") loadCloudflare();
-  });
-
-  function loadCloudflare() {
-    if (cfInFlight) return;
-    cfInFlight = true;
-    fetch(API + "/api/cloudflare?days=30", { headers: { "x-dash-key": getKey() } })
-      .then(function (res) {
-        if (res.status === 401) { showGate(getKey() ? "Wrong key." : ""); throw new Error("unauthorized"); }
-        return res.json().then(function (body) {
-          if (!res.ok) throw new Error(body && body.error ? body.error : "request failed: " + res.status);
-          return body;
-        });
-      })
-      .then(function (data) { cfData = data; renderCloudflare(); })
-      .catch(function (err) {
-        if (err.message === "unauthorized") return;
-        var box = document.getElementById("cf-error");
-        box.hidden = false;
-        box.textContent = err.message;
-      })
-      .finally(function () { cfInFlight = false; });
-  }
-
-  function fmtBytes(n) {
-    if (n >= 1073741824) return (n / 1073741824).toFixed(2) + " GB";
-    if (n >= 1048576) return (n / 1048576).toFixed(1) + " MB";
-    if (n >= 1024) return (n / 1024).toFixed(0) + " KB";
-    return n + " B";
-  }
-  function fmtCount(n) {
-    if (n >= 1000000) return (n / 1000000).toFixed(n >= 10000000 ? 0 : 2) + "M";
-    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k";
-    return String(Math.round(n));
-  }
-  function fmtValue(n, unit) { return unit === "bytes" ? fmtBytes(n) : fmtCount(n); }
-  function fmtExact(n, unit) {
-    return unit === "bytes" ? fmtBytes(n) : Math.round(n).toLocaleString();
-  }
-  function shortDate(iso) {
-    var p = iso.split("-");
-    return p[1] + "-" + p[2];
-  }
-
-  function renderCloudflare() {
-    if (!cfData) return;
-    document.getElementById("cf-error").hidden = true;
-    renderCloudflareHighlights();
-
-    var wrap = document.getElementById("cf-quota");
-    wrap.textContent = "";
-    (cfData.categories || []).forEach(function (cat) {
-      wrap.appendChild(quotaPanel(cat));
-    });
-  }
-
-  function renderCloudflareHighlights() {
-    var wrap = document.getElementById("cf-highlights");
-    wrap.textContent = "";
-    var cats = cfData.categories || [];
-    var worst = cats.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
-    if (worst) {
-      wrap.appendChild(chip(worst.pct >= 75, [
-        "Closest to a limit: ",
-        el("strong", { text: worst.label }),
-        " at ",
-        el("strong", { text: worst.pct.toFixed(worst.pct >= 10 ? 0 : 1) + "%" })
-      ]));
-    }
-    var breached = cats.filter(function (c) { return c.pct >= 100; });
-    wrap.appendChild(chip(breached.length > 0, breached.length
-      ? [el("strong", { text: String(breached.length) }), " " + (breached.length === 1 ? "category has" : "categories have") + " gone over"]
-      : ["No category over its limit"]));
-    var errs = (cfData.workerErrors || []).reduce(function (a, b) { return a + b.value; }, 0);
-    if (errs) {
-      wrap.appendChild(chip(true, [el("strong", { text: String(errs) }), " Worker errors in " + cfData.days + " days"]));
-    }
-    var when = new Date(cfData.generatedAt);
-    wrap.appendChild(chip(false, ["Updated ", el("strong", {
-      text: when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
-    }), cfData.cached ? " (cached)" : ""]));
-  }
-
-  function quotaPanel(cat) {
-    var card = el("div", { class: "qcard " + cat.state });
-    var pctText = cat.pct >= 10 ? cat.pct.toFixed(0) : cat.pct.toFixed(2);
-    var limitText = fmtExact(cat.limit, cat.unit) +
-      (cat.period === "day" ? " / day" : cat.period === "month" ? " / month" : "");
-
-    var head = el("div", { class: "qhead" }, [
-      el("h2", { text: cat.label }),
-      el("div", { class: "qmeta" }, [
-        el("span", { text: "limit " + limitText }),
-        el("span", { text: "peak " + fmtExact(cat.peak, cat.unit) + (cat.peakDate ? " on " + shortDate(cat.peakDate) : "") }),
-        el("span", { class: "pct " + cat.state, text: pctText + "% of limit" })
-      ])
-    ]);
-    card.appendChild(head);
-
-    var body = el("div", { class: "qbody" });
-    body.appendChild(quotaChart(cat));
-    body.appendChild(el("div", { class: "qaxis" }, [
-      el("span", { text: cat.series.length ? shortDate(cat.series[0].date) : "" }),
-      el("span", { text: cat.period === "month" ? "daily share of monthly limit" : "limit" }),
-      el("span", { text: cat.series.length ? shortDate(cat.series[cat.series.length - 1].date) : "" })
-    ]));
-    card.appendChild(body);
-    return card;
-  }
-
-  function quotaChart(cat) {
-    var W = 880, H = 118, TOP = 6;
-    var n = cat.series.length || 1;
-    var slot = W / n;
-    var bw = Math.max(2, Math.min(18, slot * 0.62));
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + (H + 4), role: "img" });
-    svg.setAttribute("aria-label",
-      cat.label + ": daily usage against a limit of " + fmtExact(cat.limit, cat.unit) +
-      ". Peak " + fmtExact(cat.peak, cat.unit) + ", " + cat.pct.toFixed(1) + " percent of the limit.");
-
-    svg.appendChild(svgEl("line", { class: "base-line", x1: 0, y1: H, x2: W, y2: H }));
-
-    cat.series.forEach(function (p, i) {
-      if (!p.value) return;
-      var frac = p.value / cat.budget;
-      var h = Math.max(1.5, Math.min(frac, 1.06) * (H - TOP));
-      var x = slot * i + (slot - bw) / 2;
-      var cls = "bar";
-      if (p.value > cat.budget) cls += " over";
-      else if (i === n - 1) cls += " partial";
-      var r = svgEl("rect", {
-        class: cls,
-        x: x.toFixed(1),
-        y: Math.max(1, H - h).toFixed(1),
-        width: bw.toFixed(1),
-        height: Math.min(h, H - 1).toFixed(1),
-        rx: 1
-      });
-      r.appendChild(svgEl("title", {}));
-      r.lastChild.textContent = p.date + ": " + fmtExact(p.value, cat.unit) +
-        " (" + ((100 * p.value) / cat.budget).toFixed(1) + "% of limit)";
-      svg.appendChild(r);
-    });
-
-    // Drawn last so the cap always sits on top of the bars that cross it.
-    svg.appendChild(svgEl("line", { class: "limit-line", x1: 0, y1: TOP, x2: W, y2: TOP }));
-    return svg;
-  }
-
   /* ---------- init ---------- */
   document.getElementById("key-input").addEventListener("keydown", function (ev) {
     if (ev.key !== "Enter") return;
@@ -1282,7 +1240,13 @@
     history.replaceState(null, "", location.pathname + location.search);
   }
 
-  renderViews();
+  (function initRoute() {
+    var r = routeFromHash();
+    if (!r) return;
+    if (r === "cloudflare") currentView = "cloudflare";
+    else { currentView = "product"; currentApp = r === "all" ? "" : r; }
+  })();
+  renderRail();
   if (getKey()) { load(currentDays); }
   else showGate("");
 })();

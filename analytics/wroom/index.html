@@ -281,7 +281,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      over the cells rather than a state on the person. The negative margin
      eats the padding; the outer cells put it back so the text still lines up
      with everything above. */
-  .waitlist-table { table-layout: fixed; width: calc(100% + 32px); margin: 0 -16px; }
+  /* A floor, so the table never has to choose between hiding a value and
+     fitting. Above 1040px of table it lays out to the card; below it, the
+     card scrolls sideways and everything stays readable. Without this,
+     `table-layout: fixed` obeys the container at any width and the cells
+     that must not wrap - dates, codes, buttons - get shaved instead. */
+  #waitlist-table { overflow-x: auto; margin: 0 -16px; }
+  .waitlist-table { table-layout: fixed; width: 100%; min-width: 1040px; }
+  #waitlist-table > .waitlist-table { width: calc(100% - 0px); }
   .waitlist-table td:first-child, .waitlist-table th:first-child { padding-left: 16px; }
   .waitlist-table td:last-child, .waitlist-table th:last-child { padding-right: 16px; }
   /* WRAP, NEVER CLIP. This was nowrap+ellipsis on every cell so nine columns

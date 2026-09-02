@@ -766,9 +766,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       var handle = e.discord || e.email.replace("discord:", "");
 
       var actions = el("div", { class: "actions" });
-      actions.appendChild(inviteBtn(e, mailable, false,
+      actions.appendChild(inviteBtn(e, mailTo, false,
         e.invitedAt ? (mailable ? "Resend email" : "Show code") : (mailable ? "Email code" : "Mint code")));
-      if (e.invitedAt) actions.appendChild(inviteBtn(e, mailable, true, "Mint new code"));
+      if (e.invitedAt) actions.appendChild(inviteBtn(e, mailTo, true, "Mint new code"));
 
       /* Three states: nobody has been sent anything, a key is out and
          untouched, or it has been used. Revoked counts as "not sent" - the
@@ -815,9 +815,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
    * that person is holding and issues another, which is the only honest way
    * to answer "it never arrived" without leaving two keys live for one seat.
    */
-  function inviteBtn(e, mailable, force, label) {
+  function inviteBtn(e, mailTo, force, label) {
     var b = el("button", { class: "act" + (force ? " danger" : ""), text: label });
     var who = e.name || e.discord || e.email;
+    var mailable = !!mailTo;
     b.addEventListener("click", function () {
       if (inviteInFlight) return;
       var ask = force
@@ -832,7 +833,18 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       dashPost(mailable ? "/signup-gate/waitlist/invite" : "/signup-gate/waitlist/mint", body)
         .then(function (d) {
           inviteInFlight = false;
-          if (!mailable && d.code) window.prompt("Send this to " + who + ":", d.code);
+          if (!mailable && d.code) {
+            window.prompt("Send this to " + who + ":", d.code);
+          } else {
+            /* Said out loud. This used to do nothing visible on success, so
+               a send that worked and a send that silently failed looked
+               exactly alike - and the one you cannot tell apart is the one
+               you assume went wrong. */
+            alert(
+              (d.resent ? "Sent again to " : "Sent to ") + (d.email || mailTo) +
+              (d.code ? "\n\nCode: " + d.code : ""),
+            );
+          }
           loadIntake();
         })
         .catch(function (err) { inviteInFlight = false; b.disabled = false; alert(err.message); });

@@ -354,10 +354,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
 
   <div class="tabs" id="tabs" role="tablist" aria-label="Sections"></div>
 
-<div data-tab="cloudflare" hidden>
-  <div class="highlights" id="cf-highlights"></div>
-  <div id="cf-mount"></div>
-</div>
 
   <div data-tab="summary">
     <div class="highlights" id="highlights"></div>
@@ -456,7 +452,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
 <div class="tooltip" id="tooltip"></div>
 
 <script src="../rail.js"></script>
-<script src="../cf-panels.js"></script>
 <script>
 (function () {
   "use strict";
@@ -695,10 +690,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     { key: "summary", label: "Summary" },
     { key: "queues", label: "Reports & errors" },
     { key: "waitlist", label: "Waitlist" },
-    // The account this all runs on. Same panels as Pulse, same endpoint -
-    // see ../cf-panels.js. It reads the Pulse key from localStorage rather
-    // than adding a second key to keep in step.
-    { key: "cloudflare", label: "Cloudflare" },
+    // No Cloudflare tab here. The account's usage is one thing, not one per
+    // project, and it lives on Pulse under Account - the rail links to it.
   ];
   var currentTab = "live";
   try { currentTab = localStorage.getItem(TAB_STORAGE) || "live"; } catch (e) {}
@@ -743,47 +736,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     if (ranges) ranges.hidden = key !== "summary";
     renderTabs();
     renderRail();
-    syncCloudflare();
     // A chart drawn while its tab was hidden measured a width of zero. Now
     // that the tab is showing, draw it at the width it actually has.
     if (key === "live" && lastPresence) requestAnimationFrame(function () { renderOnline(lastPresence); });
-  }
-
-  /* Polls only while its own tab is the one showing. */
-  var cfPanels = null;
-  function syncCloudflare() {
-    if (currentTab !== "cloudflare") {
-      if (cfPanels) cfPanels.stop();
-      return;
-    }
-    if (!cfPanels) {
-      cfPanels = CloudflarePanels.create(document.getElementById("cf-mount"), {
-        days: 30,
-        onMeta: renderCloudflareHighlights
-      });
-    }
-    cfPanels.start();
-  }
-
-  function renderCloudflareHighlights(data) {
-    var wrap = document.getElementById("cf-highlights");
-    wrap.textContent = "";
-    var cats = data.categories || [];
-    var worst = cats.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
-    if (worst) {
-      wrap.appendChild(chip(worst.pct >= 75, [
-        "Closest to a limit: ", el("strong", { text: worst.label }),
-        " at ", el("strong", { text: worst.pct.toFixed(worst.pct >= 10 ? 0 : 1) + "%" })
-      ]));
-    }
-    var over = cats.filter(function (c) { return c.pct >= 100; });
-    wrap.appendChild(chip(over.length > 0, over.length
-      ? [el("strong", { text: String(over.length) }), " " + (over.length === 1 ? "category has" : "categories have") + " gone over"]
-      : ["No category over its limit"]));
-    var when = new Date(data.generatedAt);
-    wrap.appendChild(chip(false, ["Updated ", el("strong", {
-      text: when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
-    }), data.cached ? " (cached)" : ""]));
   }
 
   function loadQueues() { loadReports(); loadIntake(); }
@@ -1391,6 +1346,41 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       fill: "none", stroke: "var(--series-3)", "stroke-width": 2,
       "stroke-linejoin": "round", "stroke-linecap": "round",
     }));
+
+    /* HOVER. One transparent sheet over the plot, not a target per point: a
+       ten-minute slice is a few pixels wide and chasing that with a mouse is
+       not a feature. The nearest slice to the cursor lights up and the page's
+       own tooltip says when it was and how many were here. */
+    var dot = svgEl("circle", { r: 4, fill: "var(--series-3)", stroke: "var(--surface-1)", "stroke-width": 2, opacity: 0 });
+    var guide = svgEl("line", { stroke: "var(--baseline)", "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0 });
+    svg.appendChild(guide);
+    svg.appendChild(dot);
+    var tip = document.getElementById("tooltip");
+    var sheet = svgEl("rect", { x: L, y: T, width: plotW, height: plotH, fill: "transparent", style: "cursor:crosshair" });
+    sheet.addEventListener("mousemove", function (ev) {
+      var box = svg.getBoundingClientRect();
+      var px = (ev.clientX - box.left) * (W / box.width);
+      var slice = first + ((px - L) / plotW) * span;
+      var best = series[0];
+      series.forEach(function (r) { if (Math.abs(r.slice - slice) < Math.abs(best.slice - slice)) best = r; });
+      var cx = x(best.slice), cy = y(best.n);
+      dot.setAttribute("cx", cx.toFixed(1)); dot.setAttribute("cy", cy.toFixed(1)); dot.setAttribute("opacity", 1);
+      guide.setAttribute("x1", cx.toFixed(1)); guide.setAttribute("x2", cx.toFixed(1));
+      guide.setAttribute("y1", T); guide.setAttribute("y2", T + plotH); guide.setAttribute("opacity", 1);
+      var when = new Date(best.slice * (p.sliceMs || 600000));
+      tip.style.display = "block";
+      tip.textContent = "";
+      tip.appendChild(el("div", { class: "t-day", text: when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) }));
+      tip.appendChild(el("div", { class: "t-row", text: best.n + (best.n === 1 ? " person online" : " people online") }));
+      tip.style.left = Math.min(ev.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + "px";
+      tip.style.top = (ev.clientY + 12) + "px";
+    });
+    sheet.addEventListener("mouseleave", function () {
+      tip.style.display = "none";
+      dot.setAttribute("opacity", 0);
+      guide.setAttribute("opacity", 0);
+    });
+    svg.appendChild(sheet);
     mount.appendChild(svg);
   }
 

@@ -450,19 +450,19 @@ function securityHeaders() {
  *
  * The product numbers above come from our own D1. These come from
  * Cloudflare's own GraphQL analytics, and answer a different question: how
- * close is this account to the free-tier walls it actually runs against.
+ * close is this account to the allowances it actually runs against.
  *
  * Two things about those walls that are easy to get wrong, and that this
  * endpoint deliberately encodes:
  *
  *   - They are ACCOUNT-WIDE, not per project. Every D1 database on the
- *     account shares one 5,000,000 rows/day read budget, and every Worker
- *     shares one 100,000 requests/day. So nothing here filters by script or
- *     database: a per-project number would read as safe while the account
- *     was already over.
- *   - Some are daily and some are monthly. A monthly limit is shown against
- *     a daily budget of limit/30 so every panel plots on the same axis -
- *     the response marks which is which so the UI can say so.
+ *     account shares one read budget and every Worker shares one request
+ *     budget. So nothing here filters by script or database: a per-project
+ *     number would read as safe while the account was already over.
+ *   - Since Workers Paid they are MONTHLY and included rather than daily and
+ *     enforced: past one, usage is billed, not refused. A monthly limit is
+ *     shown against a daily budget of limit/30 so every panel plots on the
+ *     same axis - the response marks which is which so the UI can say so.
  *
  * The token is a read-only Account Analytics token in CF_ANALYTICS_TOKEN.
  * It is never returned to the browser; the dashboard key gates this route
@@ -473,10 +473,26 @@ const CF_GRAPHQL = "https://api.cloudflare.com/client/v4/graphql";
 const CF_CACHE_SECONDS = 300;
 const GIB = 1024 * 1024 * 1024;
 
+/* WORKERS PAID, from 2026-09-03. The shape of every wall changed, not just
+ * the size of it:
+ *
+ *   - The periods are MONTHLY now. On the free plan D1 reads were 5,000,000
+ *     a day and ran out at UTC midnight; on paid they are 25 billion a month.
+ *     A category whose period is "month" is judged month-to-date and plotted
+ *     against the daily share a steady month would spend, which this file
+ *     already did for R2.
+ *   - Crossing one is a BILL, not a wall. The free plan stopped answering
+ *     queries; paid charges for the overage - $0.001 a million reads, $1.00 a
+ *     million writes, $0.30 a million requests. So an alert here means "this
+ *     is about to cost money", which is a different sentence and the Discord
+ *     message says so.
+ *
+ * R2 is unchanged: its allowances are R2's own always-free tier and have
+ * nothing to do with the Workers plan. */
 const CF_LIMITS = {
-  d1RowsRead: { label: "D1 rows read", limit: 5000000, period: "day", unit: "count" },
-  d1RowsWritten: { label: "D1 rows written", limit: 100000, period: "day", unit: "count" },
-  workerRequests: { label: "Worker requests", limit: 100000, period: "day", unit: "count" },
+  d1RowsRead: { label: "D1 rows read", limit: 25000000000, period: "month", unit: "count" },
+  d1RowsWritten: { label: "D1 rows written", limit: 50000000, period: "month", unit: "count" },
+  workerRequests: { label: "Worker requests", limit: 10000000, period: "month", unit: "count" },
   d1Storage: { label: "D1 storage", limit: 5 * GIB, period: "point", unit: "bytes" },
   r2Storage: { label: "R2 storage", limit: 10 * GIB, period: "point", unit: "bytes" },
   r2ClassA: { label: "R2 class A operations", limit: 1000000, period: "month", unit: "count" },
@@ -886,9 +902,14 @@ async function fetchCloudflareUsage(token, account, days) {
  * THE USAGE WATCH.
  *
  * Cloudflare has no notification for any of this. Their only usage alert is
- * Usage Based Billing, which is Professional plan and up and is about money
- * rather than about free-tier ceilings - so there is nothing to buy here and
- * the choice is a small cron or nothing.
+ * Usage Based Billing, which is Professional plan and up - so the choice is
+ * a small cron or nothing.
+ *
+ * SINCE THE PAID PLAN (2026-09-03) this watches a bill rather than a wall.
+ * Every included allowance is monthly and overage is charged rather than
+ * refused, so 90% of the month's D1 writes is "you are on course to pay for
+ * this month", not "the app stops in a few hours". Still worth knowing early,
+ * and still nobody else's job to tell us.
  *
  * WHAT IT WATCHES, and why the comparison differs per category: a daily
  * allowance (D1 rows, Worker requests) is judged on TODAY, because that is
@@ -943,6 +964,12 @@ async function checkUsage(env, opts = {}) {
   const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
   const daysToJudge = minutesIntoDay < 90 ? [today, yesterday] : [today];
 
+  /* How much of the UTC month has happened, for the projection below. Floored
+     away from zero so the first minutes of a month cannot divide by nothing. */
+  const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  const monthEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+  const monthElapsed = Math.min(1, Math.max(1 / 1440, (now.getTime() - monthStart) / (monthEnd - monthStart)));
+
   const breaches = [];
   const readingsSeen = [];
   for (const cat of usage.categories) {
@@ -963,15 +990,31 @@ async function checkUsage(env, opts = {}) {
           }];
     for (const r of readings) {
       const against = cat.limit;
-      const pct = against ? (100 * r.used) / against : 0;
-      readingsSeen.push({ day: r.day, key: cat.key, pct: +pct.toFixed(1) });
-      const hit = floor !== null ? (pct >= floor ? floor : undefined)
+      /* A MONTHLY ALLOWANCE IS JUDGED ON ITS PROJECTION, not on what it has
+         spent so far. 80% of a month's writes on the 28th is on course to
+         land inside the allowance; 80% on the 8th is a bill. Comparing
+         month-to-date against the whole allowance would have alerted every
+         month in the last week of it, and an alarm that cries wolf on
+         schedule is one nobody reads.
+         So: divide by the fraction of the month elapsed, and judge where the
+         month lands. The first tenth of a month is skipped for the same
+         reason the dashboard withholds a projection at 00:20 - two days of
+         data times fifteen is not a forecast. */
+      const projected = cat.period === "month" ? r.used / monthElapsed : r.used;
+      const pct = against ? (100 * projected) / against : 0;
+      readingsSeen.push({ day: r.day, key: cat.key, pct: +pct.toFixed(1), used: r.used, projected: Math.round(projected) });
+      const tooEarly = cat.period === "month" && monthElapsed < 0.1;
+      const hit = tooEarly ? undefined
+        : floor !== null ? (pct >= floor ? floor : undefined)
         : USAGE_THRESHOLDS.find((t) => pct >= t);
       // `!== undefined`, not truthiness: a threshold of 0 is a real threshold
       // and `if (hit)` silently discarded it. That is what made the test route
       // answer "sent" while sending nothing, twice.
       if (hit !== undefined) {
-        breaches.push({ key: cat.key, label: cat.label, pct, used: r.used, limit: against, hit, day: r.day });
+        breaches.push({
+          key: cat.key, label: cat.label, pct, used: r.used, projected, limit: against, hit, day: r.day,
+          period: cat.period,
+        });
       }
     }
   }
@@ -1009,21 +1052,36 @@ async function checkUsage(env, opts = {}) {
       ? `${(n / 1073741824).toFixed(2)} GB`
       : Math.round(n).toLocaleString();
 
-  const lines = fresh.map(
-    (b) =>
-      `**${b.label}** — ${b.pct.toFixed(0)}% of limit (${fmt(b.used, "count")} of ${fmt(
-        b.limit,
-        "count",
-      )})${b.day !== today ? ` *(${b.day}, crossed before midnight)*` : ""}`,
-  );
+  /* WHAT THE OVERAGE COSTS, per category, so a percentage means something.
+     Rates from the Workers and D1 pricing pages, 2026-09-03. */
+  const OVERAGE = {
+    d1RowsRead: { per: 1e6, usd: 0.001, what: "million rows read" },
+    d1RowsWritten: { per: 1e6, usd: 1.0, what: "million rows written" },
+    workerRequests: { per: 1e6, usd: 0.3, what: "million requests" },
+  };
+
+  const lines = fresh.map((b) => {
+    const rate = OVERAGE[b.key];
+    // Past the allowance the interesting number is money, not percent.
+    // What the month costs if it carries on like this, not what it has cost
+    // so far: the bill lands at month end.
+    const over = Math.max(0, (b.period === "month" ? b.projected : b.used) - b.limit);
+    const cost = rate && over > 0
+      ? ` — ${b.period === "month" ? "month would cost" : "overage"} ≈ $${((over / rate.per) * rate.usd).toFixed(2)}`
+      : "";
+    const shape = b.period === "month"
+      ? `on course for ${b.pct.toFixed(0)}% of the monthly allowance — ${fmt(b.used, "count")} so far of ${fmt(b.limit, "count")}`
+      : `${b.pct.toFixed(0)}% of ${fmt(b.limit, "count")} (${fmt(b.used, "count")})`;
+    return `**${b.label}** — ${shape}${cost}${b.day !== today ? ` *(${b.day})*` : ""}`;
+  });
   const worst = Math.max(...fresh.map((b) => b.hit));
   const body = {
     content:
       `${opts.floor !== undefined && opts.floor !== null ? "🧪 *test* — " : ""}${
         worst >= 95 ? "🔴" : worst >= 90 ? "🟠" : "🟡"
-      } **Cloudflare free tier — ${worst}%+ used**\n` +
+      } **Cloudflare usage — on course for ${worst}%+ of an allowance**\n` +
       lines.join("\n") +
-      `\nDaily allowances reset at UTC midnight. <https://joseppy.ca/analytics/#/cloudflare>`,
+      `\nWorkers Paid: past the allowance this is billed, not blocked. Projected from the month so far. <https://joseppy.ca/analytics/#/cloudflare>`,
   };
 
   const res = await fetch(env.DISCORD_WEBHOOK_URL, {

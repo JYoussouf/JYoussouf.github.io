@@ -1,5 +1,5 @@
 /* =========================================================================
- * Cloudflare free-tier panels, shared by Pulse and the wroom dashboard.
+ * Cloudflare usage panels, shared by Pulse and the wroom dashboard.
  *
  * Both dashboards ask the same infrastructure question and neither owns it,
  * so the rendering lives here once rather than being kept in step by hand in
@@ -817,7 +817,7 @@
     mount.appendChild(quota);
     mount.appendChild(el("p", {
       class: "qnote",
-      text: "Free-tier limits are account-wide: every D1 database shares one read budget and every Worker shares one request budget, so nothing here is filtered to a single project. Monthly allowances are drawn against the daily share a steady month would spend, so every panel reads on the same scale. The last bar is today, still filling."
+      text: "Allowances are account-wide: every D1 database shares one read budget and every Worker shares one request budget, so nothing here is filtered to a single project. On Workers Paid these are monthly and included rather than daily and enforced - past one, usage is billed rather than blocked - so a monthly allowance is drawn against the daily share a steady month would spend and every panel reads on the same scale. The last bar is today, still filling."
     }));
   }
 

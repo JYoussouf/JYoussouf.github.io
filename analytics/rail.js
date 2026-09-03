@@ -33,6 +33,22 @@
   ];
 
   var CSS = [
+    /* CROSSING BETWEEN THE TWO PAGES WITHOUT IT FEELING LIKE A PAGE LOAD.
+       Pulse and the wroom dashboard stay separate documents - different API,
+       different key, their own tabs - but they draw this same rail, so a
+       cross-document view transition can hold the rail in place and crossfade
+       only the column beside it. The rail is named so the browser pairs it
+       across the swap; `main` is named so it fades rather than blinking.
+       Browsers without support get a plain navigation, which is what they
+       had. */
+    "@view-transition{navigation:auto}",
+    ".rail{view-transition-name:rail}",
+    "main{view-transition-name:main}",
+    "::view-transition-old(main){animation:rail-out .14s ease-in}",
+    "::view-transition-new(main){animation:rail-in .18s ease-out}",
+    "@keyframes rail-out{to{opacity:0;transform:translateY(-4px)}}",
+    "@keyframes rail-in{from{opacity:0;transform:translateY(4px)}}",
+    "@media (prefers-reduced-motion:reduce){::view-transition-old(main),::view-transition-new(main){animation:none}}",
     ".shell{display:grid;grid-template-columns:minmax(150px,196px) minmax(0,1fr);gap:26px;align-items:start}",
     "@media (max-width:720px){.shell{grid-template-columns:minmax(0,1fr);gap:16px}}",
     ".rail{position:sticky;top:74px;display:flex;flex-direction:column;gap:2px}",
@@ -50,7 +66,20 @@
     ".rail .tally{margin-left:auto;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}"
   ].join("");
 
+  function ensureSpeculation() {
+    if (document.getElementById("rail-speculation")) return;
+    if (!HTMLScriptElement.supports || !HTMLScriptElement.supports("speculationrules")) return;
+    var s = document.createElement("script");
+    s.id = "rail-speculation";
+    s.type = "speculationrules";
+    s.textContent = JSON.stringify({
+      prefetch: [{ source: "document", where: { selector_matches: ".rail a[href]" }, eagerness: "moderate" }]
+    });
+    document.head.appendChild(s);
+  }
+
   function ensureStyle() {
+    ensureSpeculation();
     if (document.getElementById(STYLE_ID)) return;
     var s = document.createElement("style");
     s.id = STYLE_ID;

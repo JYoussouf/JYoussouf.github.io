@@ -616,11 +616,12 @@
       body.appendChild(el("div", { class: "qaxis" }, [
         el("span", { text: hourAxis(series[0].t) }),
         el("span", {
-          text: "peak " + fmtExact(drawn.peak, cat.unit) + "/h · dashed line is the hourly share, " +
+          // Short enough to stay on one line at the widths this page is
+          // read at: a caption that wraps under the chart it explains reads
+          // as a second axis label.
+          text: "peak " + fmtExact(drawn.peak, cat.unit) + "/h · dashed = hourly share " +
             fmtExact(drawn.share, cat.unit) + "/h" +
-            (drawn.clipped
-              ? " · " + drawn.clipped + (drawn.clipped === 1 ? " hour" : " hours") + " above the frame, marked"
-              : "")
+            (drawn.clipped ? " · " + drawn.clipped + " clipped" : "")
         }),
         el("span", { text: "now" })
       ]));

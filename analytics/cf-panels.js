@@ -26,10 +26,17 @@
     ".qcard{background:var(--surface-1);background-image:var(--sheen,none);border:1px solid var(--border);overflow:hidden}",
     ".qcard.near{border-color:var(--warn)}",
     ".qcard.over{border-color:var(--bad)}",
-    ".qhead{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;",
+    /* ONE ROW, ALWAYS. Wrapping dropped the controls onto a second line on
+     * the narrower panels, which is the clunkiness this was meant to remove.
+     * So the row does not wrap: the meta shrinks, and because the reading
+     * comes first in it, the limit is what gets clipped on a narrow screen -
+     * the number somebody came for survives, the context does not. */
+    ".qhead{display:flex;align-items:center;gap:8px 14px;flex-wrap:nowrap;",
       "padding:9px 16px;border-bottom:1px solid var(--grid)}",
     ".qhead .qtitle{font-size:11px;font-weight:750;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.1em}",
-    ".qmeta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}",
+    ".qmeta{display:flex;gap:14px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;",
+      "flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap}",
+    ".qhead .qtitle{flex:0 0 auto}",
     ".qmeta .pct{font-weight:700;color:var(--ok)}",
     ".qmeta .pct.watch{color:var(--text-secondary)}",
     ".qmeta .pct.near{color:var(--warn)}",
@@ -768,8 +775,8 @@
       el("div", { class: "qhead" }, [
         el("div", { class: "qtitle", text: cat.label }),
         el("div", { class: "qmeta" }, [
-          el("span", { text: "limit " + limitText }),
-          pctNode
+          pctNode,
+          el("span", { text: "limit " + limitText })
         ]),
         tools
       ]),

@@ -595,83 +595,90 @@ async function fetchCloudflareBurn(token, account, hours) {
   // partial one - so the newest bucket is "this hour so far" and is marked.
   const startMs = Math.floor(end.getTime() / 3600000) * 3600000 - (hours - 1) * 3600000;
   const start = new Date(startMs);
+  const ts = start.toISOString();
+  const te = end.toISOString();
 
-  const query = `query Burn($a: String!, $ts: Time!, $te: Time!) {
-    viewer {
-      accounts(filter: { accountTag: $a }) {
-        workers: workersInvocationsAdaptiveGroups(
-          limit: 10000
-          filter: { datetime_geq: $ts, datetime_leq: $te }
-          orderBy: [datetimeHour_ASC]
-        ) { sum { requests } dimensions { datetimeHour } }
-        d1: d1AnalyticsAdaptiveGroups(
-          limit: 10000
-          filter: { datetime_geq: $ts, datetime_leq: $te }
-          orderBy: [datetimeHour_ASC]
-        ) { sum { rowsRead rowsWritten } dimensions { datetimeHour } }
-      }
-    }
-  }`;
-
-  const empty = {
-    hours,
-    source: "daily",
-    reason: "",
-    start: start.toISOString(),
-    end: end.toISOString(),
-    categories: {},
-  };
-
-  let body;
-  try {
+  /* TWO REQUESTS, NOT ONE QUERY WITH TWO FIELDS. The first version asked for
+   * both datasets together and GraphQL rejected the pair over a single bad
+   * field name - "unknown field workersInvocationsAdaptiveGroups" - which
+   * cost D1 its hourly data for a mistake in the Workers half. Separated,
+   * each dataset succeeds or fails on its own and the panels that can be
+   * drawn are drawn. */
+  async function ask(query) {
     const res = await fetch(CF_GRAPHQL, {
       method: "POST",
       headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        variables: { a: account, ts: start.toISOString(), te: end.toISOString() },
-      }),
+      body: JSON.stringify({ query, variables: { a: account, ts, te } }),
     });
-    body = await res.json();
-  } catch (e) {
-    // The network, not the query. Same answer either way as far as the page
-    // is concerned, and the reason rides along so it is debuggable.
-    return { ...empty, reason: "request failed: " + (e && e.message ? e.message : "unknown") };
+    const body = await res.json();
+    if (body && body.errors && body.errors.length) {
+      throw new Error(body.errors[0].message || "query rejected");
+    }
+    const acct = body && body.data && body.data.viewer && body.data.viewer.accounts && body.data.viewer.accounts[0];
+    if (!acct) throw new Error("no account in response");
+    return acct;
   }
 
-  if (body && body.errors && body.errors.length) {
-    return { ...empty, reason: "hourly query rejected: " + (body.errors[0].message || "unknown field") };
-  }
-  const acct = body && body.data && body.data.viewer && body.data.viewer.accounts && body.data.viewer.accounts[0];
-  if (!acct) return { ...empty, reason: "no account in response" };
+  const d1Query = `query BurnD1($a: String!, $ts: Time!, $te: Time!) {
+    viewer { accounts(filter: { accountTag: $a }) {
+      d1: d1AnalyticsAdaptiveGroups(
+        limit: 10000
+        filter: { datetime_geq: $ts, datetime_leq: $te }
+        orderBy: [datetimeHour_ASC]
+      ) { sum { rowsRead rowsWritten } dimensions { datetimeHour } }
+    } }
+  }`;
+
+  // Same node the daily view uses, bucketed by hour instead of by date.
+  const workersQuery = `query BurnWorkers($a: String!, $ts: Time!, $te: Time!) {
+    viewer { accounts(filter: { accountTag: $a }) {
+      workers: workersInvocationsAdaptive(
+        limit: 10000
+        filter: { datetime_geq: $ts, datetime_leq: $te }
+        orderBy: [datetimeHour_ASC]
+      ) { sum { requests } dimensions { datetimeHour } }
+    } }
+  }`;
+
+  const [d1Res, wRes] = await Promise.allSettled([ask(d1Query), ask(workersQuery)]);
 
   // One bucket per hour across the window, present even where nothing
   // happened, so the client can plot a rate without inventing gaps.
   const keys = [];
   for (let i = 0; i < hours; i += 1) keys.push(hourKey(startMs + i * 3600000));
-
   const zero = () => {
     const m = Object.create(null);
     keys.forEach(function (k) { m[k] = 0; });
     return m;
   };
   const totals = { d1RowsRead: zero(), d1RowsWritten: zero(), workerRequests: zero() };
+  const reasons = {};
 
-  (acct.d1 || []).forEach(function (row) {
-    const k = normaliseHour(row.dimensions && row.dimensions.datetimeHour);
-    if (!(k in totals.d1RowsRead)) return;
-    totals.d1RowsRead[k] += Number((row.sum && row.sum.rowsRead) || 0);
-    totals.d1RowsWritten[k] += Number((row.sum && row.sum.rowsWritten) || 0);
-  });
-  (acct.workers || []).forEach(function (row) {
-    const k = normaliseHour(row.dimensions && row.dimensions.datetimeHour);
-    if (!(k in totals.workerRequests)) return;
-    totals.workerRequests[k] += Number((row.sum && row.sum.requests) || 0);
-  });
+  if (d1Res.status === "fulfilled") {
+    (d1Res.value.d1 || []).forEach(function (row) {
+      const k = normaliseHour(row.dimensions && row.dimensions.datetimeHour);
+      if (!(k in totals.d1RowsRead)) return;
+      totals.d1RowsRead[k] += Number((row.sum && row.sum.rowsRead) || 0);
+      totals.d1RowsWritten[k] += Number((row.sum && row.sum.rowsWritten) || 0);
+    });
+  } else {
+    reasons.d1RowsRead = reasons.d1RowsWritten = "hourly D1 query rejected: " + d1Res.reason.message;
+  }
+
+  if (wRes.status === "fulfilled") {
+    (wRes.value.workers || []).forEach(function (row) {
+      const k = normaliseHour(row.dimensions && row.dimensions.datetimeHour);
+      if (!(k in totals.workerRequests)) return;
+      totals.workerRequests[k] += Number((row.sum && row.sum.requests) || 0);
+    });
+  } else {
+    reasons.workerRequests = "hourly Workers query rejected: " + wRes.reason.message;
+  }
 
   const nowHour = hourKey(end.getTime());
   const categories = {};
   BURN_CATEGORIES.forEach(function (id) {
+    if (reasons[id]) return; // no data for this one; the reason says why
     categories[id] = keys.map(function (k) {
       return { t: k, value: totals[id][k] || 0, partial: k === nowHour };
     });
@@ -679,10 +686,13 @@ async function fetchCloudflareBurn(token, account, hours) {
 
   return {
     hours,
-    source: "hourly",
-    reason: "",
-    start: start.toISOString(),
-    end: end.toISOString(),
+    // "hourly" when anything came back, so a panel that has data uses it and
+    // a panel that does not reads its own reason below.
+    source: Object.keys(categories).length ? "hourly" : "daily",
+    reason: reasons.d1RowsRead || reasons.workerRequests || "",
+    reasons,
+    start: ts,
+    end: te,
     // The moment the newest bucket stops being partial, so the client can say
     // how much of the current hour it is looking at.
     hourElapsedFraction: (end.getTime() % 3600000) / 3600000,

@@ -218,9 +218,7 @@
     var today = cat.latest || 0;
     var elapsed = utcDayElapsed();
     var st = burnState(hours);
-    var series = st.data && st.data.source === "hourly" && st.data.categories
-      ? st.data.categories[cat.key]
-      : null;
+    var series = st.data && st.data.categories ? st.data.categories[cat.key] : null;
 
     if (series && series.length) {
       var done = series.filter(function (b) { return !b.partial; });
@@ -495,6 +493,8 @@
 
       var bs = burnState(st.hours);
       var series = bs.data && bs.data.categories ? bs.data.categories[cat.key] : null;
+      // A dataset can fail on its own now, so the reason is per category.
+      var why = (bs.data && bs.data.reasons && bs.data.reasons[cat.key]) || bs.error;
       if (bs.status === "loading" && !series) {
         body.appendChild(el("div", { class: "qhint", text: "Reading hourly usage…" }));
         return;
@@ -502,7 +502,7 @@
       if (!series || !series.length) {
         // The honest failure: say what is missing and keep the projection,
         // which the daily figure alone can still support.
-        body.appendChild(el("div", { class: "qhint", text: bs.error || "No hourly data for this window." }));
+        body.appendChild(el("div", { class: "qhint", text: why || "No hourly data for this window." }));
         body.appendChild(el("div", { class: "qhint", text: "Projection below falls back to a flat-day estimate." }));
         setProjection(projNode, cat, st.hours);
         return;

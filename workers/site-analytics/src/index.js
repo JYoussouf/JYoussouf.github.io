@@ -51,6 +51,15 @@ async function routeRequest(request, env) {
     return getCloudflare(request, env, url);
   }
 
+  // What the usage watch would do if it ran right now, without doing it.
+  // Gated like the dashboard, sends nothing, records nothing. Exists because
+  // "why didn't the alarm fire" was answerable only by redeploying a probe -
+  // and an alarm you cannot interrogate is one you cannot trust.
+  if (url.pathname === "/api/usage/dry" && request.method === "GET") {
+    await assertDashKey(request, env);
+    return json(await checkUsage(env, { dry: true }), 200, request, env);
+  }
+
   if ((url.pathname === "/" || url.pathname === "/dash") && request.method === "GET") {
     return Response.redirect(DASH_URL, 302);
   }
@@ -714,11 +723,17 @@ async function fetchCloudflareUsage(token, account, days) {
  * between crossing 90% and midnight. The state lives in D1 rather than in a
  * variable, because a Worker isolate does not survive between cron ticks.
  * ========================================================================= */
-const USAGE_THRESHOLDS = [99, 90];
+/* 80 is the early rung, and it exists because of lag. Cloudflare's analytics
+   feed runs minutes behind the metering it reports on, so a reading of 90%
+   can already be 95% in the ledger that actually cuts you off. At prime-time
+   burn (~1M rows/hour measured on 2026-09-02) that is fifteen minutes of
+   runway; 80% roughly doubles it. */
+const USAGE_THRESHOLDS = [99, 90, 80];
 
 async function checkUsage(env, opts = {}) {
   const floor = opts.floor ?? null;   // test override for the threshold
   const record = opts.record !== false;
+  const dry = opts.dry === true;      // compute and report, never send
   /* SAYS WHAT IT DID. This returned nothing at all, so the route that called
      it reported success on the strength of not having thrown - which is how a
      silent no-op passed as a verified alarm. Every exit now names itself. */
@@ -729,42 +744,73 @@ async function checkUsage(env, opts = {}) {
 
   // 32 days, so a monthly allowance can be summed over the real month.
   const usage = await fetchCloudflareUsage(token, account, 32);
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
   const month = today.slice(0, 7);
+  /* THE DAY THAT JUST ENDED IS STILL JUDGED, for ninety minutes.
+     On 2026-09-02 reads went 84% -> 117% inside a single hour and the hourly
+     cron saw ~88% at :07 and then a fresh day at the next tick. The breach
+     fell between two readings and became unreportable at midnight, because
+     the watch only ever looked at "today". So for the first ninety minutes of
+     a UTC day, yesterday is checked as well - long enough to cover the
+     analytics feed's own lag past midnight - and the dedupe key carries the
+     date, so a day is only ever reported once however many times it is
+     looked at. */
+  const minutesIntoDay = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+  const daysToJudge = minutesIntoDay < 90 ? [today, yesterday] : [today];
 
   const breaches = [];
+  const readingsSeen = [];
   for (const cat of usage.categories) {
-    // What is actually at risk, per the note above.
-    let used;
-    let against;
-    if (cat.period === "month") {
-      used = cat.series
-        .filter((p) => p.date.startsWith(month))
-        .reduce((a, b) => a + b.value, 0);
-      against = cat.limit;
-    } else if (cat.period === "point") {
-      used = cat.latest;
-      against = cat.limit;
-    } else {
-      used = cat.latest;
-      against = cat.limit;
+    // What is actually at risk, per the note above. A daily allowance is
+    // judged per day; the others have one reading, so they get one entry.
+    const readings =
+      cat.period === "day"
+        ? daysToJudge.map((d) => ({
+            day: d,
+            used: (cat.series.find((p) => p.date === d) || { value: 0 }).value,
+          }))
+        : [{
+            day: today,
+            used:
+              cat.period === "month"
+                ? cat.series.filter((p) => p.date.startsWith(month)).reduce((a, b) => a + b.value, 0)
+                : cat.latest,
+          }];
+    for (const r of readings) {
+      const against = cat.limit;
+      const pct = against ? (100 * r.used) / against : 0;
+      readingsSeen.push({ day: r.day, key: cat.key, pct: +pct.toFixed(1) });
+      const hit = floor !== null ? (pct >= floor ? floor : undefined)
+        : USAGE_THRESHOLDS.find((t) => pct >= t);
+      // `!== undefined`, not truthiness: a threshold of 0 is a real threshold
+      // and `if (hit)` silently discarded it. That is what made the test route
+      // answer "sent" while sending nothing, twice.
+      if (hit !== undefined) {
+        breaches.push({ key: cat.key, label: cat.label, pct, used: r.used, limit: against, hit, day: r.day });
+      }
     }
-    const pct = against ? (100 * used) / against : 0;
-    const hit = floor !== null ? (pct >= floor ? floor : undefined)
-      : USAGE_THRESHOLDS.find((t) => pct >= t);
-    // `!== undefined`, not truthiness: a threshold of 0 is a real threshold
-    // and `if (hit)` silently discarded it. That is what made the test route
-    // answer "sent" while sending nothing, twice.
-    if (hit !== undefined) {
-      breaches.push({ key: cat.key, label: cat.label, pct, used, limit: against, hit });
+  }
+  if (dry) {
+    const fresh = [];
+    for (const b of breaches) {
+      const id = `${b.day}:${b.key}:${b.hit}`;
+      const seen = await env.ANALYTICS_DB.prepare("SELECT 1 FROM usage_alerts WHERE id = ?").bind(id).first();
+      if (!seen) fresh.push(id);
     }
+    return {
+      sent: 0, why: "dry run", checkedAt: now.toISOString(), daysJudged: daysToJudge,
+      thresholds: USAGE_THRESHOLDS, readings: readingsSeen,
+      atOrAboveThreshold: breaches.map((b) => `${b.day}:${b.key}:${b.hit}`), wouldSend: fresh,
+    };
   }
   if (breaches.length === 0) return { sent: 0, why: "nothing at or above threshold" };
 
   // Which of these has already been said today.
   const fresh = [];
   for (const b of breaches) {
-    const id = `${today}:${b.key}:${b.hit}`;
+    const id = `${b.day}:${b.key}:${b.hit}`;
     if (!record) { fresh.push({ ...b, id }); continue; }
     const seen = await env.ANALYTICS_DB.prepare(
       "SELECT 1 FROM usage_alerts WHERE id = ?",
@@ -785,13 +831,13 @@ async function checkUsage(env, opts = {}) {
       `**${b.label}** — ${b.pct.toFixed(0)}% of limit (${fmt(b.used, "count")} of ${fmt(
         b.limit,
         "count",
-      )})`,
+      )})${b.day !== today ? ` *(${b.day}, crossed before midnight)*` : ""}`,
   );
   const worst = Math.max(...fresh.map((b) => b.hit));
   const body = {
     content:
       `${opts.floor !== undefined && opts.floor !== null ? "🧪 *test* — " : ""}${
-        worst >= 99 ? "🔴" : "🟠"
+        worst >= 99 ? "🔴" : worst >= 90 ? "🟠" : "🟡"
       } **Cloudflare free tier — ${worst}%+ used**\n` +
       lines.join("\n") +
       `\nDaily allowances reset at UTC midnight. <https://joseppy.ca/analytics/#/cloudflare>`,

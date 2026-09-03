@@ -23,7 +23,10 @@ binding = "TIMMIES_DB"
 database_name = "timmies-passport-db"
 database_id = "fc079bea-6a90-47df-b833-f88955693786"
 
-# The usage watch: hourly, so a daily allowance 90% spent at noon is known at
-# noon. See checkUsage in src/index.js.
+# The usage watch, every five minutes. Hourly missed a crossing outright:
+# 84% at one reading, 117% by the next. At prime-time burn (~1M rows/hour) 90%
+# to the cap is under fifteen minutes, so five is the coarsest interval that
+# still gets a message out in time. Cost is one GraphQL call and two tiny D1
+# reads a tick - nothing against the reads it exists to protect.
 [triggers]
-crons = ["7 * * * *"]
+crons = ["*/5 * * * *"]

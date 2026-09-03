@@ -53,8 +53,10 @@
     ".qbody svg .cf-bar.hot{filter:brightness(1.45)}",
     ".qbody svg .cf-hit{fill:transparent;cursor:crosshair}",
     ".qbody svg .cf-hit:hover{fill:var(--accent);fill-opacity:0.06}",
+    /* Left-padded to clear the y-axis gutter, so the first date sits under
+     * the first bar rather than under its label. */
     ".qaxis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);",
-      "text-transform:uppercase;letter-spacing:0.08em;padding-top:4px}",
+      "text-transform:uppercase;letter-spacing:0.08em;padding:4px 0 0 54px}",
     ".qnote{font-size:12px;color:var(--muted);margin-top:12px;max-width:80ch}",
     ".qerr{color:var(--bad);font-size:13px;padding:12px 0}",
     /* The mode switch and the window picker. Same vocabulary as the rest of
@@ -333,17 +335,31 @@
   }
 
   function chart(cat, pctNode) {
-    var W = 880, H = 112, TOP = 6;
+    var W = 880, H = 112, TOP = 6, PAD_L = 54;
     var n = cat.series.length || 1;
-    var slot = W / n;
+    var slot = (W - PAD_L) / n;
     var bw = Math.max(2, Math.min(18, slot * 0.62));
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + (H + 3) });
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + (H + 14) });
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label",
       cat.label + ": daily usage against a limit of " + fmtExact(cat.limit, cat.unit) +
       ". Peak " + fmtExact(cat.peak, cat.unit) + ", " + cat.pct.toFixed(1) + " percent of the limit.");
 
-    svg.appendChild(svgEl("line", { class: "cf-base", x1: 0, y1: H, x2: W, y2: H }));
+    /* THE SAME GUTTER THE BURN CHART HAS. This chart's scale was legible
+     * without one - the dashed line at the top IS the cap, so a bar's height
+     * is its fraction of the cap - but "82% of the limit" and "how much is
+     * that" are different questions, and only one of them was answered here.
+     * Three lines: zero, half the budget, the budget itself, which is the
+     * daily limit (or, for a monthly allowance, the daily share of it, which
+     * is what these bars have always been drawn against). */
+    [1, 0.5, 0].forEach(function (f) {
+      var gy = H - f * (H - TOP);
+      svg.appendChild(svgEl("line", { class: f === 0 ? "cf-base" : "cf-grid", x1: PAD_L, y1: gy.toFixed(1), x2: W, y2: gy.toFixed(1) }));
+      var label = svgEl("text", { class: "cf-ytick", x: PAD_L - 8, y: (gy + (f === 1 ? 4 : f === 0 ? 0 : 3)).toFixed(1) });
+      label.setAttribute("text-anchor", "end");
+      label.textContent = f === 0 ? "0" : fmtCompact(cat.budget * f, cat.unit);
+      svg.appendChild(label);
+    });
 
     var bars = [];
     cat.series.forEach(function (p, i) {
@@ -356,7 +372,7 @@
       else if (i === n - 1) cls += " today";
       var r = svgEl("rect", {
         class: cls,
-        x: (slot * i + (slot - bw) / 2).toFixed(1),
+        x: (PAD_L + slot * i + (slot - bw) / 2).toFixed(1),
         y: Math.max(1, H - h).toFixed(1),
         width: bw.toFixed(1),
         height: Math.min(h, H - 1).toFixed(1)
@@ -378,7 +394,7 @@
         var hProj = Math.max(1.5, Math.min(proj.value / cat.budget, 1.06) * (H - TOP));
         var gRect = svgEl("rect", {
           class: "cf-ghost" + (proj.value > cat.budget ? " over" : ""),
-          x: (slot * (n - 1) + (slot - bw) / 2).toFixed(1),
+          x: (PAD_L + slot * (n - 1) + (slot - bw) / 2).toFixed(1),
           y: Math.max(1, H - hProj).toFixed(1),
           width: bw.toFixed(1),
           height: Math.max(1, hProj - hNow).toFixed(1)
@@ -391,7 +407,7 @@
     }
 
     // The cap sits above the bars that cross it, and below the hit columns.
-    svg.appendChild(svgEl("line", { class: "cf-limit", x1: 0, y1: TOP, x2: W, y2: TOP }));
+    svg.appendChild(svgEl("line", { class: "cf-limit", x1: PAD_L, y1: TOP, x2: W, y2: TOP }));
 
     /* Hovering has to work on the whole column, not the bar. A quiet day is a
      * 1.5px sliver 18px wide and chasing that with a mouse is not a feature,
@@ -418,7 +434,7 @@
       zones.forEach(function (z) {
         var hit = svgEl("rect", {
           class: "cf-hit",
-          x: (slot * i).toFixed(1),
+          x: (PAD_L + slot * i).toFixed(1),
           y: z.y.toFixed(1),
           width: slot.toFixed(1),
           height: z.h.toFixed(1)

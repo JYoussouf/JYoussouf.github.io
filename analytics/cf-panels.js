@@ -26,8 +26,8 @@
     ".qcard{background:var(--surface-1);background-image:var(--sheen,none);border:1px solid var(--border);overflow:hidden}",
     ".qcard.near{border-color:var(--warn)}",
     ".qcard.over{border-color:var(--bad)}",
-    ".qhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;",
-      "padding:11px 16px;border-bottom:1px solid var(--grid)}",
+    ".qhead{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;",
+      "padding:9px 16px;border-bottom:1px solid var(--grid)}",
     ".qhead .qtitle{font-size:11px;font-weight:750;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.1em}",
     ".qmeta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}",
     ".qmeta .pct{font-weight:700;color:var(--ok)}",
@@ -56,11 +56,21 @@
     ".qseg{display:flex;border:1px solid var(--border)}",
     ".qseg button{appearance:none;background:transparent;border:0;border-left:1px solid var(--border);",
       "color:var(--muted);font:inherit;font-size:10px;font-weight:750;text-transform:uppercase;",
-      "letter-spacing:0.1em;padding:3px 8px;cursor:pointer}",
+      "letter-spacing:0.1em;padding:3px 9px;cursor:pointer;",
+      // Nothing on this page has a radius, so smoothness has to come from
+      // the transitions rather than from the corners.
+      "transition:background-color 140ms ease,color 140ms ease}",
     ".qseg button:first-child{border-left:0}",
     ".qseg button.on{background:var(--accent);color:var(--surface-1)}",
     ".qseg button:hover:not(.on){color:var(--text-secondary)}",
-    ".qhead .qtools{display:flex;gap:8px;align-items:center}",
+    /* Pinned right, whatever else the header is carrying. */
+    ".qhead .qtools{display:flex;gap:8px;align-items:center;margin-left:auto}",
+    ".qseg{transition:opacity 140ms ease}",
+    ".qseg.hidden{opacity:0;pointer-events:none}",
+    /* The chart fades in rather than snapping, so switching modes reads as
+     * one view changing instead of two views swapping. */
+    ".qbody{transition:opacity 160ms ease}",
+    ".qbody.swapping{opacity:0}",
     ".qmeta .proj{font-weight:700}",
     ".qmeta .proj.watch{color:var(--text-secondary)}",
     ".qmeta .proj.near{color:var(--warn)}",
@@ -68,7 +78,8 @@
     /* The burn line, and the ground it stands on. A line rather than bars:
      * an hourly series is a rate over time, and sixty bars read as texture
      * while a line reads as a slope. */
-    ".qbody svg .cf-line{fill:none;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke}",
+    ".qbody svg .cf-line{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linejoin:round;",
+      "stroke-linecap:round;vector-effect:non-scaling-stroke}",
     ".qbody svg .cf-area{fill:var(--accent);fill-opacity:0.12}",
     ".qbody svg .cf-now{fill:var(--accent)}",
     ".qbody svg .cf-guide{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:2 2;vector-effect:non-scaling-stroke}",
@@ -302,22 +313,6 @@
     };
   }
 
-  function setProjection(node, cat) {
-    if (!node) return;
-    var p = project(cat);
-    if (!p) {
-      node.textContent = "";
-      node.className = "proj";
-      return;
-    }
-    var pct = (100 * p.value) / cat.budget;
-    // Named for the moment it is a projection TO: the limits reset at
-    // midnight UTC, so that is the only end-of-day this can mean.
-    node.textContent = "projected " + fmtExact(p.value, cat.unit) + " by 00:00 UTC · " + Math.round(pct) + "%";
-    node.className = "proj " + stateFor(pct);
-    node.setAttribute("title", p.basis + ", against a limit of " + fmtExact(cat.limit, cat.unit));
-  }
-
   function stateFor(pct) {
     return pct >= 100 ? "over" : pct >= 75 ? "near" : pct >= 40 ? "watch" : "clear";
   }
@@ -444,6 +439,43 @@
     return svg;
   }
 
+  /**
+   * A smooth path through points, WITHOUT INVENTING VALUES.
+   *
+   * Monotone cubic (Fritsch-Carlson), not a plain spline: a spline through
+   * spiky hourly data overshoots between points, and an overshoot here would
+   * draw a peak higher than any hour actually reached. This one cannot go
+   * above the points it joins - where the data turns, the tangent is flat.
+   */
+  function smoothPath(xs, ys) {
+    var n = xs.length;
+    if (n === 0) return "";
+    if (n < 3) {
+      return "M" + xs.map(function (x, i) { return x.toFixed(1) + "," + ys[i].toFixed(1); }).join("L");
+    }
+    var d = [], m = [], i;
+    for (i = 0; i < n - 1; i += 1) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+    m.push(d[0]);
+    for (i = 1; i < n - 1; i += 1) {
+      if (d[i - 1] * d[i] <= 0) m.push(0);
+      else {
+        var t = (d[i - 1] + d[i]) / 2;
+        var lim = 3 * Math.min(Math.abs(d[i - 1]), Math.abs(d[i]));
+        m.push(Math.sign(t) * Math.min(Math.abs(t), lim));
+      }
+    }
+    m.push(d[n - 2]);
+
+    var out = "M" + xs[0].toFixed(1) + "," + ys[0].toFixed(1);
+    for (i = 0; i < n - 1; i += 1) {
+      var h = (xs[i + 1] - xs[i]) / 3;
+      out += "C" + (xs[i] + h).toFixed(1) + "," + (ys[i] + m[i] * h).toFixed(1) +
+        " " + (xs[i + 1] - h).toFixed(1) + "," + (ys[i + 1] - m[i + 1] * h).toFixed(1) +
+        " " + xs[i + 1].toFixed(1) + "," + ys[i + 1].toFixed(1);
+    }
+    return out;
+  }
+
   /* The hourly chart: a line, on a scale that is DRAWN rather than implied.
    *
    * Two wrong answers preceded this one. Clipping at the hourly share made
@@ -495,13 +527,17 @@
       svg.appendChild(label);
     });
 
-    var pts = series.map(function (b, i) { return x(i).toFixed(1) + "," + y(b.value).toFixed(1); });
-    if (pts.length) {
-      svg.appendChild(svgEl("polygon", {
+    var xs = series.map(function (b, i) { return x(i); });
+    var ys = series.map(function (b) { return y(b.value); });
+    var line = smoothPath(xs, ys);
+    if (line) {
+      // The area is the same curve, closed down to the baseline, so the fill
+      // never disagrees with the stroke by a pixel.
+      svg.appendChild(svgEl("path", {
         class: "cf-area",
-        points: x(0).toFixed(1) + "," + H + " " + pts.join(" ") + " " + x(n - 1).toFixed(1) + "," + H
+        d: line + "L" + xs[n - 1].toFixed(1) + "," + H + "L" + xs[0].toFixed(1) + "," + H + "Z"
       }));
-      svg.appendChild(svgEl("polyline", { class: "cf-line", points: pts.join(" ") }));
+      svg.appendChild(svgEl("path", { class: "cf-line", d: line }));
     }
 
     // The hourly share, and the trailing average the projection is made from.
@@ -606,7 +642,6 @@
 
     var pctNode = el("span", { class: "pct" });
     setReading(pctNode, cat, todayPoint(cat));
-    var projNode = el("span", { class: "proj" });
 
     var st = viewOf(cat.key);
     var burnable = !!BURNABLE[cat.key];
@@ -615,10 +650,16 @@
     /* DAILY answers "how did the last month go"; BURN answers "is today on
      * course", which the daily chart cannot: a bar 40% full at 10am is either
      * fine or a disaster and the shape of the day is the difference. */
+    /* One view changing, not two swapping: the body fades, is rebuilt, and
+     * fades back on the next frame. Cheap, and it stops a mode switch from
+     * reading as a flash of some other panel. */
+    var painted = false;
     function render() {
+      if (painted) body.classList.add("swapping");
       body.textContent = "";
       if (!burnable || st.mode === "daily") {
         body.appendChild(chart(cat, pctNode));
+        unfade();
         body.appendChild(el("div", { class: "qaxis" }, [
           el("span", { text: cat.series.length ? shortDate(cat.series[0].date) : "" }),
           el("span", {
@@ -628,7 +669,6 @@
           }),
           el("span", { text: cat.series.length ? shortDate(cat.series[cat.series.length - 1].date) : "" })
         ]));
-        setProjection(projNode, cat);
         return;
       }
 
@@ -636,10 +676,6 @@
       var series = bs.data && bs.data.categories ? bs.data.categories[cat.key] : null;
       // A dataset can fail on its own now, so the reason is per category.
       var why = (bs.data && bs.data.reasons && bs.data.reasons[cat.key]) || bs.error;
-      // The projection is a property of the day, not of this chart, so the
-      // header carries it in daily mode only. Here the chart is the answer.
-      projNode.textContent = "";
-      projNode.className = "proj";
       if (bs.status === "loading" && !series) {
         body.appendChild(el("div", { class: "qhint", text: "Reading hourly usage…" }));
         return;
@@ -655,6 +691,7 @@
       body.appendChild(drawn.svg);
       // An axis that rescales itself has to say what it rescaled to, or the
       // height of the line means nothing.
+      unfade();
       body.appendChild(el("div", { class: "qaxis" }, [
         el("span", { text: hourAxis(series[0].t) }),
         el("span", {
@@ -666,6 +703,12 @@
         }),
         el("span", { text: "now" })
       ]));
+    }
+
+    /** Let the freshly built chart lay out, then bring it back. */
+    function unfade() {
+      if (!painted) { painted = true; return; }
+      requestAnimationFrame(function () { body.classList.remove("swapping"); });
     }
 
     function seg(buttons, isOn, onPick) {
@@ -693,12 +736,12 @@
         if (st.mode === "burn") loadBurn(st.hours, render);
         render();
       });
-      windowSeg.style.display = st.mode === "burn" ? "" : "none";
+      windowSeg.className = "qseg" + (st.mode === "burn" ? "" : " hidden");
 
       var modes = [{ label: "daily", mode: "daily" }, { label: "burn", mode: "burn" }];
       tools.appendChild(seg(modes, function (m) { return st.mode === m.mode; }, function (m) {
         st.mode = m.mode;
-        windowSeg.style.display = st.mode === "burn" ? "" : "none";
+        windowSeg.className = "qseg" + (st.mode === "burn" ? "" : " hidden");
         if (st.mode === "burn") loadBurn(st.hours, render);
         render();
       }));
@@ -714,16 +757,21 @@
 
     // The card's edge still answers the peak: a category that broke its cap
     // this month should look broken even while today happens to be quiet.
+    /* WHAT THE HEADER IS FOR: the name of the thing, its wall, and where it
+     * stands right now. Peak moved out because "have we ever breached" is
+     * answered by the red edge of the card and by the tallest bar in the
+     * chart, and the projection moved out because the pale block on today's
+     * bar says it in the place it applies to - both were competing with the
+     * one number somebody came to the page for. Controls sit right, away
+     * from the reading, so the eye lands on the number first. */
     return el("div", { class: "qcard " + cat.state }, [
       el("div", { class: "qhead" }, [
         el("div", { class: "qtitle", text: cat.label }),
-        tools,
         el("div", { class: "qmeta" }, [
           el("span", { text: "limit " + limitText }),
-          el("span", { text: "peak " + fmtExact(cat.peak, cat.unit) + (cat.peakDate ? " · " + shortDate(cat.peakDate) : "") }),
-          projNode,
           pctNode
-        ])
+        ]),
+        tools
       ]),
       body
     ]);

@@ -723,12 +723,15 @@ async function fetchCloudflareUsage(token, account, days) {
  * between crossing 90% and midnight. The state lives in D1 rather than in a
  * variable, because a Worker isolate does not survive between cron ticks.
  * ========================================================================= */
-/* 80 is the early rung, and it exists because of lag. Cloudflare's analytics
-   feed runs minutes behind the metering it reports on, so a reading of 90%
-   can already be 95% in the ledger that actually cuts you off. At prime-time
-   burn (~1M rows/hour measured on 2026-09-02) that is fifteen minutes of
-   runway; 80% roughly doubles it. */
-const USAGE_THRESHOLDS = [99, 90, 80];
+/* THE RUNGS, AND WHY 99 IS NOT ONE OF THEM.
+   Prime-time burn measured 2026-09-02 was ~1M rows/hour: 1.7% of the cap per
+   five-minute tick. The analytics feed this reads runs about a tick behind
+   the metering that actually cuts you off. So a reading of 99% means real
+   usage is already past 100 - that rung would have fired after the outage,
+   not before it. 95 is the last-chance rung, worth roughly two minutes at
+   peak; 90 gives five; 80 gives eleven and exists so a message is in your
+   hand while there is still something to do about it. */
+const USAGE_THRESHOLDS = [95, 90, 80];
 
 async function checkUsage(env, opts = {}) {
   const floor = opts.floor ?? null;   // test override for the threshold
@@ -837,7 +840,7 @@ async function checkUsage(env, opts = {}) {
   const body = {
     content:
       `${opts.floor !== undefined && opts.floor !== null ? "🧪 *test* — " : ""}${
-        worst >= 99 ? "🔴" : worst >= 90 ? "🟠" : "🟡"
+        worst >= 95 ? "🔴" : worst >= 90 ? "🟠" : "🟡"
       } **Cloudflare free tier — ${worst}%+ used**\n` +
       lines.join("\n") +
       `\nDaily allowances reset at UTC midnight. <https://joseppy.ca/analytics/#/cloudflare>`,

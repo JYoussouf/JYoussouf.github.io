@@ -744,6 +744,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     renderTabs();
     renderRail();
     syncCloudflare();
+    // A chart drawn while its tab was hidden measured a width of zero. Now
+    // that the tab is showing, draw it at the width it actually has.
+    if (key === "live" && lastPresence) requestAnimationFrame(function () { renderOnline(lastPresence); });
   }
 
   /* Polls only while its own tab is the one showing. */
@@ -1317,7 +1320,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      drawn as one polyline, with the current count big beside it. Its own
      fetch on its own small clock (60s) - polling the whole stats batch that
      often would be twelve statements a minute to move one number. */
+  var lastPresence = null;
   function renderOnline(p) {
+    lastPresence = p;
     document.getElementById("online-count").textContent = num(p.online);
     var mount = document.getElementById("online-chart");
     mount.textContent = "";
@@ -1328,7 +1333,20 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
        Left gutter for the count, bottom for the clock: without them this drew
        a lively-looking curve whose peak might have been three people or
        thirty, and whose width might have been an hour or a day. */
-    var W = mount.clientWidth || 600, H = 150;
+    /* THE WIDTH IS MEASURED, NOT ASSUMED. A viewBox drawn to a guessed 600
+       renders at 600 whatever the card is, centred in the space it did not
+       use - which is what happened when this first ran before layout and
+       clientWidth was 0. Measure, fall back up the tree, and if even that
+       fails, draw once more on the next frame when layout has happened. */
+    var W = mount.clientWidth
+      || mount.offsetWidth
+      || (mount.parentElement && mount.parentElement.clientWidth)
+      || 0;
+    if (!W) {
+      W = 600;
+      requestAnimationFrame(function () { if (lastPresence) renderOnline(lastPresence); });
+    }
+    var H = 150;
     var L = 34, R = 10, T = 12, B = 22;         // gutters
     var plotW = W - L - R, plotH = H - T - B;
     var first = series[0].slice, last = series[series.length - 1].slice;
@@ -1375,6 +1393,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     }));
     mount.appendChild(svg);
   }
+
+  (function () {
+    var t = null;
+    window.addEventListener("resize", function () {
+      clearTimeout(t);
+      t = setTimeout(function () { if (lastPresence) renderOnline(lastPresence); }, 120);
+    });
+  })();
 
   function pollOnline() {
     fetch(API + "/api/admin/stats/presence", { headers: { "x-dash-key": getKey() } })

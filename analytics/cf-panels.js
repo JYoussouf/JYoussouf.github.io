@@ -73,6 +73,8 @@
     ".qbody svg .cf-now{fill:var(--accent)}",
     ".qbody svg .cf-guide{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:2 2;vector-effect:non-scaling-stroke}",
     ".qbody svg .cf-dot{fill:var(--accent);stroke:var(--surface-1);stroke-width:1.5}",
+    /* An hour that ran off the top of the frame. */
+    ".qbody svg .cf-clip{fill:var(--bad)}",
     /* The trailing average, drawn across the hours it is the average of. */
     ".qbody svg .cf-rate{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}",
     /* Where today lands if it carries on: today's bar, continued. */
@@ -395,9 +397,25 @@
       if (b.value > peak) peak = b.value;
       if (!b.partial) { sum += b.value; done += 1; }
     });
-    // Headroom above whichever is higher, so neither the peak nor the share
-    // line ever sits on the frame.
-    var yMax = Math.max(peak, share) * 1.12 || 1;
+
+    /* THE OUTLIER PROBLEM, and why the axis is not the peak.
+     *
+     * Fitting the peak was the first fix and it traded one unreadable chart
+     * for another: a single hour that spent 2.8M rows flattened the other
+     * forty-seven into the baseline. An hourly rate spans orders of
+     * magnitude - that is its nature, not a fault in the data.
+     *
+     * So the axis fits the NINETIETH PERCENTILE (or the hourly share, if
+     * that is higher, since the share must always be visible to mean
+     * anything), and the handful of hours above the top are clipped and
+     * MARKED with a caret. The true peak is named under the chart either
+     * way, so nothing is hidden - a clipped chart says "bigger than this
+     * frame, and here is how much bigger" rather than silently rescaling
+     * everything else into a flat line.
+     */
+    var sorted = series.map(function (b) { return b.value; }).sort(function (a, b) { return a - b; });
+    var p90 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))] : 0;
+    var yMax = Math.max(share, p90) * 1.25 || peak || 1;
     var y = function (v) { return H - Math.min(1, v / yMax) * (H - TOP); };
     var x = function (i) { return slot * i + slot / 2; };
 
@@ -425,6 +443,20 @@
       var avg = sum / done;
       svg.appendChild(svgEl("line", { class: "cf-rate", x1: 0, y1: y(avg).toFixed(1), x2: W, y2: y(avg).toFixed(1) }));
     }
+
+    // Every hour that ran off the top, so a clipped line is never mistaken
+    // for a flat one.
+    var clipped = 0;
+    series.forEach(function (b, i) {
+      if (b.value <= yMax) return;
+      clipped += 1;
+      var cx = x(i);
+      svg.appendChild(svgEl("polygon", {
+        class: "cf-clip",
+        points: (cx - 3.2).toFixed(1) + "," + (TOP + 5) + " " + cx.toFixed(1) + "," + (TOP - 1) + " " +
+          (cx + 3.2).toFixed(1) + "," + (TOP + 5)
+      }));
+    });
 
     // The hour still filling, marked rather than left to look like a dip.
     var last = series[n - 1];
@@ -461,7 +493,7 @@
     // The header reading follows the day in daily mode; in burn mode it has
     // nothing to follow, so it states today and stays put.
     setReading(pctNode, cat, todayPoint(cat));
-    return { svg: svg, peak: peak, share: share };
+    return { svg: svg, peak: peak, share: share, clipped: clipped, top: yMax };
   }
 
   function hourLabel(t) {
@@ -585,7 +617,10 @@
         el("span", { text: hourAxis(series[0].t) }),
         el("span", {
           text: "peak " + fmtExact(drawn.peak, cat.unit) + "/h · dashed line is the hourly share, " +
-            fmtExact(drawn.share, cat.unit) + "/h"
+            fmtExact(drawn.share, cat.unit) + "/h" +
+            (drawn.clipped
+              ? " · " + drawn.clipped + (drawn.clipped === 1 ? " hour" : " hours") + " above the frame, marked"
+              : "")
         }),
         el("span", { text: "now" })
       ]));

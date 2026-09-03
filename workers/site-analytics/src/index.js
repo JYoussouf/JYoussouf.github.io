@@ -51,6 +51,15 @@ async function routeRequest(request, env) {
     return getCloudflare(request, env, url);
   }
 
+  /* Intra-day usage, for the burn-rate view. A SEPARATE route on purpose:
+   * the hourly datasets are a different shape from the daily ones, and if
+   * Cloudflare ever rejects the query, the panels above must keep drawing.
+   * Nothing calls this until somebody presses the button. */
+  if (url.pathname === "/api/cloudflare/burn" && request.method === "GET") {
+    await assertDashKey(request, env);
+    return getCloudflareBurn(request, env, url);
+  }
+
   // What the usage watch would do if it ran right now, without doing it.
   // Gated like the dashboard, sends nothing, records nothing. Exists because
   // "why didn't the alarm fire" was answerable only by redeploying a probe -
@@ -526,6 +535,167 @@ async function getCloudflare(request, env, url) {
     })
   );
   return json(payload, 200, request, env);
+}
+
+/* =========================================================================
+ * BURN RATE - what the account is spending per hour, and where today lands.
+ *
+ * The daily panels answer "how did yesterday go". They cannot answer the
+ * question you actually have at 10am, which is whether today is on course to
+ * breach - a bar that is 40% full at 10am is either fine or a disaster
+ * depending on the shape of the day so far. This returns hourly buckets, so
+ * the rate is visible and today can be projected from it.
+ *
+ * ONLY THE THREE DAILY-CAPPED CATEGORIES. Storage is a level rather than a
+ * flow, and the monthly R2 budgets are nowhere near their walls; an hourly
+ * chart of either would be noise with a scale nobody needs.
+ *
+ * GRACEFUL, NOT CLEVER. The hourly dimension names are not something this
+ * code can verify from here, and a wrong field makes GraphQL reject the whole
+ * query. So a rejection is caught and answered with `source: "daily"` and no
+ * buckets, which the dashboard renders as a projection from the partial day
+ * instead of a rate chart. The feature degrades; the page does not break.
+ * ========================================================================= */
+
+const BURN_CATEGORIES = ["d1RowsRead", "d1RowsWritten", "workerRequests"];
+
+async function getCloudflareBurn(request, env, url) {
+  const hours = clampInt(url.searchParams.get("hours"), 24, 1, 168);
+  const token = String(env.CF_ANALYTICS_TOKEN || "");
+  const account = String(env.CF_ACCOUNT_ID || "");
+  if (!token || !account) {
+    return json({ error: "Cloudflare analytics not configured." }, 503, request, env);
+  }
+
+  // Cached per window, like the daily view: hourly buckets only change once
+  // an hour, and a dashboard left open must not hammer a rate-limited API.
+  const cacheKey = new Request(new URL("/__cf-burn/" + hours, url.origin).toString(), { method: "GET" });
+  const cache = caches.default;
+  const hit = await cache.match(cacheKey);
+  if (hit) return json({ ...(await hit.json()), cached: true }, 200, request, env);
+
+  const payload = await fetchCloudflareBurn(token, account, hours);
+  await cache.put(
+    cacheKey,
+    new Response(JSON.stringify(payload), {
+      headers: { "Content-Type": "application/json", "Cache-Control": "max-age=" + CF_CACHE_SECONDS },
+    })
+  );
+  return json(payload, 200, request, env);
+}
+
+/** The UTC hour a timestamp falls in, as the bucket key the client plots. */
+function hourKey(ms) {
+  return new Date(Math.floor(ms / 3600000) * 3600000).toISOString().slice(0, 13) + ":00:00Z";
+}
+
+async function fetchCloudflareBurn(token, account, hours) {
+  const end = new Date();
+  // Whole hours back from the top of the current hour, plus the current
+  // partial one - so the newest bucket is "this hour so far" and is marked.
+  const startMs = Math.floor(end.getTime() / 3600000) * 3600000 - (hours - 1) * 3600000;
+  const start = new Date(startMs);
+
+  const query = `query Burn($a: String!, $ts: Time!, $te: Time!) {
+    viewer {
+      accounts(filter: { accountTag: $a }) {
+        workers: workersInvocationsAdaptiveGroups(
+          limit: 10000
+          filter: { datetime_geq: $ts, datetime_leq: $te }
+          orderBy: [datetimeHour_ASC]
+        ) { sum { requests } dimensions { datetimeHour } }
+        d1: d1AnalyticsAdaptiveGroups(
+          limit: 10000
+          filter: { datetime_geq: $ts, datetime_leq: $te }
+          orderBy: [datetimeHour_ASC]
+        ) { sum { rowsRead rowsWritten } dimensions { datetimeHour } }
+      }
+    }
+  }`;
+
+  const empty = {
+    hours,
+    source: "daily",
+    reason: "",
+    start: start.toISOString(),
+    end: end.toISOString(),
+    categories: {},
+  };
+
+  let body;
+  try {
+    const res = await fetch(CF_GRAPHQL, {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        variables: { a: account, ts: start.toISOString(), te: end.toISOString() },
+      }),
+    });
+    body = await res.json();
+  } catch (e) {
+    // The network, not the query. Same answer either way as far as the page
+    // is concerned, and the reason rides along so it is debuggable.
+    return { ...empty, reason: "request failed: " + (e && e.message ? e.message : "unknown") };
+  }
+
+  if (body && body.errors && body.errors.length) {
+    return { ...empty, reason: "hourly query rejected: " + (body.errors[0].message || "unknown field") };
+  }
+  const acct = body && body.data && body.data.viewer && body.data.viewer.accounts && body.data.viewer.accounts[0];
+  if (!acct) return { ...empty, reason: "no account in response" };
+
+  // One bucket per hour across the window, present even where nothing
+  // happened, so the client can plot a rate without inventing gaps.
+  const keys = [];
+  for (let i = 0; i < hours; i += 1) keys.push(hourKey(startMs + i * 3600000));
+
+  const zero = () => {
+    const m = Object.create(null);
+    keys.forEach(function (k) { m[k] = 0; });
+    return m;
+  };
+  const totals = { d1RowsRead: zero(), d1RowsWritten: zero(), workerRequests: zero() };
+
+  (acct.d1 || []).forEach(function (row) {
+    const k = normaliseHour(row.dimensions && row.dimensions.datetimeHour);
+    if (!(k in totals.d1RowsRead)) return;
+    totals.d1RowsRead[k] += Number((row.sum && row.sum.rowsRead) || 0);
+    totals.d1RowsWritten[k] += Number((row.sum && row.sum.rowsWritten) || 0);
+  });
+  (acct.workers || []).forEach(function (row) {
+    const k = normaliseHour(row.dimensions && row.dimensions.datetimeHour);
+    if (!(k in totals.workerRequests)) return;
+    totals.workerRequests[k] += Number((row.sum && row.sum.requests) || 0);
+  });
+
+  const nowHour = hourKey(end.getTime());
+  const categories = {};
+  BURN_CATEGORIES.forEach(function (id) {
+    categories[id] = keys.map(function (k) {
+      return { t: k, value: totals[id][k] || 0, partial: k === nowHour };
+    });
+  });
+
+  return {
+    hours,
+    source: "hourly",
+    reason: "",
+    start: start.toISOString(),
+    end: end.toISOString(),
+    // The moment the newest bucket stops being partial, so the client can say
+    // how much of the current hour it is looking at.
+    hourElapsedFraction: (end.getTime() % 3600000) / 3600000,
+    categories,
+  };
+}
+
+/** Cloudflare returns an hour as "2026-09-03T04:00:00Z" or "2026-09-03T04",
+ *  depending on the dataset. One shape here, so the join cannot miss. */
+function normaliseHour(raw) {
+  const s = String(raw || "");
+  if (!s) return "";
+  return s.length <= 13 ? s.slice(0, 13) + ":00:00Z" : s.slice(0, 13) + ":00:00Z";
 }
 
 async function fetchCloudflareUsage(token, account, days) {

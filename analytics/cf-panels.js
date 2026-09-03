@@ -80,6 +80,7 @@
     /* Where today lands if it carries on: today's bar, continued. */
     ".qbody svg .cf-ghost{fill:var(--accent);fill-opacity:0.28}",
     ".qbody svg .cf-ghost.over{fill:var(--bad);fill-opacity:0.32}",
+    ".qbody svg .cf-ghost.hot{fill-opacity:0.55}",
     ".qhint{font-size:11.5px;color:var(--muted);padding-top:6px}"
   ].join("");
 
@@ -179,6 +180,14 @@
      * over the next few days' bars. So it goes ABOVE the cursor by default,
      * clear of the row being pointed at, and only drops below when there is
      * no room up there. Horizontally it flips near the right edge. */
+    placeTip(t, ev);
+  }
+
+  /* Placement has one job beyond staying on screen: not covering the chart
+   * it is reading from. Above the cursor by default, clear of the row being
+   * pointed at, dropping below only when there is no room up there, and
+   * flipping horizontally near the right edge. */
+  function placeTip(t, ev) {
     var w = t.offsetWidth || 200;
     var h = t.offsetHeight || 64;
     var x = ev.clientX + 16;
@@ -187,6 +196,20 @@
     if (y < 8) y = ev.clientY + 20;
     t.style.left = Math.max(8, x) + "px";
     t.style.top = Math.min(y, window.innerHeight - h - 8) + "px";
+  }
+
+  /** What the pale block says when you point at it. Same three lines as a
+   *  day's tooltip, in the same order, so the two read as one family. */
+  function showProjTip(ev, cat, proj) {
+    var t = tipEl();
+    var pct = (100 * proj.value) / cat.budget;
+    t.style.display = "block";
+    t.textContent = "";
+    t.appendChild(el("div", { class: "t-day", text: "Projected by 00:00 UTC" }));
+    t.appendChild(el("div", { class: "t-row", text: fmtExact(proj.value, cat.unit) + " of " + fmtExact(cat.budget, cat.unit) }));
+    t.appendChild(el("div", { class: "t-row", text: pct.toFixed(pct >= 10 ? 0 : 2) + "% of the daily limit" }));
+    t.appendChild(el("div", { class: "t-row", text: proj.basis }));
+    placeTip(t, ev);
   }
 
   function longDate(iso) {
@@ -323,18 +346,23 @@
      * bars are days and whose dashed line is the daily cap. Reading it off an
      * hourly chart meant comparing a number against a scale it was not on. */
     var proj = project(cat);
+    var ghost = null;
     if (proj && n) {
       var todayVal = cat.series[n - 1].value || 0;
       if (proj.value > todayVal) {
         var hNow = Math.max(0, Math.min(todayVal / cat.budget, 1.06) * (H - TOP));
         var hProj = Math.max(1.5, Math.min(proj.value / cat.budget, 1.06) * (H - TOP));
-        svg.appendChild(svgEl("rect", {
+        var gRect = svgEl("rect", {
           class: "cf-ghost" + (proj.value > cat.budget ? " over" : ""),
           x: (slot * (n - 1) + (slot - bw) / 2).toFixed(1),
           y: Math.max(1, H - hProj).toFixed(1),
           width: bw.toFixed(1),
           height: Math.max(1, hProj - hNow).toFixed(1)
-        }));
+        });
+        svg.appendChild(gRect);
+        // Kept so the hit test below can tell "over the projection" from
+        // "over today so far": one column, two readings.
+        ghost = { rect: gRect, barTop: H - hNow, proj: proj };
       }
     }
 
@@ -346,25 +374,49 @@
      * so each day gets a transparent full-height target and the bar inside it
      * lights up. Added last so nothing is drawn over them. */
     cat.series.forEach(function (p, i) {
-      var hit = svgEl("rect", {
-        class: "cf-hit",
-        x: (slot * i).toFixed(1),
-        y: 0,
-        width: slot.toFixed(1),
-        height: H
-      });
       var point = { date: p.date, value: p.value, partial: i === n - 1 };
-      hit.addEventListener("mousemove", function (ev) {
-        showTip(ev, cat, point);
-        setReading(pctNode, cat, point);
-        if (bars[i]) bars[i].classList.add("hot");
+      var isToday = i === n - 1;
+
+      /* TODAY'S COLUMN HAS TWO THINGS IN IT and used to answer for one. The
+       * blue is what has been spent; the pale block above it is where the
+       * day lands. A single full-height target reported the spent figure
+       * even with the cursor inside the projection, which is the one place
+       * the two numbers are side by side and easiest to confuse. Split at
+       * the top of the bar: below is today so far, above is the projection. */
+      var zones = [];
+      if (isToday && ghost) {
+        zones.push({ y: 0, h: Math.max(1, ghost.barTop), proj: true });
+        zones.push({ y: ghost.barTop, h: Math.max(1, H - ghost.barTop), proj: false });
+      } else {
+        zones.push({ y: 0, h: H, proj: false });
+      }
+
+      zones.forEach(function (z) {
+        var hit = svgEl("rect", {
+          class: "cf-hit",
+          x: (slot * i).toFixed(1),
+          y: z.y.toFixed(1),
+          width: slot.toFixed(1),
+          height: z.h.toFixed(1)
+        });
+        hit.addEventListener("mousemove", function (ev) {
+          if (z.proj) {
+            showProjTip(ev, cat, ghost.proj);
+            ghost.rect.classList.add("hot");
+            return;
+          }
+          showTip(ev, cat, point);
+          setReading(pctNode, cat, point);
+          if (bars[i]) bars[i].classList.add("hot");
+        });
+        hit.addEventListener("mouseleave", function () {
+          hideTip();
+          setReading(pctNode, cat, todayPoint(cat));
+          if (z.proj) ghost.rect.classList.remove("hot");
+          else if (bars[i]) bars[i].classList.remove("hot");
+        });
+        svg.appendChild(hit);
       });
-      hit.addEventListener("mouseleave", function () {
-        hideTip();
-        setReading(pctNode, cat, todayPoint(cat));
-        if (bars[i]) bars[i].classList.remove("hot");
-      });
-      svg.appendChild(hit);
     });
 
     return svg;
@@ -510,13 +562,7 @@
     t.appendChild(el("div", { class: "t-row", text: fmtExact(b.value, cat.unit) + " in that hour" }));
     t.appendChild(el("div", { class: "t-row", text: Math.round((100 * b.value) / share) + "% of the hourly share" }));
     if (b.partial) t.appendChild(el("div", { class: "t-row", text: "this hour, still filling" }));
-    var w = t.offsetWidth || 200, h = t.offsetHeight || 64;
-    var x = ev.clientX + 16;
-    if (x + w > window.innerWidth - 8) x = ev.clientX - w - 16;
-    var y = ev.clientY - h - 16;
-    if (y < 8) y = ev.clientY + 20;
-    t.style.left = Math.max(8, x) + "px";
-    t.style.top = Math.min(y, window.innerHeight - h - 8) + "px";
+    placeTip(t, ev);
   }
 
   /* One request per window for the whole page, and never more than one in

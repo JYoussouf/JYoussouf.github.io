@@ -65,10 +65,19 @@
     ".qmeta .proj.watch{color:var(--text-secondary)}",
     ".qmeta .proj.near{color:var(--warn)}",
     ".qmeta .proj.over{color:var(--bad)}",
-    ".qbody svg .cf-bar.hour{fill:var(--accent)}",
-    ".qbody svg .cf-bar.hour.partial{opacity:0.45}",
+    /* The burn line, and the ground it stands on. A line rather than bars:
+     * an hourly series is a rate over time, and sixty bars read as texture
+     * while a line reads as a slope. */
+    ".qbody svg .cf-line{fill:none;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke}",
+    ".qbody svg .cf-area{fill:var(--accent);fill-opacity:0.12}",
+    ".qbody svg .cf-now{fill:var(--accent)}",
+    ".qbody svg .cf-guide{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:2 2;vector-effect:non-scaling-stroke}",
+    ".qbody svg .cf-dot{fill:var(--accent);stroke:var(--surface-1);stroke-width:1.5}",
     /* The trailing average, drawn across the hours it is the average of. */
     ".qbody svg .cf-rate{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}",
+    /* Where today lands if it carries on: today's bar, continued. */
+    ".qbody svg .cf-ghost{fill:var(--accent);fill-opacity:0.28}",
+    ".qbody svg .cf-ghost.over{fill:var(--bad);fill-opacity:0.32}",
     ".qhint{font-size:11.5px;color:var(--muted);padding-top:6px}"
   ].join("");
 
@@ -213,11 +222,16 @@
    * twenty minutes by seventy-two. Below a floor of elapsed time it returns
    * nothing rather than a number that would only mislead.
    */
-  function project(cat, hours) {
+  /** The window the projection is made from, whatever the chart is showing.
+   *  The picker changes the x-range of the burn line; it should not silently
+   *  change what "projected" means from one glance to the next. */
+  var PROJECT_HOURS = 24;
+
+  function project(cat) {
     if (cat.period !== "day") return null;
     var today = cat.latest || 0;
     var elapsed = utcDayElapsed();
-    var st = burnState(hours);
+    var st = burnState(PROJECT_HOURS);
     var series = st.data && st.data.categories ? st.data.categories[cat.key] : null;
 
     if (series && series.length) {
@@ -228,25 +242,31 @@
         var rate = sum / done.length;
         return {
           value: today + rate * (24 - elapsed * 24),
-          basis: "from the last " + (hours >= 24 ? Math.round(hours / 24) + "d" : hours + "h") + " average",
+          basis: "today so far plus the last 24h average for the hours left before 00:00 UTC",
           rate: rate
         };
       }
     }
     if (elapsed < 0.08) return null;
-    return { value: today / elapsed, basis: "flat-day estimate", rate: null };
+    return {
+      value: today / elapsed,
+      basis: "flat-day estimate: today so far over the fraction of the UTC day elapsed",
+      rate: null
+    };
   }
 
-  function setProjection(node, cat, hours) {
+  function setProjection(node, cat) {
     if (!node) return;
-    var p = project(cat, hours);
+    var p = project(cat);
     if (!p) {
       node.textContent = "";
       node.className = "proj";
       return;
     }
     var pct = (100 * p.value) / cat.budget;
-    node.textContent = "projected " + fmtExact(p.value, cat.unit) + " · " + Math.round(pct) + "%";
+    // Named for the moment it is a projection TO: the limits reset at
+    // midnight UTC, so that is the only end-of-day this can mean.
+    node.textContent = "projected " + fmtExact(p.value, cat.unit) + " by 00:00 UTC · " + Math.round(pct) + "%";
     node.className = "proj " + stateFor(pct);
     node.setAttribute("title", p.basis + ", against a limit of " + fmtExact(cat.limit, cat.unit));
   }
@@ -296,6 +316,26 @@
       bars.push(r);
     });
 
+    /* WHERE TODAY LANDS, drawn on top of today's own bar: the projection
+     * belongs on the daily chart, because the daily chart is the one whose
+     * bars are days and whose dashed line is the daily cap. Reading it off an
+     * hourly chart meant comparing a number against a scale it was not on. */
+    var proj = project(cat);
+    if (proj && n) {
+      var todayVal = cat.series[n - 1].value || 0;
+      if (proj.value > todayVal) {
+        var hNow = Math.max(0, Math.min(todayVal / cat.budget, 1.06) * (H - TOP));
+        var hProj = Math.max(1.5, Math.min(proj.value / cat.budget, 1.06) * (H - TOP));
+        svg.appendChild(svgEl("rect", {
+          class: "cf-ghost" + (proj.value > cat.budget ? " over" : ""),
+          x: (slot * (n - 1) + (slot - bw) / 2).toFixed(1),
+          y: Math.max(1, H - hProj).toFixed(1),
+          width: bw.toFixed(1),
+          height: Math.max(1, hProj - hNow).toFixed(1)
+        }));
+      }
+    }
+
     // The cap sits above the bars that cross it, and below the hit columns.
     svg.appendChild(svgEl("line", { class: "cf-limit", x1: 0, y1: TOP, x2: W, y2: TOP }));
 
@@ -328,77 +368,100 @@
     return svg;
   }
 
-  /* The hourly chart.
+  /* The hourly chart, as a LINE ON AN ADAPTIVE SCALE.
    *
-   * Same y-axis idea as the daily one, one scale down: a bar is a fraction of
-   * the HOURLY SHARE of the daily limit (limit/24), and the dashed line is
-   * that share. So a chart whose bars sit at the line is a day that lands
-   * exactly on the cap, and anything above the line is a rate that cannot be
-   * sustained for a whole day - which is the question a burn chart is for.
+   * Two things were wrong with the first version. It drew bars, and sixty
+   * bars of a rate read as texture rather than as a slope. And it scaled to
+   * the hourly share of the daily limit and clipped there - so an hour at
+   * 393% of the share looked exactly like an hour at 106%, and every quiet
+   * hour was squashed into the bottom two pixels. An hourly series has no
+   * ceiling worth clipping to: a single hour can spend a fifth of the day's
+   * budget and that is the thing worth seeing.
+   *
+   * So the y-axis fits the window's own peak, with the hourly share drawn as
+   * a dashed line WHEREVER IT FALLS on that scale. The share keeps its
+   * meaning - a line sitting on it is a day landing exactly on the cap - and
+   * the peak keeps its shape. Both numbers are named under the chart, because
+   * an axis that rescales itself must say what it rescaled to.
    */
   function burnChart(cat, series, hours, pctNode) {
     var W = 880, H = 112, TOP = 6;
     var share = cat.budget / 24;
     var n = series.length || 1;
     var slot = W / n;
-    var bw = Math.max(1.5, Math.min(18, slot * 0.62));
+
+    var peak = 0, sum = 0, done = 0;
+    series.forEach(function (b) {
+      if (b.value > peak) peak = b.value;
+      if (!b.partial) { sum += b.value; done += 1; }
+    });
+    // Headroom above whichever is higher, so neither the peak nor the share
+    // line ever sits on the frame.
+    var yMax = Math.max(peak, share) * 1.12 || 1;
+    var y = function (v) { return H - Math.min(1, v / yMax) * (H - TOP); };
+    var x = function (i) { return slot * i + slot / 2; };
+
     var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + (H + 3) });
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label",
-      cat.label + ": hourly usage over the last " + hours + " hours, against an hourly share of " +
-      fmtExact(share, cat.unit) + ".");
+      cat.label + ": hourly rate over the last " + hours + " hours. Peak " +
+      fmtExact(peak, cat.unit) + " in an hour, against an hourly share of " + fmtExact(share, cat.unit) + ".");
 
     svg.appendChild(svgEl("line", { class: "cf-base", x1: 0, y1: H, x2: W, y2: H }));
 
-    // Bars are clipped a hair above the share, like the daily chart, so an
-    // hour that broke the line reads as having broken it.
-    var bars = [];
-    var sum = 0, done = 0;
-    series.forEach(function (b, i) {
-      if (!b.partial) { sum += b.value; done += 1; }
-      if (!b.value) { bars.push(null); return; }
-      var h = Math.max(1.5, Math.min(b.value / share, 1.06) * (H - TOP));
-      var cls = "cf-bar hour";
-      if (b.value > share) cls += " over";
-      if (b.partial) cls += " partial";
-      var r = svgEl("rect", {
-        class: cls,
-        x: (slot * i + (slot - bw) / 2).toFixed(1),
-        y: Math.max(1, H - h).toFixed(1),
-        width: bw.toFixed(1),
-        height: Math.min(h, H - 1).toFixed(1)
-      });
-      svg.appendChild(r);
-      bars.push(r);
-    });
-
-    svg.appendChild(svgEl("line", { class: "cf-limit", x1: 0, y1: TOP, x2: W, y2: TOP }));
-
-    // The average the projection is actually made from, drawn where it can be
-    // compared with the hours it came from.
-    if (done) {
-      var avg = sum / done;
-      var ay = Math.max(1, H - Math.min(avg / share, 1.06) * (H - TOP));
-      svg.appendChild(svgEl("line", { class: "cf-rate", x1: 0, y1: ay.toFixed(1), x2: W, y2: ay.toFixed(1) }));
+    // The filled area first, then the line over it, so the stroke stays crisp.
+    var pts = series.map(function (b, i) { return x(i).toFixed(1) + "," + y(b.value).toFixed(1); });
+    if (pts.length) {
+      svg.appendChild(svgEl("polygon", {
+        class: "cf-area",
+        points: x(0).toFixed(1) + "," + H + " " + pts.join(" ") + " " + x(n - 1).toFixed(1) + "," + H
+      }));
+      svg.appendChild(svgEl("polyline", { class: "cf-line", points: pts.join(" ") }));
     }
 
+    // The hourly share, and the trailing average the projection is made from.
+    svg.appendChild(svgEl("line", { class: "cf-limit", x1: 0, y1: y(share).toFixed(1), x2: W, y2: y(share).toFixed(1) }));
+    if (done) {
+      var avg = sum / done;
+      svg.appendChild(svgEl("line", { class: "cf-rate", x1: 0, y1: y(avg).toFixed(1), x2: W, y2: y(avg).toFixed(1) }));
+    }
+
+    // The hour still filling, marked rather than left to look like a dip.
+    var last = series[n - 1];
+    if (last) {
+      svg.appendChild(svgEl("circle", { class: "cf-now", cx: x(n - 1).toFixed(1), cy: y(last.value).toFixed(1), r: 2.5 }));
+    }
+
+    /* Hovering reads the series, so it needs a guide and a dot rather than a
+     * bar to brighten. Full-height targets, as in the daily chart: chasing a
+     * 1.5px line with a mouse is not a feature. */
+    var guide = svgEl("line", { class: "cf-guide", x1: 0, y1: 0, x2: 0, y2: H, style: "display:none" });
+    var dot = svgEl("circle", { class: "cf-dot", cx: 0, cy: 0, r: 3.5, style: "display:none" });
     series.forEach(function (b, i) {
       var hit = svgEl("rect", { class: "cf-hit", x: (slot * i).toFixed(1), y: 0, width: slot.toFixed(1), height: H });
       hit.addEventListener("mousemove", function (ev) {
         showHourTip(ev, cat, b, share);
-        if (bars[i]) bars[i].classList.add("hot");
+        guide.setAttribute("x1", x(i).toFixed(1));
+        guide.setAttribute("x2", x(i).toFixed(1));
+        guide.removeAttribute("style");
+        dot.setAttribute("cx", x(i).toFixed(1));
+        dot.setAttribute("cy", y(b.value).toFixed(1));
+        dot.removeAttribute("style");
       });
       hit.addEventListener("mouseleave", function () {
         hideTip();
-        if (bars[i]) bars[i].classList.remove("hot");
+        guide.setAttribute("style", "display:none");
+        dot.setAttribute("style", "display:none");
       });
       svg.appendChild(hit);
     });
+    svg.appendChild(guide);
+    svg.appendChild(dot);
 
     // The header reading follows the day in daily mode; in burn mode it has
     // nothing to follow, so it states today and stays put.
     setReading(pctNode, cat, todayPoint(cat));
-    return svg;
+    return { svg: svg, peak: peak, share: share };
   }
 
   function hourLabel(t) {
@@ -484,10 +547,14 @@
         body.appendChild(chart(cat, pctNode));
         body.appendChild(el("div", { class: "qaxis" }, [
           el("span", { text: cat.series.length ? shortDate(cat.series[0].date) : "" }),
-          el("span", { text: cat.period === "month" ? "bars are the daily share of the monthly limit" : "" }),
+          el("span", {
+            text: cat.period === "month"
+              ? "bars are the daily share of the monthly limit"
+              : (project(cat) ? "the pale block on today is where it lands by 00:00 UTC" : "")
+          }),
           el("span", { text: cat.series.length ? shortDate(cat.series[cat.series.length - 1].date) : "" })
         ]));
-        setProjection(projNode, cat, st.hours);
+        setProjection(projNode, cat);
         return;
       }
 
@@ -495,6 +562,10 @@
       var series = bs.data && bs.data.categories ? bs.data.categories[cat.key] : null;
       // A dataset can fail on its own now, so the reason is per category.
       var why = (bs.data && bs.data.reasons && bs.data.reasons[cat.key]) || bs.error;
+      // The projection is a property of the day, not of this chart, so the
+      // header carries it in daily mode only. Here the chart is the answer.
+      projNode.textContent = "";
+      projNode.className = "proj";
       if (bs.status === "loading" && !series) {
         body.appendChild(el("div", { class: "qhint", text: "Reading hourly usage…" }));
         return;
@@ -503,17 +574,21 @@
         // The honest failure: say what is missing and keep the projection,
         // which the daily figure alone can still support.
         body.appendChild(el("div", { class: "qhint", text: why || "No hourly data for this window." }));
-        body.appendChild(el("div", { class: "qhint", text: "Projection below falls back to a flat-day estimate." }));
-        setProjection(projNode, cat, st.hours);
+        body.appendChild(el("div", { class: "qhint", text: "The daily view still projects today from a flat-day estimate." }));
         return;
       }
-      body.appendChild(burnChart(cat, series, st.hours, pctNode));
+      var drawn = burnChart(cat, series, st.hours, pctNode);
+      body.appendChild(drawn.svg);
+      // An axis that rescales itself has to say what it rescaled to, or the
+      // height of the line means nothing.
       body.appendChild(el("div", { class: "qaxis" }, [
         el("span", { text: hourAxis(series[0].t) }),
-        el("span", { text: "bars are one hour against the hourly share of the daily limit" }),
+        el("span", {
+          text: "peak " + fmtExact(drawn.peak, cat.unit) + "/h · dashed line is the hourly share, " +
+            fmtExact(drawn.share, cat.unit) + "/h"
+        }),
         el("span", { text: "now" })
       ]));
-      setProjection(projNode, cat, st.hours);
     }
 
     function seg(buttons, isOn, onPick) {
@@ -554,7 +629,11 @@
     }
 
     render();
-    if (burnable && st.mode === "burn") loadBurn(st.hours, render);
+    /* The 24h window is fetched even in daily mode, because the projection
+     * lives there and a flat-day estimate is the worse answer. One request
+     * per page serves all three panels, and the endpoint caches it. */
+    if (burnable) loadBurn(st.mode === "burn" ? st.hours : PROJECT_HOURS, render);
+    if (burnable && st.mode === "burn" && st.hours !== PROJECT_HOURS) loadBurn(PROJECT_HOURS, render);
 
     // The card's edge still answers the peak: a category that broke its cap
     // this month should look broken even while today happens to be quiet.

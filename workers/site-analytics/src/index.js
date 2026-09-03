@@ -493,6 +493,11 @@ const CF_LIMITS = {
   d1RowsRead: { label: "D1 rows read", limit: 25000000000, period: "month", unit: "count" },
   d1RowsWritten: { label: "D1 rows written", limit: 50000000, period: "month", unit: "count" },
   workerRequests: { label: "Worker requests", limit: 10000000, period: "month", unit: "count" },
+  /* CPU TIME is the other metered compute line, and the one a slow query
+     shows up in before it shows up anywhere else: 30 million CPU-ms a month
+     included, then $0.02 a million. Measured in milliseconds so the panel's
+     numbers read the way the invoice does. */
+  workerCpuMs: { label: "Worker CPU time", limit: 30000000, period: "month", unit: "ms" },
   d1Storage: { label: "D1 storage", limit: 5 * GIB, period: "point", unit: "bytes" },
   r2Storage: { label: "R2 storage", limit: 10 * GIB, period: "point", unit: "bytes" },
   r2ClassA: { label: "R2 class A operations", limit: 1000000, period: "month", unit: "count" },
@@ -849,7 +854,16 @@ async function fetchCloudflareUsage(token, account, days) {
     bucket[d] += r.sum.requests || 0;
   });
 
-  const raw = { d1RowsRead, d1RowsWritten, workerRequests, d1Storage, r2Storage, r2ClassA, r2ClassB };
+  /* CPU TIME COMES FROM ITS OWN REQUEST, and the reason is a scar: asking
+     for a field this code cannot verify against the live schema, inside the
+     query everything else depends on, took the whole payload down when the
+     name was wrong (see the burn endpoint, same day). Separate, a bad guess
+     costs one panel. */
+  const cpuPerDay = await fetchWorkerCpu(token, account, start, end, blank).catch(() => null);
+  const raw = {
+    d1RowsRead, d1RowsWritten, workerRequests, d1Storage, r2Storage, r2ClassA, r2ClassB,
+    workerCpuMs: cpuPerDay ?? blank(),
+  };
 
   const categories = Object.entries(CF_LIMITS).map(([key, meta]) => {
     const series = dates.map((d) => ({ date: d, value: raw[key][d] || 0 }));
@@ -896,6 +910,41 @@ async function fetchCloudflareUsage(token, account, days) {
     categories,
     workerErrors: dates.map((d) => ({ date: d, value: workerErrors[d] || 0 })),
   };
+}
+
+/**
+ * CPU milliseconds per day, or null if the dataset will not answer.
+ *
+ * `workersInvocationsAdaptive` reports CPU time in MICROseconds, which is a
+ * factor of a thousand between "0.3% of the allowance" and "300%" - so the
+ * conversion happens here, once, next to the field it applies to.
+ */
+async function fetchWorkerCpu(token, account, start, end, blank) {
+  const query = `query Cpu($a: String!, $ts: Time!, $te: Time!) {
+    viewer { accounts(filter: { accountTag: $a }) {
+      workers: workersInvocationsAdaptive(
+        limit: 10000
+        filter: { datetime_geq: $ts, datetime_leq: $te }
+        orderBy: [date_ASC]
+      ) { sum { cpuTimeUs } dimensions { date } }
+    } }
+  }`;
+  const res = await fetch(CF_GRAPHQL, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables: { a: account, ts: start.toISOString(), te: end.toISOString() } }),
+  });
+  const body = await res.json();
+  if (body && body.errors && body.errors.length) return null;
+  const rows = body?.data?.viewer?.accounts?.[0]?.workers;
+  if (!rows) return null;
+  const perDay = blank();
+  for (const r of rows) {
+    const d = r.dimensions && r.dimensions.date;
+    if (!(d in perDay)) continue;
+    perDay[d] += Number((r.sum && r.sum.cpuTimeUs) || 0) / 1000;
+  }
+  return perDay;
 }
 
 /* =========================================================================
@@ -1058,6 +1107,7 @@ async function checkUsage(env, opts = {}) {
     d1RowsRead: { per: 1e6, usd: 0.001, what: "million rows read" },
     d1RowsWritten: { per: 1e6, usd: 1.0, what: "million rows written" },
     workerRequests: { per: 1e6, usd: 0.3, what: "million requests" },
+    workerCpuMs: { per: 1e6, usd: 0.02, what: "million CPU ms" },
   };
 
   const lines = fresh.map((b) => {

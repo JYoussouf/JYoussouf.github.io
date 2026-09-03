@@ -169,8 +169,17 @@
   /* Axis labels have about forty pixels. "1,664,093" does not fit and
    * "1.66M" carries the same decision. Exact figures stay in the tooltip,
    * where there is room to be exact. */
+  /** CPU milliseconds, in the units a person thinks in. */
+  function fmtMs(n) {
+    if (n >= 3600000) return (n / 3600000).toFixed(n < 36000000 ? 1 : 0) + "h";
+    if (n >= 60000) return (n / 60000).toFixed(n < 600000 ? 1 : 0) + "m";
+    if (n >= 1000) return (n / 1000).toFixed(n < 10000 ? 1 : 0) + "s";
+    return Math.round(n) + "ms";
+  }
+
   function fmtCompact(n, unit) {
     if (unit === "bytes") return fmtBytes(n);
+    if (unit === "ms") return fmtMs(n);
     var a = Math.abs(n);
     if (a >= 1e9) return (n / 1e9).toFixed(a < 1e10 ? 2 : 1) + "B";
     if (a >= 1e6) return (n / 1e6).toFixed(a < 1e7 ? 2 : 1) + "M";
@@ -189,7 +198,11 @@
   }
 
   function fmtExact(n, unit) {
-    return unit === "bytes" ? fmtBytes(n) : Math.round(n).toLocaleString();
+    if (unit === "bytes") return fmtBytes(n);
+    // CPU time exact to the millisecond is noise; the shape people judge it
+    // by is hours and minutes.
+    if (unit === "ms") return fmtMs(n);
+    return Math.round(n).toLocaleString();
   }
   function shortDate(iso) { var p = String(iso).split("-"); return p[1] + "-" + p[2]; }
 

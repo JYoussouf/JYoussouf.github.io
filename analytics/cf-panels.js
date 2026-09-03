@@ -73,8 +73,8 @@
     ".qbody svg .cf-now{fill:var(--accent)}",
     ".qbody svg .cf-guide{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:2 2;vector-effect:non-scaling-stroke}",
     ".qbody svg .cf-dot{fill:var(--accent);stroke:var(--surface-1);stroke-width:1.5}",
-    /* An hour that ran off the top of the frame. */
-    ".qbody svg .cf-clip{fill:var(--bad)}",
+    ".qbody svg .cf-grid{stroke:var(--grid);stroke-width:1;vector-effect:non-scaling-stroke}",
+    ".qbody svg .cf-ytick{fill:var(--muted);font-size:9px;letter-spacing:0.06em}",
     /* The trailing average, drawn across the hours it is the average of. */
     ".qbody svg .cf-rate{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}",
     /* Where today lands if it carries on: today's bar, continued. */
@@ -146,6 +146,28 @@
     if (n >= 1024) return (n / 1024).toFixed(0) + " KB";
     return Math.round(n) + " B";
   }
+  /* Axis labels have about forty pixels. "1,664,093" does not fit and
+   * "1.66M" carries the same decision. Exact figures stay in the tooltip,
+   * where there is room to be exact. */
+  function fmtCompact(n, unit) {
+    if (unit === "bytes") return fmtBytes(n);
+    var a = Math.abs(n);
+    if (a >= 1e9) return (n / 1e9).toFixed(a < 1e10 ? 2 : 1) + "B";
+    if (a >= 1e6) return (n / 1e6).toFixed(a < 1e7 ? 2 : 1) + "M";
+    if (a >= 1e4) return Math.round(n / 1e3) + "K";
+    if (a >= 1e3) return (n / 1e3).toFixed(1) + "K";
+    return String(Math.round(n));
+  }
+
+  /** A round number at or above v, so an axis reads 1.8M rather than 1.79M. */
+  function niceCeil(v) {
+    if (!(v > 0)) return 1;
+    var e = Math.pow(10, Math.floor(Math.log(v) / Math.LN10));
+    var m = v / e;
+    var step = m <= 1 ? 1 : m <= 1.5 ? 1.5 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 3 ? 3 : m <= 4 ? 4 : m <= 5 ? 5 : m <= 7.5 ? 7.5 : 10;
+    return step * e;
+  }
+
   function fmtExact(n, unit) {
     return unit === "bytes" ? fmtBytes(n) : Math.round(n).toLocaleString();
   }
@@ -422,27 +444,26 @@
     return svg;
   }
 
-  /* The hourly chart, as a LINE ON AN ADAPTIVE SCALE.
+  /* The hourly chart: a line, on a scale that is DRAWN rather than implied.
    *
-   * Two things were wrong with the first version. It drew bars, and sixty
-   * bars of a rate read as texture rather than as a slope. And it scaled to
-   * the hourly share of the daily limit and clipped there - so an hour at
-   * 393% of the share looked exactly like an hour at 106%, and every quiet
-   * hour was squashed into the bottom two pixels. An hourly series has no
-   * ceiling worth clipping to: a single hour can spend a fifth of the day's
-   * budget and that is the thing worth seeing.
+   * Two wrong answers preceded this one. Clipping at the hourly share made
+   * an hour at 393% of the share identical to one at 106%. Clipping at the
+   * ninetieth percentile then made 622,283 and 1,664,093 the same height,
+   * which is worse - a chart where unequal things look equal is not a chart.
    *
-   * So the y-axis fits the window's own peak, with the hourly share drawn as
-   * a dashed line WHEREVER IT FALLS on that scale. The share keeps its
-   * meaning - a line sitting on it is a day landing exactly on the cap - and
-   * the peak keeps its shape. Both numbers are named under the chart, because
-   * an axis that rescales itself must say what it rescaled to.
+   * The fix was never a cleverer clip. It was a y-axis. The scale now runs
+   * from zero to a round number at or above the window's true peak, three
+   * gridlines carry their values, and nothing is clipped or hidden. Quiet
+   * hours are small because they ARE small, and the axis says by how much.
+   * The hourly share keeps its dashed line wherever it falls, and the axis
+   * always includes it, so "a day landing exactly on the cap" stays legible
+   * even in a window where nothing came close.
    */
   function burnChart(cat, series, hours, pctNode) {
-    var W = 880, H = 112, TOP = 6;
+    var W = 880, H = 112, TOP = 8, PAD_L = 54;
     var share = cat.budget / 24;
     var n = series.length || 1;
-    var slot = W / n;
+    var slot = (W - PAD_L) / n;
 
     var peak = 0, sum = 0, done = 0;
     series.forEach(function (b) {
@@ -450,36 +471,30 @@
       if (!b.partial) { sum += b.value; done += 1; }
     });
 
-    /* THE OUTLIER PROBLEM, and why the axis is not the peak.
-     *
-     * Fitting the peak was the first fix and it traded one unreadable chart
-     * for another: a single hour that spent 2.8M rows flattened the other
-     * forty-seven into the baseline. An hourly rate spans orders of
-     * magnitude - that is its nature, not a fault in the data.
-     *
-     * So the axis fits the NINETIETH PERCENTILE (or the hourly share, if
-     * that is higher, since the share must always be visible to mean
-     * anything), and the handful of hours above the top are clipped and
-     * MARKED with a caret. The true peak is named under the chart either
-     * way, so nothing is hidden - a clipped chart says "bigger than this
-     * frame, and here is how much bigger" rather than silently rescaling
-     * everything else into a flat line.
-     */
-    var sorted = series.map(function (b) { return b.value; }).sort(function (a, b) { return a - b; });
-    var p90 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))] : 0;
-    var yMax = Math.max(share, p90) * 1.25 || peak || 1;
-    var y = function (v) { return H - Math.min(1, v / yMax) * (H - TOP); };
-    var x = function (i) { return slot * i + slot / 2; };
+    // The axis covers the peak AND the share: the share line is a reference
+    // and a reference off the top of the frame is no reference at all.
+    var yMax = niceCeil(Math.max(peak, share) || 1);
+    var y = function (v) { return H - (Math.max(0, v) / yMax) * (H - TOP); };
+    var x = function (i) { return PAD_L + slot * i + slot / 2; };
 
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + (H + 3) });
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + (H + 14) });
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label",
-      cat.label + ": hourly rate over the last " + hours + " hours. Peak " +
-      fmtExact(peak, cat.unit) + " in an hour, against an hourly share of " + fmtExact(share, cat.unit) + ".");
+      cat.label + ": hourly rate over the last " + hours + " hours, from zero to " +
+      fmtExact(yMax, cat.unit) + " an hour. Peak " + fmtExact(peak, cat.unit) +
+      ", hourly share " + fmtExact(share, cat.unit) + ".");
 
-    svg.appendChild(svgEl("line", { class: "cf-base", x1: 0, y1: H, x2: W, y2: H }));
+    // Three gridlines with their values: top, middle, zero.
+    [1, 0.5, 0].forEach(function (f) {
+      var v = yMax * f;
+      var gy = y(v);
+      svg.appendChild(svgEl("line", { class: f === 0 ? "cf-base" : "cf-grid", x1: PAD_L, y1: gy.toFixed(1), x2: W, y2: gy.toFixed(1) }));
+      var label = svgEl("text", { class: "cf-ytick", x: PAD_L - 8, y: (gy + (f === 1 ? 4 : f === 0 ? 0 : 3)).toFixed(1) });
+      label.setAttribute("text-anchor", "end");
+      label.textContent = f === 0 ? "0" : fmtCompact(v, cat.unit);
+      svg.appendChild(label);
+    });
 
-    // The filled area first, then the line over it, so the stroke stays crisp.
     var pts = series.map(function (b, i) { return x(i).toFixed(1) + "," + y(b.value).toFixed(1); });
     if (pts.length) {
       svg.appendChild(svgEl("polygon", {
@@ -490,25 +505,11 @@
     }
 
     // The hourly share, and the trailing average the projection is made from.
-    svg.appendChild(svgEl("line", { class: "cf-limit", x1: 0, y1: y(share).toFixed(1), x2: W, y2: y(share).toFixed(1) }));
+    svg.appendChild(svgEl("line", { class: "cf-limit", x1: PAD_L, y1: y(share).toFixed(1), x2: W, y2: y(share).toFixed(1) }));
     if (done) {
       var avg = sum / done;
-      svg.appendChild(svgEl("line", { class: "cf-rate", x1: 0, y1: y(avg).toFixed(1), x2: W, y2: y(avg).toFixed(1) }));
+      svg.appendChild(svgEl("line", { class: "cf-rate", x1: PAD_L, y1: y(avg).toFixed(1), x2: W, y2: y(avg).toFixed(1) }));
     }
-
-    // Every hour that ran off the top, so a clipped line is never mistaken
-    // for a flat one.
-    var clipped = 0;
-    series.forEach(function (b, i) {
-      if (b.value <= yMax) return;
-      clipped += 1;
-      var cx = x(i);
-      svg.appendChild(svgEl("polygon", {
-        class: "cf-clip",
-        points: (cx - 3.2).toFixed(1) + "," + (TOP + 5) + " " + cx.toFixed(1) + "," + (TOP - 1) + " " +
-          (cx + 3.2).toFixed(1) + "," + (TOP + 5)
-      }));
-    });
 
     // The hour still filling, marked rather than left to look like a dip.
     var last = series[n - 1];
@@ -516,13 +517,10 @@
       svg.appendChild(svgEl("circle", { class: "cf-now", cx: x(n - 1).toFixed(1), cy: y(last.value).toFixed(1), r: 2.5 }));
     }
 
-    /* Hovering reads the series, so it needs a guide and a dot rather than a
-     * bar to brighten. Full-height targets, as in the daily chart: chasing a
-     * 1.5px line with a mouse is not a feature. */
     var guide = svgEl("line", { class: "cf-guide", x1: 0, y1: 0, x2: 0, y2: H, style: "display:none" });
     var dot = svgEl("circle", { class: "cf-dot", cx: 0, cy: 0, r: 3.5, style: "display:none" });
     series.forEach(function (b, i) {
-      var hit = svgEl("rect", { class: "cf-hit", x: (slot * i).toFixed(1), y: 0, width: slot.toFixed(1), height: H });
+      var hit = svgEl("rect", { class: "cf-hit", x: (PAD_L + slot * i).toFixed(1), y: 0, width: slot.toFixed(1), height: H });
       hit.addEventListener("mousemove", function (ev) {
         showHourTip(ev, cat, b, share);
         guide.setAttribute("x1", x(i).toFixed(1));
@@ -542,10 +540,8 @@
     svg.appendChild(guide);
     svg.appendChild(dot);
 
-    // The header reading follows the day in daily mode; in burn mode it has
-    // nothing to follow, so it states today and stays put.
     setReading(pctNode, cat, todayPoint(cat));
-    return { svg: svg, peak: peak, share: share, clipped: clipped, top: yMax };
+    return { svg: svg, peak: peak, share: share, top: yMax };
   }
 
   function hourLabel(t) {
@@ -666,8 +662,7 @@
           // read at: a caption that wraps under the chart it explains reads
           // as a second axis label.
           text: "peak " + fmtExact(drawn.peak, cat.unit) + "/h · dashed = hourly share " +
-            fmtExact(drawn.share, cat.unit) + "/h" +
-            (drawn.clipped ? " · " + drawn.clipped + " clipped" : "")
+            fmtExact(drawn.share, cat.unit) + "/h"
         }),
         el("span", { text: "now" })
       ]));

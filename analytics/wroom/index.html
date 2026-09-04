@@ -271,19 +271,36 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   }
   .queue-note { color: var(--muted); font-size: 12px; margin-top: 10px; }
 
-  /* ---- Calibration ---- */
-  .judge { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 20px; }
-  @media (max-width: 900px) { .judge { grid-template-columns: minmax(0, 1fr); } }
+  /* ---- Safety: test posts, summary, rules ---- */
+  .probe { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr); gap: 16px; margin-bottom: 14px; }
+  @media (max-width: 900px) { .probe { grid-template-columns: minmax(0, 1fr); } }
+  .probe-box { background: var(--surface-1); border: 1px solid var(--border); padding: 12px 14px; min-width: 0; }
+  .judge-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  .judge-note, .judge-input {
+    width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 7px 9px;
+    background: var(--page); color: var(--text-primary); border: 1px solid var(--border);
+  }
+  .judge-note { resize: vertical; min-height: 64px; }
+  .judge-input { width: auto; flex: 1 1 160px; min-width: 0; }
+  .judge-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+  .editor { background: var(--surface-1); border: 1px solid var(--accent); padding: 12px 14px; margin-bottom: 14px; display: grid; gap: 10px; }
+  .editor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 14px; }
+  .editor-grid label { display: grid; gap: 4px; font-size: 12px; color: var(--text-secondary); min-width: 0; }
+  .editor-grid input, .editor-grid select { font: inherit; font-size: 13px; padding: 5px 7px; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); min-width: 0; }
+  .editor-grid .checks { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-primary); }
+  .editor-grid .checks label { display: inline-flex; gap: 4px; align-items: center; }
+  .result { border: 1px solid var(--border); background: var(--surface-1); margin-bottom: 10px; }
+  .result-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--grid); font-size: 12px; color: var(--text-secondary); }
+  .result-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 16px; padding: 12px; }
+  @media (max-width: 900px) { .result-body { grid-template-columns: minmax(0, 1fr); } }
   .judge-post {
-    background: var(--page); border: 1px solid var(--border); padding: 14px 16px;
-    font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
-    max-height: 420px; overflow: auto; min-width: 0;
+    background: var(--page); border: 1px solid var(--border); padding: 12px 14px;
+    font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+    max-height: 360px; overflow: auto; min-width: 0;
   }
   .judge-post .title { font-weight: 700; margin-bottom: 8px; }
-  .judge-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
-  .judge-side { display: grid; gap: 14px; align-content: start; min-width: 0; }
-  .judge-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
-  .score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--grid); }
+  .judge-side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 5px 0; border-top: 1px solid var(--grid); }
   .score-row:first-of-type { border-top: 0; }
   .score-name { font-size: 12.5px; font-weight: 600; }
   .score-bar { position: relative; height: 6px; background: var(--surface-2); border: 1px solid var(--border); grid-column: 1 / -1; }
@@ -292,7 +309,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .score-bar .line.review { background: var(--bad); }
   .score-bar .line.escalate { background: var(--bad); width: 2px; }
   .score-num { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text-secondary); }
-  .seg { display: inline-flex; gap: 0; }
+  .seg { display: inline-flex; }
   .seg button {
     font: inherit; font-size: 11.5px; font-weight: 700; color: var(--text-secondary);
     background: var(--surface-2); border: 1px solid var(--border); padding: 3px 9px; cursor: pointer; margin-left: -1px;
@@ -300,8 +317,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .seg button:first-child { margin-left: 0; }
   .seg button[aria-pressed="true"] { color: var(--page); background: var(--accent); border-color: var(--accent); position: relative; }
   .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .judge-note { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 7px 9px; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); resize: vertical; min-height: 54px; }
-  .judge-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .badge.rule { color: var(--ok); border-color: var(--ok); }
   .badge.signal { color: var(--warn); border-color: var(--warn); }
   .badge.unusable { color: var(--bad); border-color: var(--bad); }
@@ -313,6 +328,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .agree div { background: var(--surface-1); border: 1px solid var(--border); padding: 8px 12px; font-size: 12.5px; color: var(--text-secondary); }
   .agree strong { display: block; font-size: 20px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
   .why { color: var(--muted); font-size: 12px; }
+  .rules-table input[type="number"] { width: 72px; font: inherit; font-size: 13px; padding: 4px 6px; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  .rules-table input.changed { border-color: var(--accent); }
+  .rules-table td { vertical-align: middle; }
+
   .table-wrap { overflow-x: auto; }
   /* Nine columns have to FIT, or the queue is read by dragging. Blanket
      nowrap was what pushed it off the edge: the two free-text answers are
@@ -450,38 +469,54 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     </div>
   </div>
 
-  <!-- THE CLASSIFIER IS CALIBRATED HERE, BY A PERSON. Every post on the
-       shared plane is scored by a text classifier and the Worker's policy
-       turns scores into a cover, a queue entry or a hold. Whether those
-       lines are right is not something the machine can say about itself:
-       this card puts one post at a time in front of a person, records what
-       they would do and which of the machine's categories are really there,
-       and the report below turns those judgements into a standing per
-       category - usable as a rule, a signal only, unusable, or not enough
-       data yet. server/src/contentSafetyCalibration.ts is the arithmetic. -->
-  <div class="card" data-tab="safety" data-card="wroom-calibrate">
-    <button class="card__head" aria-expanded="true"><span class="card__title">Calibrate &middot; judge the next post</span><span class="chev">&#9660;</span></button>
+  <!-- THE CLASSIFIER IS TUNED HERE, BY A PERSON. Every post on the shared
+       plane is scored by a text classifier and the Worker's policy turns
+       scores into a cover, a queue entry or a hold. Three panels: TEST
+       POSTS asks questions of the verdict table (saved, editable queries),
+       scores any text or any post on demand, and records what a person
+       would do; SUMMARY says what the machine has been deciding and which
+       of its scores are trustworthy enough to carry a rule; RULES is the
+       policy itself, edited here and saved to the Worker. The arithmetic is
+       server/src/contentSafety*.ts; this only draws it. -->
+  <div class="card" data-tab="safety" data-card="wroom-safety-posts">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Test posts</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
-      <div class="highlights" id="calibrate-coverage"></div>
-      <div id="calibrate"></div>
-      <div class="queue-note">Say what you would do with the post, and for each category the machine raised, whether it is really there. Fiction counts as fiction: a villain's threat is not harassment, a battle is not graphic violence unless it is. Skip only what you cannot judge.</div>
+      <div class="filters" id="safety-queries"></div>
+      <div id="safety-editor" hidden></div>
+      <div class="probe">
+        <div class="probe-box">
+          <div class="judge-label">Score any text</div>
+          <textarea class="judge-note" id="safety-probe-text" placeholder="Paste a post, real or invented, and see what the classifier and the current rules make of it. Nothing is stored."></textarea>
+          <div class="judge-actions"><button class="act" id="safety-probe-run">Score it</button></div>
+          <div id="safety-probe-result"></div>
+        </div>
+        <div class="probe-box">
+          <div class="judge-label">Score one post by id</div>
+          <div class="judge-actions"><input class="judge-input" id="safety-post-id" placeholder="wp_…"><button class="act" id="safety-post-run">Score now</button></div>
+          <div class="judge-label" style="margin-top:14px">Backlog</div>
+          <div class="judge-actions"><button class="act" id="safety-sweep">Score older posts</button><span class="sub" id="safety-sweep-status"></span></div>
+        </div>
+      </div>
+      <div id="safety-results"></div>
+      <div class="queue-note">Say what you would do with a post, and for each category the machine raised, whether it is really there. Fiction counts as fiction: a villain's threat is not harassment, a battle is not graphic violence unless it is.</div>
     </div>
   </div>
 
-  <div class="card" data-tab="safety" data-card="wroom-calibration-report">
-    <button class="card__head" aria-expanded="true"><span class="card__title">Which scores can carry a rule</span><span class="chev">&#9660;</span></button>
+  <div class="card" data-tab="safety" data-card="wroom-safety-summary">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Summary</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
-      <div id="calibration-report"></div>
+      <div class="highlights" id="safety-summary-chips"></div>
+      <div class="cols"><div id="safety-verdict-counts"></div><div id="safety-agreement"></div></div>
+      <div id="safety-standings"></div>
       <div class="queue-note">A rule fires without a person, so what matters is precision: when the score is high, did you agree? Recall is among the machine's own candidates only. Standing is decided on confirmed cases, never on a perfect record over three posts.</div>
     </div>
   </div>
 
-  <div class="card" data-tab="safety" data-card="wroom-verdicts">
-    <button class="card__head" aria-expanded="true"><span class="card__title">Recent verdicts</span><span class="chev">&#9660;</span></button>
+  <div class="card" data-tab="safety" data-card="wroom-safety-rules">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Rules</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
-      <div class="filters" id="verdict-filters"></div>
-      <div id="verdicts-table" style="min-height:80px"></div>
-      <div class="queue-note" id="verdicts-note"></div>
+      <div id="safety-rules"></div>
+      <div class="queue-note">Each line is the score at or above which that action applies; blank means never. Fold is a cover for everybody. Review is a cover plus a queue entry. Escalate jumps the queue and tells the admin now; hold also hides the post until a person restores it. Saving re-decides every stored score under the new lines.</div>
     </div>
   </div>
 
@@ -702,7 +737,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         setTab(currentTab);
         paint();
         if (!document.getElementById("reports-table").childElementCount) loadQueues();
-        if (currentTab === "safety" && !document.getElementById("calibrate").childElementCount) loadSafety();
+        if (currentTab === "safety" && !document.getElementById("safety-results").childElementCount) loadSafety();
       })
       .catch(function (err) {
         if (err.message === "unauthorized") return;
@@ -802,180 +837,415 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       .catch(function (e) { reportRows = null; reportsError = e.message; renderReports(); });
   }
 
-  /* ---------- the classifier: calibration, report, verdicts ----------
-     Three cards on the Safety tab. The loop is: GET the next post worth a
-     judgement, show it with the machine's scores against today's lines,
-     record what a person would do and which categories are real, repeat.
-     The report is recomputed from every judgement so far; the verdict
-     listing is the raw feed for spot checks. All arithmetic is the
-     Worker's (contentSafetyCalibration.ts); this only draws it. */
+
+  /* ---------- the classifier: test posts, summary, rules ----------
+     The tuning workbench. Saved queries are specs the Worker turns into
+     SQL (contentSafetyQuery.ts); the editor here is a form over that spec.
+     Judging happens inline on each result. Rules are the live policy,
+     read from and written to the Worker. All arithmetic is the Worker's;
+     this only draws it. */
   var ACTIONS = ["clear", "fold", "review", "escalate"];
   var ACTION_WORDS = { clear: "Leave it", fold: "Cover it", review: "Cover + queue", escalate: "Escalate" };
   var STANDING_WORDS = { rule: "rule", signal: "signal only", unusable: "unusable", more_data: "more data" };
-  var judging = null;         /* the post on screen, as the server sent it */
-  var judgement = null;       /* { action, categories, note } being built */
-  var skipped = [];           /* ids skipped this session, sent back so they do not return */
-  var verdictFilter = "";
+  var CATEGORIES = ["harassment", "harassment_threatening", "hate", "hate_threatening", "illicit", "illicit_violent",
+    "self_harm", "self_harm_intent", "self_harm_instructions", "sexual", "sexual_minors", "violence", "violence_graphic"];
+  var safetyQueries = [];     /* saved specs from the Worker */
+  var activeQueryId = null;
+  var editing = null;         /* { id, name, spec } in the editor, or null */
+  var safetyRules = null;     /* the live rules, for drawing lines on bars */
+  var judging = {};           /* targetId -> { action, categories, note } */
+  var summary = null;
 
-  function loadSafety() { loadCalibrateNext(); loadCalibrationReport(); loadVerdicts(); }
+  function loadSafety() { loadSafetyQueries(); loadSafetySummary(); loadSafetyRules(); wireProbes(); }
 
   function catWord(c) { return c.replace(/_/g, "/"); }
+  function pct(v) { return v === null || v === undefined ? "–" : Math.round(v * 100) + "%"; }
 
-  function loadCalibrateNext() {
-    var wrap = document.getElementById("calibrate");
-    if (!wrap.childElementCount) wrap.appendChild(el("div", { class: "empty", text: "Finding the next post…" }));
-    dashFetch("/safety/calibration/next" + (skipped.length ? "?skip=" + encodeURIComponent(skipped.join(",")) : ""))
-      .then(function (d) { judging = d; judgement = null; renderCalibrate(); })
-      .catch(function (e) { wrap.textContent = ""; wrap.appendChild(el("div", { class: "empty", text: e.message })); });
+  /* ---- Test posts: saved queries ---- */
+
+  function loadSafetyQueries() {
+    dashFetch("/safety/queries")
+      .then(function (d) {
+        safetyQueries = d.queries || [];
+        if (!activeQueryId && safetyQueries.length) activeQueryId = safetyQueries[0].id;
+        renderSafetyQueries();
+        runActiveQuery();
+      })
+      .catch(function (e) { showResultsMessage(e.message); });
   }
 
-  function renderCoverage(d) {
-    var cov = document.getElementById("calibrate-coverage");
-    cov.textContent = "";
-    cov.appendChild(el("span", { class: "chip" }, [el("strong", { text: String(d.labeled) }), document.createTextNode(" judged")]));
-    (d.buckets || []).forEach(function (b) {
-      if (b === "near_miss") return; /* a subset of clear; the count cannot separate it */
-      var n = d.remaining[b] || 0;
-      cov.appendChild(el("span", { class: "chip" + (n && b !== "clear" ? " hot" : "") }, [
-        el("strong", { text: String(n) }), document.createTextNode(" " + b + " waiting")
-      ]));
+  function renderSafetyQueries() {
+    var bar = document.getElementById("safety-queries");
+    bar.textContent = "";
+    safetyQueries.forEach(function (q) {
+      var b = el("button", { text: q.name, "aria-pressed": String(q.id === activeQueryId) });
+      b.addEventListener("click", function () { activeQueryId = q.id; editing = null; renderSafetyQueries(); renderSafetyEditor(); runActiveQuery(); });
+      bar.appendChild(b);
     });
-    cov.appendChild(el("span", { class: "chip", text: "policy v" + d.policyVersion }));
-    /* The backfill, on demand. The nightly cron scores what the classifier
-       never saw; this is the same sweep for somebody who does not want to
-       wait for 04:17 UTC. Up to 500 a press; press again until it says 0. */
-    var sweep = el("button", { class: "act", text: "Score older posts" });
+    var edit = el("button", { text: "Edit", title: "Edit the selected query" });
+    edit.addEventListener("click", function () {
+      var q = safetyQueries.filter(function (x) { return x.id === activeQueryId; })[0];
+      if (!q) return;
+      editing = { id: q.id, name: q.name, spec: JSON.parse(JSON.stringify(q.spec)) };
+      renderSafetyEditor();
+    });
+    var add = el("button", { text: "+ New query" });
+    add.addEventListener("click", function () {
+      editing = { id: "q_" + Date.now().toString(36), name: "", spec: { order: "newest", limit: 25 }, isNew: true };
+      renderSafetyEditor();
+    });
+    bar.appendChild(edit);
+    bar.appendChild(add);
+  }
+
+  function runActiveQuery() {
+    var q = safetyQueries.filter(function (x) { return x.id === activeQueryId; })[0];
+    if (!q) { showResultsMessage("No saved queries. Make one."); return; }
+    runSpec(q.spec);
+  }
+
+  function runSpec(spec) {
+    showResultsMessage("Running…");
+    dashPost("/safety/query", spec)
+      .then(function (d) { safetyRules = d.rules; renderResults(d.rows, d); })
+      .catch(function (e) { showResultsMessage(e.message); });
+  }
+
+  function showResultsMessage(msg) {
+    var wrap = document.getElementById("safety-results");
+    wrap.textContent = "";
+    wrap.appendChild(el("div", { class: "empty", text: msg }));
+  }
+
+  /* ---- Test posts: the query editor (a form over the spec) ---- */
+
+  function field(labelText, control) { return el("label", {}, [document.createTextNode(labelText), control]); }
+
+  function renderSafetyEditor() {
+    var box = document.getElementById("safety-editor");
+    box.textContent = "";
+    box.hidden = !editing;
+    if (!editing) return;
+    var sp = editing.spec;
+
+    var name = el("input", { placeholder: "Name" }); name.value = editing.name;
+    name.addEventListener("input", function () { editing.name = name.value; });
+
+    var grid = el("div", { class: "editor-grid" });
+    grid.appendChild(field("Name", name));
+
+    function checks(key, label) {
+      var wrap = el("div", { class: "checks" });
+      ACTIONS.forEach(function (a) {
+        var cb = el("input", { type: "checkbox" });
+        cb.checked = (sp[key] || []).indexOf(a) >= 0;
+        cb.addEventListener("change", function () {
+          var set = (sp[key] || []).filter(function (x) { return x !== a; });
+          if (cb.checked) set.push(a);
+          if (set.length) sp[key] = set; else delete sp[key];
+        });
+        wrap.appendChild(el("label", {}, [cb, document.createTextNode(a)]));
+      });
+      return field(label, wrap);
+    }
+    grid.appendChild(checks("verdict", "Machine verdict"));
+    grid.appendChild(checks("action", "Applied action"));
+
+    var cat = el("select", {});
+    cat.appendChild(el("option", { value: "", text: "highest of any category" }));
+    CATEGORIES.forEach(function (c) { cat.appendChild(el("option", { value: c, text: catWord(c) })); });
+    cat.value = sp.category || "";
+    cat.addEventListener("change", function () { if (cat.value) sp.category = cat.value; else delete sp.category; });
+    grid.appendChild(field("Score on", cat));
+
+    function num(key, label, step, min, max) {
+      var i = el("input", { type: "number", step: String(step), min: String(min), max: String(max) });
+      i.value = sp[key] === undefined ? "" : String(sp[key]);
+      i.addEventListener("input", function () { if (i.value === "") delete sp[key]; else sp[key] = Number(i.value); });
+      return field(label, i);
+    }
+    grid.appendChild(num("minScore", "Score at least", 0.01, 0, 1));
+    grid.appendChild(num("maxScore", "Score at most", 0.01, 0, 1));
+
+    function sel(key, label, options) {
+      var s = el("select", {});
+      options.forEach(function (o) { s.appendChild(el("option", { value: o[0], text: o[1] })); });
+      s.value = sp[key] === undefined ? "" : String(sp[key]);
+      s.addEventListener("change", function () {
+        if (s.value === "") delete sp[key];
+        else if (s.value === "true" || s.value === "false") sp[key] = s.value === "true";
+        else sp[key] = s.value;
+      });
+      return field(label, s);
+    }
+    grid.appendChild(sel("judged", "Judged by a person", [["", "any"], ["yes", "yes"], ["no", "not yet"], ["disagree", "yes, and disagreed"]]));
+    grid.appendChild(sel("hidden", "Hidden", [["", "any"], ["true", "hidden only"], ["false", "visible only"]]));
+
+    function txt(key, label, placeholder) {
+      var i = el("input", { placeholder: placeholder || "" });
+      i.value = sp[key] || "";
+      i.addEventListener("input", function () { if (i.value.trim()) sp[key] = i.value.trim(); else delete sp[key]; });
+      return field(label, i);
+    }
+    grid.appendChild(txt("postId", "Post id", "wp_…"));
+    grid.appendChild(txt("wroomId", "Wroom id", "w_…"));
+    grid.appendChild(txt("authorId", "Author id", "author_…"));
+    grid.appendChild(txt("text", "Body contains"));
+    grid.appendChild(num("sinceDays", "Written in the last (days)", 1, 1, 3650));
+    grid.appendChild(sel("order", "Order", [["newest", "newest"], ["oldest", "oldest"], ["score", "highest score"], ["random", "random"], ["priority", "worst verdict first, then random"]]));
+    grid.appendChild(num("limit", "How many", 1, 1, 100));
+    box.appendChild(grid);
+
+    var actions = el("div", { class: "judge-actions" });
+    var run = el("button", { class: "act", text: "Run" });
+    run.addEventListener("click", function () { runSpec(sp); });
+    var save = el("button", { class: "act", text: editing.isNew ? "Save as new" : "Save" });
+    save.addEventListener("click", function () {
+      if (!editing.name.trim()) { alert("Give the query a name."); return; }
+      var position = editing.isNew ? safetyQueries.length + 1 : (safetyQueries.filter(function (q) { return q.id === editing.id; })[0] || {}).position;
+      dashPut("/safety/queries/" + encodeURIComponent(editing.id), { name: editing.name, spec: sp, position: position })
+        .then(function () { activeQueryId = editing.id; editing = null; renderSafetyEditor(); loadSafetyQueries(); })
+        .catch(function (e) { alert(e.message); });
+    });
+    var del = el("button", { class: "act danger", text: "Delete" });
+    del.addEventListener("click", function () {
+      if (editing.isNew) { editing = null; renderSafetyEditor(); return; }
+      if (!confirm("Delete the query “" + editing.name + "”?")) return;
+      dashDelete("/safety/queries/" + encodeURIComponent(editing.id))
+        .then(function () { if (activeQueryId === editing.id) activeQueryId = null; editing = null; renderSafetyEditor(); loadSafetyQueries(); })
+        .catch(function (e) { alert(e.message); });
+    });
+    var close = el("button", { class: "act", text: "Close" });
+    close.addEventListener("click", function () { editing = null; renderSafetyEditor(); });
+    actions.appendChild(run); actions.appendChild(save); actions.appendChild(del); actions.appendChild(close);
+    box.appendChild(actions);
+  }
+
+  function dashPut(path, body) {
+    return fetch(API + "/api/admin/dash" + path, {
+      method: "PUT",
+      headers: { "x-dash-key": actingKey(), "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    }).then(function (res) {
+      if (res.status === 404) throw new Error(WRONG_KEY);
+      if (!res.ok) return res.json().catch(function () { return {}; }).then(function (d) { throw new Error(d.error || "The server refused that (" + res.status + ")."); });
+      return res.json();
+    });
+  }
+  function dashDelete(path) {
+    return fetch(API + "/api/admin/dash" + path, { method: "DELETE", headers: { "x-dash-key": actingKey() } })
+      .then(function (res) {
+        if (res.status === 404) throw new Error(WRONG_KEY);
+        if (!res.ok) return res.json().catch(function () { return {}; }).then(function (d) { throw new Error(d.error || "The server refused that (" + res.status + ")."); });
+        return res.json();
+      });
+  }
+
+  /* ---- Test posts: probes ---- */
+
+  var probesWired = false;
+  function wireProbes() {
+    if (probesWired) return;
+    probesWired = true;
+    document.getElementById("safety-probe-run").addEventListener("click", function () {
+      var text = document.getElementById("safety-probe-text").value.trim();
+      var out = document.getElementById("safety-probe-result");
+      if (!text) return;
+      out.textContent = ""; out.appendChild(el("div", { class: "sub", text: "Scoring…" }));
+      dashPost("/safety/score", { text: text })
+        .then(function (d) {
+          if (d.rules) safetyRules = d.rules;
+          out.textContent = "";
+          var side = el("div", { class: "judge-side" });
+          side.appendChild(el("div", {}, [el("span", { class: "badge verdict-" + d.decision.action, text: "policy says: " + d.decision.action }), el("span", { class: "sub", text: "  " + (d.decision.label || "no cover") + " · " + d.model + " · policy v" + d.policyVersion })]));
+          var shown = CATEGORIES.filter(function (c) { return d.scores[c] >= 0.1; }).sort(function (a, b) { return d.scores[b] - d.scores[a]; });
+          if (!shown.length) side.appendChild(el("div", { class: "sub", text: "Nothing scored above 0.1." }));
+          shown.forEach(function (c) { side.appendChild(scoreRow(c, d.scores[c], safetyRules && safetyRules[c], null)); });
+          out.appendChild(side);
+        })
+        .catch(function (e) { out.textContent = ""; out.appendChild(el("div", { class: "empty", text: e.message })); });
+    });
+    document.getElementById("safety-post-run").addEventListener("click", function () {
+      var id = document.getElementById("safety-post-id").value.trim();
+      if (!id) return;
+      showResultsMessage("Scoring " + id + "…");
+      dashPost("/safety/post/" + encodeURIComponent(id) + "/score", {})
+        .then(function (d) { if (d.row) { activeQueryId = null; renderSafetyQueries(); renderResults([d.row], {}); } else showResultsMessage("Scored, but nothing came back for " + id + "."); })
+        .catch(function (e) { showResultsMessage(e.message); });
+    });
+    var sweep = document.getElementById("safety-sweep");
+    var status = document.getElementById("safety-sweep-status");
     sweep.addEventListener("click", function () {
-      sweep.disabled = true; sweep.textContent = "Scoring…";
+      sweep.disabled = true; status.textContent = "Scoring up to 500…";
       dashPost("/safety/sweep", {})
         .then(function (r) {
-          sweep.textContent = "Scored " + r.scored + (r.remaining ? " · " + r.remaining + " left, press again" : " · all done");
-          if (r.remaining) sweep.disabled = false;
-          loadCalibrateNext(); loadCalibrationReport(); loadVerdicts();
+          status.textContent = "Scored " + r.scored + (r.remaining ? " · " + r.remaining + " left, press again" : " · nothing left");
+          sweep.disabled = false; loadSafetySummary(); runActiveQuery();
         })
-        .catch(function (e) { sweep.disabled = false; sweep.textContent = "Score older posts"; alert(e.message); });
+        .catch(function (e) { sweep.disabled = false; status.textContent = e.message; });
     });
-    cov.appendChild(sweep);
   }
 
-  function scoreRow(cat, score, rule) {
+  /* ---- Test posts: results and judging ---- */
+
+  function scoreRow(cat, score, rule, onJudge) {
     var row = el("div", { class: "score-row" });
     row.appendChild(el("span", { class: "score-name", text: catWord(cat) }));
-    var seg = el("div", { class: "seg", role: "group", "aria-label": "Is " + catWord(cat) + " really there" });
-    ["yes", "no", "unsure"].forEach(function (j) {
-      var b = el("button", { text: j, "aria-pressed": String(judgement.categories[cat] === j) });
-      b.addEventListener("click", function () { judgement.categories[cat] = j; renderCalibrate(); });
-      seg.appendChild(b);
-    });
-    row.appendChild(seg);
+    if (onJudge) {
+      var seg = el("div", { class: "seg", role: "group", "aria-label": "Is " + catWord(cat) + " really there" });
+      ["yes", "no", "unsure"].forEach(function (j) {
+        var b = el("button", { text: j, "aria-pressed": String(onJudge.current === j) });
+        b.addEventListener("click", function () { onJudge.set(j); });
+        seg.appendChild(b);
+      });
+      row.appendChild(seg);
+    } else row.appendChild(el("span", {}));
     var bar = el("div", { class: "score-bar" });
     bar.appendChild(el("div", { class: "fill" }));
     bar.lastChild.style.width = Math.round(score * 100) + "%";
     ["fold", "review", "escalate"].forEach(function (a) {
-      if (rule && rule[a] !== undefined) {
+      if (rule && rule[a] !== undefined && rule[a] !== null) {
         var line = el("div", { class: "line " + a, title: a + " at " + rule[a] });
         line.style.left = Math.round(rule[a] * 100) + "%";
         bar.appendChild(line);
       }
     });
     row.appendChild(bar);
-    var crossed = rule ? ["escalate", "review", "fold"].filter(function (a) { return rule[a] !== undefined && score >= rule[a]; })[0] : null;
+    var crossed = rule ? ["escalate", "review", "fold"].filter(function (a) { return rule[a] !== undefined && rule[a] !== null && score >= rule[a]; })[0] : null;
     row.appendChild(el("span", { class: "score-num", text: score.toFixed(2) + (crossed ? " · crosses " + crossed : "") }));
     return row;
   }
 
-  function renderCalibrate() {
-    var d = judging;
-    var wrap = document.getElementById("calibrate");
+  function renderResults(rows, d) {
+    var wrap = document.getElementById("safety-results");
     wrap.textContent = "";
-    if (!d) return;
-    renderCoverage(d);
-    var n = d.next;
-    if (!n) {
-      wrap.appendChild(el("div", { class: "empty", text: d.labeled ? "Every scored post has been judged. New posts arrive as they are written." : "Nothing has been scored yet. Posts are scored as they are written, and older ones nightly." }));
-      return;
+    if (!rows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing matches. Widen the query, or score the backlog." })); return; }
+    wrap.appendChild(el("div", { class: "sub", text: rows.length + " post" + (rows.length === 1 ? "" : "s") + (d && d.policyVersion ? " · lines drawn from policy v" + d.policyVersion : "") }));
+    rows.forEach(function (r) { wrap.appendChild(renderResult(r)); });
+  }
+
+  function renderResult(r) {
+    var j = judging[r.targetId];
+    if (!j) {
+      j = r.judgement
+        ? { action: r.judgement.action, categories: Object.assign({}, r.judgement.categories), note: r.judgement.note || "" }
+        : { action: r.verdict, categories: {}, note: "" };
+      judging[r.targetId] = j;
     }
-    if (!judgement) judgement = { action: n.verdict, categories: {}, note: "" };
+    var card = el("div", { class: "result" });
+    var head = el("div", { class: "result-head" });
+    head.appendChild(el("span", { class: "badge verdict-" + r.verdict, text: "machine: " + r.verdict }));
+    if (r.action !== r.verdict) head.appendChild(el("span", { class: "badge verdict-clear", text: "applied: " + r.action + (r.reviewedAt ? " (reviewed)" : "") }));
+    if (r.judgement) head.appendChild(el("span", { class: "badge " + (r.judgement.stale ? "more_data" : "rule"), text: "you: " + r.judgement.action + (r.judgement.stale ? " (before an edit)" : "") }));
+    head.appendChild(el("span", { text: (r.label ? r.label + " · " : "") + r.model + " · policy v" + r.policyVersion + " · written " + fmtWhen(r.post.createdAt) + (r.post.hidden ? " · hidden" : "") }));
+    head.appendChild(el("span", { class: "sub", text: r.targetId }));
+    card.appendChild(head);
 
     var post = el("div", { class: "judge-post" });
-    if (n.post.title) post.appendChild(el("div", { class: "title", text: n.post.title }));
-    post.appendChild(document.createTextNode(n.post.body));
-
-    var meta = el("div", { class: "judge-meta" });
-    meta.appendChild(el("span", { class: "badge verdict-" + n.verdict, text: "machine: " + n.verdict }));
-    if (n.action !== n.verdict) meta.appendChild(el("span", { class: "badge verdict-clear", text: "applied: " + n.action }));
-    meta.appendChild(el("span", { class: "sub", text: "from the " + n.bucket.replace("_", " ") + " bucket · " + n.model + " · written " + fmtWhen(n.post.createdAt) + (n.post.hidden ? " · hidden" : "") }));
-
-    var left = el("div", {}, [meta, post]);
+    if (r.post.title) post.appendChild(el("div", { class: "title", text: r.post.title }));
+    post.appendChild(document.createTextNode(r.post.body + (r.post.truncated ? "\n[…]" : "")));
 
     var side = el("div", { class: "judge-side" });
-
     var actionBox = el("div", {});
     actionBox.appendChild(el("div", { class: "judge-label", text: "What would you do" }));
     var seg = el("div", { class: "seg", role: "group", "aria-label": "Your action" });
     ACTIONS.forEach(function (a) {
-      var b = el("button", { text: ACTION_WORDS[a], "aria-pressed": String(judgement.action === a) });
-      b.addEventListener("click", function () { judgement.action = a; renderCalibrate(); });
+      var b = el("button", { text: ACTION_WORDS[a], "aria-pressed": String(j.action === a) });
+      b.addEventListener("click", function () { j.action = a; card.replaceWith(renderResult(r)); });
       seg.appendChild(b);
     });
     actionBox.appendChild(seg);
     side.appendChild(actionBox);
 
     var cats = el("div", {});
-    cats.appendChild(el("div", { class: "judge-label", text: n.show.length ? "Is it really there" : "The machine raised nothing" }));
-    n.show.forEach(function (c) { cats.appendChild(scoreRow(c, n.scores[c], d.rules[c])); });
+    cats.appendChild(el("div", { class: "judge-label", text: r.show.length ? "Is it really there" : "The machine raised nothing above 0.1" }));
+    r.show.forEach(function (c) {
+      cats.appendChild(scoreRow(c, r.scores[c], safetyRules && safetyRules[c], {
+        current: j.categories[c],
+        set: function (v) { j.categories[c] = v; card.replaceWith(renderResult(r)); }
+      }));
+    });
     side.appendChild(cats);
 
-    var noteBox = el("div", {});
-    noteBox.appendChild(el("div", { class: "judge-label", text: "Note (optional)" }));
-    var ta = el("textarea", { class: "judge-note", placeholder: "Why, if it is not obvious. “Quoted slur in a scene about racism.”" });
-    ta.value = judgement.note;
-    ta.addEventListener("input", function () { judgement.note = ta.value; });
-    noteBox.appendChild(ta);
-    side.appendChild(noteBox);
+    var ta = el("textarea", { class: "judge-note", placeholder: "Note, if it is not obvious." });
+    ta.value = j.note;
+    ta.addEventListener("input", function () { j.note = ta.value; });
+    side.appendChild(ta);
 
-    var undecided = n.show.filter(function (c) { return !judgement.categories[c]; });
+    var undecided = r.show.filter(function (c) { return !j.categories[c]; });
     var actions = el("div", { class: "judge-actions" });
-    var save = el("button", { class: "act", text: undecided.length ? "Judge " + undecided.length + " more" : "Save & next" });
+    var save = el("button", { class: "act", text: undecided.length ? "Judge " + undecided.length + " more" : (r.judgement ? "Save again" : "Save judgement") });
     save.disabled = undecided.length > 0;
     save.addEventListener("click", function () {
       save.disabled = true;
-      dashPost("/safety/calibration/label", { targetId: n.targetId, action: judgement.action, categories: judgement.categories, note: judgement.note })
-        .then(function () { loadCalibrateNext(); loadCalibrationReport(); })
+      dashPost("/safety/label", { targetId: r.targetId, action: j.action, categories: j.categories, note: j.note })
+        .then(function () { r.judgement = { action: j.action, categories: j.categories, note: j.note, stale: false }; card.replaceWith(renderResult(r)); loadSafetySummary(); })
         .catch(function (e) { save.disabled = false; alert(e.message); });
     });
-    var skip = el("button", { class: "act", text: "Skip" });
-    skip.addEventListener("click", function () { skipped.push(n.targetId); if (skipped.length > 40) skipped.shift(); loadCalibrateNext(); });
-    actions.appendChild(save);
-    actions.appendChild(skip);
+    var rescore = el("button", { class: "act", text: "Score again" });
+    rescore.addEventListener("click", function () {
+      rescore.disabled = true;
+      dashPost("/safety/post/" + encodeURIComponent(r.targetId) + "/score", {})
+        .then(function (d) { if (d.row) card.replaceWith(renderResult(d.row)); })
+        .catch(function (e) { rescore.disabled = false; alert(e.message); });
+    });
+    actions.appendChild(save); actions.appendChild(rescore);
     side.appendChild(actions);
 
-    wrap.appendChild(el("div", { class: "judge" }, [left, side]));
+    card.appendChild(el("div", { class: "result-body" }, [post, side]));
+    return card;
   }
 
-  function pct(v) { return v === null || v === undefined ? "–" : Math.round(v * 100) + "%"; }
+  /* ---- Summary ---- */
 
-  function loadCalibrationReport() {
-    var wrap = document.getElementById("calibration-report");
-    if (!wrap.childElementCount) wrap.appendChild(el("div", { class: "empty", text: "Loading…" }));
-    dashFetch("/safety/calibration/report")
-      .then(renderCalibrationReport)
-      .catch(function (e) { wrap.textContent = ""; wrap.appendChild(el("div", { class: "empty", text: e.message })); });
+  function loadSafetySummary() {
+    dashFetch("/safety/summary").then(function (d) { summary = d; renderSafetySummary(d); renderSafetyRules(); })
+      .catch(function (e) { var w = document.getElementById("safety-standings"); w.textContent = ""; w.appendChild(el("div", { class: "empty", text: e.message })); });
   }
 
-  function renderCalibrationReport(r) {
-    var wrap = document.getElementById("calibration-report");
-    wrap.textContent = "";
-    var a = r.agreement;
-    wrap.appendChild(el("div", { class: "agree" }, [
-      el("div", {}, [el("strong", { text: String(a.agree) }), document.createTextNode("agreed of " + r.labeled)]),
-      el("div", {}, [el("strong", { text: String(a.machineStricter) }), document.createTextNode("machine stricter than you")]),
-      el("div", {}, [el("strong", { text: String(a.humanStricter) }), document.createTextNode("you stricter than machine")])
+  function renderSafetySummary(d) {
+    var chips = document.getElementById("safety-summary-chips");
+    chips.textContent = "";
+    function chip(strong, text, hot) { chips.appendChild(el("span", { class: "chip" + (hot ? " hot" : "") }, [el("strong", { text: String(strong) }), document.createTextNode(" " + text)])); }
+    if (!d.configured) chip("off", "no classifier on the Worker", true);
+    else chip(d.observe ? "observe" : "enforce", d.observe ? "verdicts stored, none acted on" : "verdicts act", d.observe);
+    if (d.provider) chip(d.provider.model, "model");
+    chip("v" + d.policyVersion, "policy");
+    chip(d.counts.unscored, "posts not yet scored", d.counts.unscored > 0);
+    chip(d.calibration.labeled, "judged by a person");
+
+    var byVerdict = {};
+    d.counts.verdicts.forEach(function (r) { byVerdict[r.verdict] = byVerdict[r.verdict] || {}; byVerdict[r.verdict][r.action] = r.n; });
+    var rows = ACTIONS.map(function (v) {
+      var total = 0; ACTIONS.forEach(function (a) { total += (byVerdict[v] || {})[a] || 0; });
+      return el("tr", {}, [
+        el("td", {}, [el("span", { class: "badge verdict-" + v, text: v })]),
+        el("td", { class: "num", text: String(total) }),
+        el("td", { class: "num", text: String((byVerdict[v] || {})[v] || 0) }),
+        el("td", { class: "num", text: String(total - ((byVerdict[v] || {})[v] || 0)) })
+      ]);
+    });
+    var vc = document.getElementById("safety-verdict-counts");
+    vc.textContent = "";
+    vc.appendChild(el("div", { class: "judge-label", text: "What the machine decided" }));
+    vc.appendChild(table([{ label: "Verdict" }, { label: "Posts", num: true }, { label: "Applied as is", num: true }, { label: "Not applied", num: true }], rows));
+    if (d.counts.models.length > 1) vc.appendChild(el("div", { class: "sub", text: "Models seen: " + d.counts.models.map(function (m) { return m.model + " (" + m.n + ")"; }).join(", ") + ". Re-read the standings after a model change." }));
+
+    var a = d.calibration.agreement;
+    var ag = document.getElementById("safety-agreement");
+    ag.textContent = "";
+    ag.appendChild(el("div", { class: "judge-label", text: "You versus the machine" }));
+    ag.appendChild(el("div", { class: "agree" }, [
+      el("div", {}, [el("strong", { text: String(a.agree) }), document.createTextNode("agreed of " + d.calibration.labeled)]),
+      el("div", {}, [el("strong", { text: String(a.machineStricter) }), document.createTextNode("machine stricter")]),
+      el("div", {}, [el("strong", { text: String(a.humanStricter) }), document.createTextNode("you stricter")])
     ]));
-    var rows = r.categories.map(function (c) {
-      var lines = c.current.map(function (l) {
-        return l.action + " ≥ " + l.threshold + ": " + pct(l.precision) + " on " + l.flagged;
-      });
+
+    var st = document.getElementById("safety-standings");
+    st.textContent = "";
+    st.appendChild(el("div", { class: "judge-label", text: "Which scores can carry a rule" }));
+    var srows = d.calibration.categories.map(function (c) {
+      var lines = c.current.map(function (l) { return l.action + " ≥ " + l.threshold + ": " + pct(l.precision) + " on " + l.flagged; });
       var sug = c.suggested ? "≥ " + c.suggested.threshold + " · " + pct(c.suggested.precision) + " precision, " + pct(c.suggested.recall) + " recall" : "–";
       return el("tr", {}, [
         el("td", {}, [el("strong", { text: catWord(c.category) })]),
@@ -987,57 +1257,72 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         el("td", { class: "why", text: c.why })
       ]);
     });
-    var t = table([
+    st.appendChild(el("div", { class: "table-wrap" }, [table([
       { label: "Category" }, { label: "Standing" }, { label: "Judged", num: true }, { label: "Confirmed", num: true },
       { label: "Suggested line" }, { label: "Today's lines" }, { label: "Why" }
-    ], rows);
-    wrap.appendChild(el("div", { class: "table-wrap" }, [t]));
+    ], srows)]));
   }
 
-  function loadVerdicts() {
-    var filters = document.getElementById("verdict-filters");
-    filters.textContent = "";
-    [["", "all flagged"], ["escalate", "escalate"], ["review", "review"], ["fold", "fold"], ["clear", "clear"]].forEach(function (f) {
-      var b = el("button", { text: f[1], "aria-pressed": String(f[0] === verdictFilter) });
-      b.addEventListener("click", function () { verdictFilter = f[0]; loadVerdicts(); });
-      filters.appendChild(b);
-    });
-    var wrap = document.getElementById("verdicts-table");
-    if (!wrap.childElementCount) wrap.appendChild(el("div", { class: "empty", text: "Loading…" }));
-    dashFetch("/safety?limit=100" + (verdictFilter ? "&verdict=" + verdictFilter : ""))
-      .then(renderVerdicts)
-      .catch(function (e) { wrap.textContent = ""; wrap.appendChild(el("div", { class: "empty", text: e.message })); });
+  /* ---- Rules ---- */
+
+  var rulesDraft = null;   /* { rules, version, defaults } being edited */
+
+  function loadSafetyRules() {
+    dashFetch("/safety/rules").then(function (d) { rulesDraft = { rules: d.rules, version: d.version, defaults: d.defaults }; safetyRules = d.rules; renderSafetyRules(); })
+      .catch(function (e) { var w = document.getElementById("safety-rules"); w.textContent = ""; w.appendChild(el("div", { class: "empty", text: e.message })); });
   }
 
-  function renderVerdicts(d) {
-    var wrap = document.getElementById("verdicts-table");
+  function renderSafetyRules() {
+    var wrap = document.getElementById("safety-rules");
+    if (!rulesDraft) return;
     wrap.textContent = "";
-    var note = document.getElementById("verdicts-note");
-    note.textContent = d.configured
-      ? (d.observe ? "Observe mode: verdicts are computed and stored, none is acted on. " : "Enforcing. ") +
-        "Provider " + (d.provider ? d.provider.name + " · " + d.provider.model : "–") + ", policy v" + d.policyVersion + "."
-      : "No classifier is configured on the Worker: nothing is being scored.";
-    if (!d.rows.length) { wrap.appendChild(el("div", { class: "empty", text: "No verdicts " + (verdictFilter || "above clear") + " yet." })); return; }
-    var rows = d.rows.map(function (r) {
-      var top = Object.keys(r.scores || {}).map(function (k) { return [k, r.scores[k]]; })
-        .filter(function (kv) { return kv[1] >= 0.1; })
-        .sort(function (x, y) { return y[1] - x[1]; }).slice(0, 3)
-        .map(function (kv) { return catWord(kv[0]) + " " + kv[1].toFixed(2); }).join(", ");
-      var cell = el("td", {});
-      if (r.post) {
-        if (r.post.title) cell.appendChild(el("div", {}, [el("strong", { text: r.post.title })]));
-        cell.appendChild(el("div", { class: "excerpt", text: "“" + r.post.excerpt + "”" }));
-        if (r.post.hidden) cell.appendChild(el("div", { class: "sub", text: "hidden" }));
-      } else cell.appendChild(el("span", { class: "sub", text: "post gone" }));
+    var standings = {};
+    if (summary) summary.calibration.categories.forEach(function (c) { standings[c.category] = c; });
+    var rows = CATEGORIES.map(function (c) {
+      var r = rulesDraft.rules[c] = rulesDraft.rules[c] || {};
+      var def = rulesDraft.defaults[c] || {};
+      function cell(key) {
+        var i = el("input", { type: "number", step: "0.01", min: "0", max: "1" });
+        i.value = r[key] === undefined || r[key] === null ? "" : String(r[key]);
+        if ((r[key] === undefined) !== (def[key] === undefined) || (r[key] !== undefined && r[key] !== def[key])) i.classList.add("changed");
+        i.addEventListener("input", function () { if (i.value === "") delete r[key]; else r[key] = Number(i.value); });
+        return el("td", {}, [i]);
+      }
+      var hold = el("input", { type: "checkbox" });
+      hold.checked = !!r.hold;
+      hold.addEventListener("change", function () { if (hold.checked) r.hold = true; else delete r.hold; });
+      var st = standings[c];
       return el("tr", {}, [
-        el("td", { class: "sub", text: fmtWhen(r.scoredAt) }),
-        el("td", {}, [el("span", { class: "badge verdict-" + r.verdict, text: r.verdict })]),
-        el("td", { class: "sub", text: r.action === r.verdict ? "" : r.action + (r.reviewedAt ? " (reviewed)" : "") }),
-        cell,
-        el("td", { class: "sub", text: top || "–" })
+        el("td", {}, [el("strong", { text: catWord(c) })]),
+        cell("fold"), cell("review"), cell("escalate"),
+        el("td", {}, [hold]),
+        el("td", {}, st ? [el("span", { class: "badge " + st.standing, text: STANDING_WORDS[st.standing] })] : []),
+        el("td", { class: "sub", text: st && st.suggested ? "≥ " + st.suggested.threshold + " (" + pct(st.suggested.precision) + ")" : "–" })
       ]);
     });
-    wrap.appendChild(el("div", { class: "table-wrap" }, [table([{ label: "Scored" }, { label: "Verdict" }, { label: "Applied" }, { label: "Post" }, { label: "Top scores" }], rows)]));
+    var t = table([{ label: "Category" }, { label: "Fold" }, { label: "Review" }, { label: "Escalate" }, { label: "Hold" }, { label: "Standing" }, { label: "Suggested" }], rows);
+    t.classList.add("rules-table");
+    wrap.appendChild(el("div", { class: "sub", text: "Policy v" + rulesDraft.version + ". Blue border marks a line that differs from the code's default." }));
+    wrap.appendChild(el("div", { class: "table-wrap" }, [t]));
+    var actions = el("div", { class: "judge-actions" });
+    var save = el("button", { class: "act", text: "Save rules" });
+    save.addEventListener("click", function () {
+      save.disabled = true;
+      dashPut("/safety/rules", { rules: rulesDraft.rules })
+        .then(function (d) { rulesDraft = { rules: d.rules, version: d.version, defaults: rulesDraft.defaults }; safetyRules = d.rules; renderSafetyRules(); loadSafetySummary(); runActiveQuery(); alert("Saved as policy v" + d.version + ". Re-decided " + d.reapplied + " stored verdict" + (d.reapplied === 1 ? "" : "s") + "."); })
+        .catch(function (e) { save.disabled = false; alert(e.message); });
+    });
+    var reset = el("button", { class: "act danger", text: "Reset to defaults" });
+    reset.addEventListener("click", function () {
+      if (!confirm("Reset every line to the code's defaults? This is saved as a new policy version.")) return;
+      dashPost("/safety/rules/reset", {})
+        .then(function (d) { rulesDraft = { rules: d.rules, version: d.version, defaults: rulesDraft.defaults }; safetyRules = d.rules; renderSafetyRules(); loadSafetySummary(); runActiveQuery(); })
+        .catch(function (e) { alert(e.message); });
+    });
+    var reload = el("button", { class: "act", text: "Discard edits" });
+    reload.addEventListener("click", loadSafetyRules);
+    actions.appendChild(save); actions.appendChild(reset); actions.appendChild(reload);
+    wrap.appendChild(actions);
   }
   /* ---- sections ----------------------------------------------------------
      Four, because thirteen cards on one page is a scroll rather than a

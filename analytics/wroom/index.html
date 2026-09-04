@@ -289,17 +289,25 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .editor-grid input, .editor-grid select { font: inherit; font-size: 13px; padding: 5px 7px; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); min-width: 0; }
   .editor-grid .checks { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-primary); }
   .editor-grid .checks label { display: inline-flex; gap: 4px; align-items: center; }
-  .result { border: 1px solid var(--border); background: var(--surface-1); margin-bottom: 10px; }
-  .result-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--grid); font-size: 12px; color: var(--text-secondary); }
-  .result-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 16px; padding: 12px; }
+  .result { border: 1px solid var(--border); background: var(--surface-1); margin-bottom: 8px; }
+  .result-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 5px 10px; border-bottom: 1px solid var(--grid); font-size: 11.5px; color: var(--text-secondary); }
+  .result-head .sub { margin-left: auto; }
+  .result-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 12px; padding: 10px; align-items: start; }
   @media (max-width: 900px) { .result-body { grid-template-columns: minmax(0, 1fr); } }
+  /* Sized to the post, not to a box. A one-line post is one line; a long
+     one scrolls inside a bounded height rather than pushing the controls
+     off the screen. */
   .judge-post {
-    background: var(--page); border: 1px solid var(--border); padding: 12px 14px;
-    font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
-    max-height: 360px; overflow: auto; min-width: 0;
+    background: var(--page); border-left: 3px solid var(--border-strong); padding: 6px 12px;
+    font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+    max-height: 240px; overflow: auto; min-width: 0;
   }
-  .judge-post .title { font-weight: 700; margin-bottom: 8px; }
-  .judge-side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .judge-post .title { font-weight: 700; margin-bottom: 4px; }
+  .judge-side { display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .judge-side .judge-label { margin-bottom: 3px; }
+  .judge-side .judge-actions { margin-top: 0; }
+  .judge-side .judge-input { flex: 1 1 100%; font-size: 12.5px; padding: 5px 8px; }
+  .judge-side .score-row { padding: 3px 0; }
   .score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 5px 0; border-top: 1px solid var(--grid); }
   .score-row:first-of-type { border-top: 0; }
   .score-name { font-size: 12.5px; font-weight: 600; }
@@ -532,6 +540,9 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     <button class="card__head" aria-expanded="true"><span class="card__title">Summary</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
       <div class="highlights" id="safety-summary-chips"></div>
+      <div class="judge-label">Share of scored posts a person has judged, by the day they were written</div>
+      <div class="legend" id="safety-judged-legend"></div>
+      <div class="chart-wrap"><div id="safety-judged-chart"></div></div>
       <div class="cols"><div id="safety-verdict-counts"></div><div id="safety-agreement"></div></div>
       <div id="safety-standings"></div>
       <div class="queue-note">A rule fires without a person, so what matters is precision: when the score is high, did you agree? Recall is among the machine's own candidates only. Standing is decided on confirmed cases, never on a perfect record over three posts.</div>
@@ -1286,7 +1297,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     side.appendChild(actionBox);
 
     var cats = el("div", {});
-    cats.appendChild(el("div", { class: "judge-label", text: r.show.length ? "Is it really there" : "The machine raised nothing above 0.1" }));
+    cats.appendChild(el("div", { class: "judge-label", text: r.show.length ? "Is it really there" : "Nothing raised above 0.1" }));
     r.show.forEach(function (c) {
       cats.appendChild(scoreRow(c, r.scores[c], safetyRules && safetyRules[c], {
         current: j.categories[c],
@@ -1295,13 +1306,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     });
     side.appendChild(cats);
 
-    var ta = el("textarea", { class: "judge-note", placeholder: "Note, if it is not obvious." });
-    ta.value = j.note;
-    ta.addEventListener("input", function () { j.note = ta.value; });
-    side.appendChild(ta);
-
     var undecided = r.show.filter(function (c) { return !j.categories[c]; });
     var actions = el("div", { class: "judge-actions" });
+    var ta = el("input", { class: "judge-input", placeholder: "Note (optional)" });
+    ta.value = j.note;
+    ta.addEventListener("input", function () { j.note = ta.value; });
+    actions.appendChild(ta);
     var save = el("button", { class: "act", text: undecided.length ? "Judge " + undecided.length + " more" : (r.judgement ? "Save again" : "Save judgement") });
     save.disabled = undecided.length > 0;
     save.addEventListener("click", function () {
@@ -1359,6 +1369,24 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     vc.appendChild(el("div", { class: "judge-label", text: "What the machine decided" }));
     vc.appendChild(table([{ label: "Verdict" }, { label: "Posts", num: true }, { label: "Applied as is", num: true }, { label: "Not applied", num: true }], rows));
     if (d.counts.models.length > 1) vc.appendChild(el("div", { class: "sub", text: "Models seen: " + d.counts.models.map(function (m) { return m.model + " (" + m.n + ")"; }).join(", ") + ". Re-read the standings after a model change." }));
+
+    /* The share judged, per day the post was written, as a hundred-percent
+       stack: judged over not yet judged. Counts ride in the tooltip via the
+       day rows the chart is handed. */
+    var daily = (d.daily && d.daily.rows || []).map(function (r) {
+      var judged = r.scored ? Math.round(100 * r.judged / r.scored) : 0;
+      return { day: r.day, judged: judged, unjudged: r.scored ? 100 - judged : 0 };
+    });
+    stackedChart(
+      document.getElementById("safety-judged-chart"),
+      document.getElementById("safety-judged-legend"),
+      daily,
+      [{ key: "judged", label: "Judged by a person", color: "var(--series-1)" }, { key: "unjudged", label: "Not yet judged", color: "var(--grid)" }],
+      d.daily ? d.daily.days : 60,
+      "No scored posts in the last 60 days.",
+      "Share of scored posts judged, per day written",
+      { yMax: 100, suffix: "%" }
+    );
 
     var a = d.calibration.agreement;
     var ag = document.getElementById("safety-agreement");
@@ -2042,7 +2070,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     return out;
   }
 
-  function stackedChart(mount, legendEl, daily, series, days, emptyText, chartLabel) {
+  function stackedChart(mount, legendEl, daily, series, days, emptyText, chartLabel, opts) {
+    opts = opts || {};
     mount.textContent = "";
     legendEl.textContent = "";
     var byDay = {};
@@ -2094,14 +2123,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var plotW = W - padL - 8, plotH = H - padT - padB;
     var step = plotW / buckets.length;
     var barW = Math.max(2, Math.min(28, step - 2));
-    var yMax = Math.max(4, Math.ceil(maxTotal * 1.1));
+    var yMax = opts.yMax || Math.max(4, Math.ceil(maxTotal * 1.1));
     var svg = svgEl("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": chartLabel || "Stacked bar chart over time" });
 
     [0, 0.5, 1].forEach(function (f) {
       var y = padT + plotH - plotH * f;
       svg.appendChild(svgEl("line", { x1: padL, x2: W - 8, y1: y, y2: y, stroke: f === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": 1 }));
       var label = svgEl("text", { x: padL - 6, y: y + 4, "text-anchor": "end" });
-      label.textContent = String(Math.round(yMax * f));
+      label.textContent = String(Math.round(yMax * f)) + (opts.suffix || "");
       svg.appendChild(label);
     });
 

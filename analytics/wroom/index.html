@@ -331,6 +331,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .rules-table input[type="number"] { width: 72px; font: inherit; font-size: 13px; padding: 4px 6px; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
   .rules-table input.changed { border-color: var(--accent); }
   .rules-table td { vertical-align: middle; }
+  .limits { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .limit { background: var(--surface-1); border: 1px solid var(--border); padding: 10px 12px; min-width: 0; display: grid; gap: 6px; }
+  .limit .judge-label { margin: 0; }
+  .limit strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .limit .sub { font-variant-numeric: tabular-nums; }
+  .limit .progress { flex: none; }
+  .limit .progress .fill.warn { background: var(--warn); }
+  .limit .progress .fill.bad { background: var(--bad); }
   .progress-wrap { display: flex; align-items: center; gap: 10px; flex: 1 1 320px; min-width: 0; }
   .progress { position: relative; flex: 1 1 200px; height: 8px; background: var(--surface-2); border: 1px solid var(--border); }
   .progress .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); transition: width 240ms ease; }
@@ -482,6 +490,14 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
        of its scores are trustworthy enough to carry a rule; RULES is the
        policy itself, edited here and saved to the Worker. The arithmetic is
        server/src/contentSafety*.ts; this only draws it. -->
+  <div class="card" data-tab="safety" data-card="wroom-safety-limits">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Vendor limits</span><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="limits" id="safety-limits"></div>
+      <div class="queue-note" id="safety-limits-note"></div>
+    </div>
+  </div>
+
   <div class="card" data-tab="safety" data-card="wroom-safety-try">
     <button class="card__head" aria-expanded="true"><span class="card__title">Try a post</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
@@ -866,7 +882,47 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   var judging = {};           /* targetId -> { action, categories, note } */
   var summary = null;
 
-  function loadSafety() { loadSafetyQueries(); loadSafetySummary(); loadSafetyRules(); wireProbes(); }
+  function loadSafety() { loadSafetyUsage(); loadSafetyQueries(); loadSafetySummary(); loadSafetyRules(); wireProbes(); }
+
+  /* ---- Vendor limits ---- */
+  var usageTimer = null;
+  function loadSafetyUsage() {
+    dashFetch("/safety/usage").then(renderSafetyUsage).catch(function (e) {
+      var w = document.getElementById("safety-limits"); w.textContent = ""; w.appendChild(el("div", { class: "empty", text: e.message }));
+    });
+    /* Refreshed while the tab is open: a minute's allowance is a moving
+       target, and the strip is only useful if it moves with it. */
+    if (usageTimer) clearInterval(usageTimer);
+    usageTimer = setInterval(function () {
+      if (currentTab !== "safety") { clearInterval(usageTimer); usageTimer = null; return; }
+      dashFetch("/safety/usage").then(renderSafetyUsage).catch(function () {});
+    }, 10000);
+  }
+  function fmtN(n) { return Number(n).toLocaleString(); }
+  function renderSafetyUsage(u) {
+    var wrap = document.getElementById("safety-limits");
+    wrap.textContent = "";
+    var L = u.limits;
+    [
+      { label: "Tokens this minute", used: u.minute.tokens, limit: L.tokensPerMinute, resets: u.minuteResetsInMs },
+      { label: "Requests this minute", used: u.minute.requests, limit: L.requestsPerMinute, resets: u.minuteResetsInMs },
+      { label: "Requests today (UTC)", used: u.day.requests, limit: L.requestsPerDay, resets: null }
+    ].forEach(function (m) {
+      var frac = m.limit ? m.used / m.limit : 0;
+      var bar = el("div", { class: "progress", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(m.limit), "aria-valuenow": String(m.used) });
+      var fill = el("div", { class: "fill" + (frac >= 0.85 ? " bad" : frac >= 0.6 ? " warn" : "") });
+      fill.style.width = Math.min(100, Math.round(frac * 100)) + "%";
+      bar.appendChild(fill);
+      wrap.appendChild(el("div", { class: "limit" }, [
+        el("div", { class: "judge-label", text: m.label }),
+        el("div", {}, [el("strong", { text: fmtN(m.used) }), el("span", { class: "sub", text: " of " + fmtN(m.limit) })]),
+        bar,
+        el("span", { class: "sub", text: m.resets === null ? "resets at midnight UTC" : "resets in " + Math.ceil(m.resets / 1000) + "s" })
+      ]));
+    });
+    document.getElementById("safety-limits-note").textContent =
+      L.tier + " limits as read from the vendor's dashboard on " + L.readAt + ", in contentSafetyUsage.ts. Tokens are estimated at four characters each; the vendor reports nothing back. The backfill holds at 85% of each line.";
+  }
 
   function catWord(c) { return c.replace(/_/g, "/"); }
   function pct(v) { return v === null || v === undefined ? "–" : Math.round(v * 100) + "%"; }
@@ -1105,7 +1161,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       bar.lastChild.style.width = Math.round(frac * 100) + "%";
       var words = sweep.error
         ? "Stopped: " + sweep.error
-        : (sweep.remaining === 0 ? "Done. " + sweep.done + " scored." : sweep.done + " of " + sweep.total + " scored" + (sweep.stop ? ", stopping after this chunk" : "…"));
+        : (sweep.remaining === 0 ? "Done. " + sweep.done + " scored." : sweep.done + " of " + sweep.total + " scored" + (sweep.waiting ? " · " + sweep.waiting : sweep.stop ? ", stopping after this chunk" : "…"));
       row.appendChild(el("div", { class: "progress-wrap" }, [bar, el("span", { class: "sub", text: words })]));
       if (sweep.remaining > 0 && !sweep.error) {
         var stop = el("button", { class: "act", text: "Stop" });
@@ -1138,8 +1194,19 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         .then(function (r) {
           sweep.done += r.scored;
           sweep.remaining = r.remaining;
-          if (r.remaining > 0 && !sweep.stop && r.scored > 0) { renderBacklog(total); step(); return; }
-          if (r.remaining > 0 && r.scored === 0) sweep.error = "the last chunk scored nothing; the vendor may be refusing";
+          if (r.usage) renderSafetyUsage(r.usage);
+          if (r.remaining > 0 && !sweep.stop) {
+            if (r.paused) {
+              /* The Worker held back at the vendor's line and said how
+                 long until the window turns over. Wait it out, visibly. */
+              sweep.waiting = r.paused.why + "; resuming in " + Math.ceil(r.paused.waitMs / 1000) + "s";
+              renderBacklog(total);
+              setTimeout(function () { sweep.waiting = null; step(); }, Math.min(65000, r.paused.waitMs + 500));
+              return;
+            }
+            if (r.scored > 0) { renderBacklog(total); step(); return; }
+            sweep.error = "the last chunk scored nothing; the vendor may be refusing";
+          }
           renderBacklog(total); runActiveQuery();
         })
         .catch(function (e) { sweep.error = e.message; renderBacklog(total); });

@@ -904,8 +904,8 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     wrap.textContent = "";
     var L = u.limits;
     [
-      { label: "Tokens this minute", used: u.minute.tokens, limit: L.tokensPerMinute, resets: u.minuteResetsInMs },
-      { label: "Requests this minute", used: u.minute.requests, limit: L.requestsPerMinute, resets: u.minuteResetsInMs },
+      { label: "Tokens, last 60s", used: u.minute.tokens, limit: L.tokensPerMinute, resets: u.minuteResetsInMs },
+      { label: "Requests, last 60s", used: u.minute.requests, limit: L.requestsPerMinute, resets: u.minuteResetsInMs },
       { label: "Requests today (UTC)", used: u.day.requests, limit: L.requestsPerDay, resets: null }
     ].forEach(function (m) {
       var frac = m.limit ? m.used / m.limit : 0;
@@ -921,7 +921,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       ]));
     });
     document.getElementById("safety-limits-note").textContent =
-      L.tier + " limits as read from the vendor's dashboard on " + L.readAt + ", in contentSafetyUsage.ts. Tokens are estimated at four characters each; the vendor reports nothing back. The backfill holds at 85% of each line.";
+      L.tier + " limits as read from the vendor's dashboard on " + L.readAt + ", in contentSafetyUsage.ts. The minute is the last sixty seconds, as the vendor counts it. Tokens are estimated at three characters each; the vendor reports nothing back. The backfill holds at 85% of each line.";
   }
 
   function catWord(c) { return c.replace(/_/g, "/"); }

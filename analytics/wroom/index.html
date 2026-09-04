@@ -331,6 +331,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .rules-table input[type="number"] { width: 72px; font: inherit; font-size: 13px; padding: 4px 6px; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
   .rules-table input.changed { border-color: var(--accent); }
   .rules-table td { vertical-align: middle; }
+  .progress-wrap { display: flex; align-items: center; gap: 10px; flex: 1 1 320px; min-width: 0; }
+  .progress { position: relative; flex: 1 1 200px; height: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+  .progress .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); transition: width 240ms ease; }
+  @media (prefers-reduced-motion: reduce) { .progress .fill { transition: none; } }
 
   .table-wrap { overflow-x: auto; }
   /* Nine columns have to FIT, or the queue is read by dragging. Blanket
@@ -1087,25 +1091,60 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      Cron Trigger on the Worker, 04:17 UTC) covers whatever an outage left.
      Drawn only when there is something to do, because a button that
      always says "nothing left" is furniture. */
-  var sweeping = false;
+  var sweep = null;   /* { total, done, remaining, stop, error } while a backfill runs */
+  var SWEEP_CHUNK = 50;
+
   function renderBacklog(unscored) {
     var row = document.getElementById("safety-backlog");
     row.textContent = "";
-    if (!unscored && !sweeping) return;
+    if (!unscored && !sweep) return;
+    if (sweep) {
+      var frac = sweep.total ? Math.min(1, sweep.done / sweep.total) : 0;
+      var bar = el("div", { class: "progress", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(sweep.total), "aria-valuenow": String(sweep.done) });
+      bar.appendChild(el("div", { class: "fill" }));
+      bar.lastChild.style.width = Math.round(frac * 100) + "%";
+      var words = sweep.error
+        ? "Stopped: " + sweep.error
+        : (sweep.remaining === 0 ? "Done. " + sweep.done + " scored." : sweep.done + " of " + sweep.total + " scored" + (sweep.stop ? ", stopping after this chunk" : "…"));
+      row.appendChild(el("div", { class: "progress-wrap" }, [bar, el("span", { class: "sub", text: words })]));
+      if (sweep.remaining > 0 && !sweep.error) {
+        var stop = el("button", { class: "act", text: "Stop" });
+        stop.disabled = !!sweep.stop;
+        stop.addEventListener("click", function () { sweep.stop = true; renderBacklog(unscored); });
+        row.appendChild(stop);
+      } else {
+        var ok = el("button", { class: "act", text: sweep.error ? "Try again" : "OK" });
+        ok.addEventListener("click", function () { sweep = null; loadSafetySummary(); });
+        row.appendChild(ok);
+      }
+      return;
+    }
     var chip = el("span", { class: "chip hot" }, [el("strong", { text: String(unscored) }), document.createTextNode(" posts never scored")]);
-    var btn = el("button", { class: "act", text: sweeping ? "Scoring…" : "Score them now" });
-    btn.disabled = sweeping;
-    btn.addEventListener("click", function () {
-      sweeping = true; renderBacklog(unscored);
-      dashPost("/safety/sweep", {})
-        .then(function (r) {
-          sweeping = false; renderBacklog(r.remaining);
-          if (r.remaining) alert("Scored " + r.scored + ". " + r.remaining + " left; press again."); 
-          loadSafetySummary(); runActiveQuery();
-        })
-        .catch(function (e) { sweeping = false; renderBacklog(unscored); alert(e.message); });
-    });
+    var btn = el("button", { class: "act", text: "Score them now" });
+    btn.addEventListener("click", function () { startSweep(unscored); });
     row.appendChild(chip); row.appendChild(btn);
+  }
+
+  /* The backfill, driven from here in chunks: a Worker request has a
+     budget, so each call scores a few dozen and says how many are left,
+     and this loops until that is zero or the person says stop. The nightly
+     cron (a Cloudflare Cron Trigger on the Worker, 04:17 UTC) covers what
+     an outage leaves. */
+  function startSweep(total) {
+    sweep = { total: total, done: 0, remaining: total, stop: false, error: null };
+    renderBacklog(total);
+    function step() {
+      dashPost("/safety/sweep?limit=" + SWEEP_CHUNK, {})
+        .then(function (r) {
+          sweep.done += r.scored;
+          sweep.remaining = r.remaining;
+          if (r.remaining > 0 && !sweep.stop && r.scored > 0) { renderBacklog(total); step(); return; }
+          if (r.remaining > 0 && r.scored === 0) sweep.error = "the last chunk scored nothing; the vendor may be refusing";
+          renderBacklog(total); runActiveQuery();
+        })
+        .catch(function (e) { sweep.error = e.message; renderBacklog(total); });
+    }
+    step();
   }
 
   /* ---- Test posts: results and judging ---- */

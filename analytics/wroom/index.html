@@ -289,29 +289,32 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   .editor-grid input, .editor-grid select { font: inherit; font-size: 13px; padding: 5px 7px; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); min-width: 0; }
   .editor-grid .checks { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-primary); }
   .editor-grid .checks label { display: inline-flex; gap: 4px; align-items: center; }
-  .result { border: 1px solid var(--border); background: var(--surface-1); margin-bottom: 8px; }
-  .result-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 5px 10px; border-bottom: 1px solid var(--grid); font-size: 11.5px; color: var(--text-secondary); }
-  .result-head .sub { margin-left: auto; }
-  .result-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 12px; padding: 10px; align-items: start; }
-  @media (max-width: 900px) { .result-body { grid-template-columns: minmax(0, 1fr); } }
-  /* Sized to the post, not to a box. A one-line post is one line; a long
-     one scrolls inside a bounded height rather than pushing the controls
-     off the screen. */
+  /* A REVIEW CARD. Post first, as a quotation, at reading size; then one
+     line per category the machine raised, name / bar / score / verdict; then
+     a footer with what you would do, a note, and the buttons. One column,
+     because the post is the thing being judged and deserves the width. */
+  .result { border: 1px solid var(--border); background: var(--surface-1); margin-bottom: 12px; padding: 12px 16px 12px; display: grid; gap: 10px; }
+  .result.leaving { opacity: 0; transform: translateX(24px); transition: opacity 220ms ease, transform 220ms ease; }
+  @media (prefers-reduced-motion: reduce) { .result.leaving { transition: none; } }
+  .result-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 11.5px; color: var(--text-secondary); }
+  .result-head .sub { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
   .judge-post {
-    background: var(--page); border-left: 3px solid var(--border-strong); padding: 6px 12px;
-    font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
-    max-height: 240px; overflow: auto; min-width: 0;
+    border-left: 3px solid var(--accent); padding: 4px 14px;
+    font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+    max-height: 320px; overflow: auto; min-width: 0; color: var(--text-primary);
   }
   .judge-post .title { font-weight: 700; margin-bottom: 4px; }
-  .judge-side { display: grid; gap: 8px; align-content: start; min-width: 0; }
-  .judge-side .judge-label { margin-bottom: 3px; }
-  .judge-side .judge-actions { margin-top: 0; }
-  .judge-side .judge-input { flex: 1 1 100%; font-size: 12.5px; padding: 5px 8px; }
-  .judge-side .score-row { padding: 3px 0; }
-  .score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 5px 0; border-top: 1px solid var(--grid); }
+  .judge-cats { display: grid; gap: 2px; }
+  .judge-cats .judge-label { margin: 0 0 2px; }
+  .judge-foot { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--grid); padding-top: 10px; }
+  .judge-foot .judge-label { margin: 0 4px 0 0; }
+  .judge-foot .judge-input { flex: 1 1 220px; font-size: 12.5px; padding: 5px 8px; }
+  .judge-foot .spacer { flex: 1 1 0; }
+  .score-row { display: grid; grid-template-columns: 160px minmax(80px, 1fr) 84px auto; gap: 0 12px; align-items: center; padding: 4px 0; border-top: 1px solid var(--grid); }
   .score-row:first-of-type { border-top: 0; }
   .score-name { font-size: 12.5px; font-weight: 600; }
-  .score-bar { position: relative; height: 6px; background: var(--surface-2); border: 1px solid var(--border); grid-column: 1 / -1; }
+  @media (max-width: 700px) { .score-row { grid-template-columns: minmax(0, 1fr) auto; } .score-row .score-bar { grid-column: 1 / -1; } }
+  .score-bar { position: relative; height: 6px; background: var(--surface-2); border: 1px solid var(--border); }
   .score-bar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
   .score-bar .line { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--warn); }
   .score-bar .line.review { background: var(--bad); }
@@ -1230,15 +1233,6 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   function scoreRow(cat, score, rule, onJudge) {
     var row = el("div", { class: "score-row" });
     row.appendChild(el("span", { class: "score-name", text: catWord(cat) }));
-    if (onJudge) {
-      var seg = el("div", { class: "seg", role: "group", "aria-label": "Is " + catWord(cat) + " really there" });
-      ["yes", "no", "unsure"].forEach(function (j) {
-        var b = el("button", { text: j, "aria-pressed": String(onJudge.current === j) });
-        b.addEventListener("click", function () { onJudge.set(j); });
-        seg.appendChild(b);
-      });
-      row.appendChild(seg);
-    } else row.appendChild(el("span", {}));
     var bar = el("div", { class: "score-bar" });
     bar.appendChild(el("div", { class: "fill" }));
     bar.lastChild.style.width = Math.round(score * 100) + "%";
@@ -1251,16 +1245,48 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     });
     row.appendChild(bar);
     var crossed = rule ? ["escalate", "review", "fold"].filter(function (a) { return rule[a] !== undefined && rule[a] !== null && score >= rule[a]; })[0] : null;
-    row.appendChild(el("span", { class: "score-num", text: score.toFixed(2) + (crossed ? " · crosses " + crossed : "") }));
+    row.appendChild(el("span", { class: "score-num", text: score.toFixed(2) + (crossed ? " · " + crossed : "") }));
+    if (onJudge) {
+      var seg = el("div", { class: "seg", role: "group", "aria-label": "Is " + catWord(cat) + " really there" });
+      ["yes", "no", "unsure"].forEach(function (j) {
+        var b = el("button", { text: j, "aria-pressed": String(onJudge.current === j) });
+        b.addEventListener("click", function () { onJudge.set(j); });
+        seg.appendChild(b);
+      });
+      row.appendChild(seg);
+    } else row.appendChild(el("span", {}));
     return row;
   }
 
+  var resultsLeft = 0;
   function renderResults(rows, d) {
     var wrap = document.getElementById("safety-results");
     wrap.textContent = "";
     if (!rows.length) { wrap.appendChild(el("div", { class: "empty", text: "Nothing matches. Widen the query, or score the backlog." })); return; }
-    wrap.appendChild(el("div", { class: "sub", text: rows.length + " post" + (rows.length === 1 ? "" : "s") + (d && d.policyVersion ? " · lines drawn from policy v" + d.policyVersion : "") }));
+    resultsLeft = rows.length;
+    wrap.appendChild(el("div", { class: "sub", id: "safety-results-count", text: countLine(d) }));
     rows.forEach(function (r) { wrap.appendChild(renderResult(r)); });
+  }
+  function countLine(d) {
+    return resultsLeft + " post" + (resultsLeft === 1 ? "" : "s") + (d && d.policyVersion ? " · lines drawn from policy v" + d.policyVersion : "");
+  }
+  /* A saved judgement leaves the list: the queue is what is still yours to
+     do. When the last one goes, offer the query again - there may be more
+     behind it than the limit showed. */
+  function retire(card) {
+    card.classList.add("leaving");
+    setTimeout(function () {
+      card.remove();
+      resultsLeft = Math.max(0, resultsLeft - 1);
+      var count = document.getElementById("safety-results-count");
+      if (count) count.textContent = countLine(null);
+      if (!resultsLeft) {
+        var wrap = document.getElementById("safety-results");
+        var again = el("button", { class: "act", text: "Run the query again" });
+        again.addEventListener("click", runActiveQuery);
+        wrap.appendChild(el("div", { class: "empty" }, [document.createTextNode("All judged. "), again]));
+      }
+    }, 230);
   }
 
   function renderResult(r) {
@@ -1283,41 +1309,38 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     var post = el("div", { class: "judge-post" });
     if (r.post.title) post.appendChild(el("div", { class: "title", text: r.post.title }));
     post.appendChild(document.createTextNode(r.post.body + (r.post.truncated ? "\n[…]" : "")));
+    card.appendChild(post);
 
-    var side = el("div", { class: "judge-side" });
-    var actionBox = el("div", {});
-    actionBox.appendChild(el("div", { class: "judge-label", text: "What would you do" }));
+    var cats = el("div", { class: "judge-cats" });
+    cats.appendChild(el("div", { class: "judge-label", text: r.show.length ? "Is it really there" : "Nothing raised above 0.1" }));
+    r.show.forEach(function (c) {
+      cats.appendChild(scoreRow(c, r.scores[c], safetyRules && safetyRules[c], {
+        current: j.categories[c],
+        set: function (v) { j.categories[c] = v; var next = renderResult(r); card.replaceWith(next); }
+      }));
+    });
+    card.appendChild(cats);
+
+    var foot = el("div", { class: "judge-foot" });
+    foot.appendChild(el("span", { class: "judge-label", text: "You would" }));
     var seg = el("div", { class: "seg", role: "group", "aria-label": "Your action" });
     ACTIONS.forEach(function (a) {
       var b = el("button", { text: ACTION_WORDS[a], "aria-pressed": String(j.action === a) });
       b.addEventListener("click", function () { j.action = a; card.replaceWith(renderResult(r)); });
       seg.appendChild(b);
     });
-    actionBox.appendChild(seg);
-    side.appendChild(actionBox);
-
-    var cats = el("div", {});
-    cats.appendChild(el("div", { class: "judge-label", text: r.show.length ? "Is it really there" : "Nothing raised above 0.1" }));
-    r.show.forEach(function (c) {
-      cats.appendChild(scoreRow(c, r.scores[c], safetyRules && safetyRules[c], {
-        current: j.categories[c],
-        set: function (v) { j.categories[c] = v; card.replaceWith(renderResult(r)); }
-      }));
-    });
-    side.appendChild(cats);
-
-    var undecided = r.show.filter(function (c) { return !j.categories[c]; });
-    var actions = el("div", { class: "judge-actions" });
+    foot.appendChild(seg);
     var ta = el("input", { class: "judge-input", placeholder: "Note (optional)" });
     ta.value = j.note;
     ta.addEventListener("input", function () { j.note = ta.value; });
-    actions.appendChild(ta);
-    var save = el("button", { class: "act", text: undecided.length ? "Judge " + undecided.length + " more" : (r.judgement ? "Save again" : "Save judgement") });
+    foot.appendChild(ta);
+    var undecided = r.show.filter(function (c) { return !j.categories[c]; });
+    var save = el("button", { class: "act", text: undecided.length ? "Judge " + undecided.length + " more" : (r.judgement ? "Save again" : "Save") });
     save.disabled = undecided.length > 0;
     save.addEventListener("click", function () {
       save.disabled = true;
       dashPost("/safety/label", { targetId: r.targetId, action: j.action, categories: j.categories, note: j.note })
-        .then(function () { r.judgement = { action: j.action, categories: j.categories, note: j.note, stale: false }; card.replaceWith(renderResult(r)); loadSafetySummary(); })
+        .then(function () { delete judging[r.targetId]; retire(card); loadSafetySummary(); })
         .catch(function (e) { save.disabled = false; alert(e.message); });
     });
     var rescore = el("button", { class: "act", text: "Score again" });
@@ -1327,10 +1350,10 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
         .then(function (d) { if (d.row) card.replaceWith(renderResult(d.row)); })
         .catch(function (e) { rescore.disabled = false; alert(e.message); });
     });
-    actions.appendChild(save); actions.appendChild(rescore);
-    side.appendChild(actions);
-
-    card.appendChild(el("div", { class: "result-body" }, [post, side]));
+    foot.appendChild(save); foot.appendChild(rescore);
+    card.appendChild(foot);
+    return card;
+  }    card.appendChild(el("div", { class: "result-body" }, [post, side]));
     return card;
   }
 

@@ -478,25 +478,31 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
        of its scores are trustworthy enough to carry a rule; RULES is the
        policy itself, edited here and saved to the Worker. The arithmetic is
        server/src/contentSafety*.ts; this only draws it. -->
-  <div class="card" data-tab="safety" data-card="wroom-safety-posts">
-    <button class="card__head" aria-expanded="true"><span class="card__title">Test posts</span><span class="chev">&#9660;</span></button>
+  <div class="card" data-tab="safety" data-card="wroom-safety-try">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Try a post</span><span class="chev">&#9660;</span></button>
     <div class="card__body">
-      <div class="filters" id="safety-queries"></div>
-      <div id="safety-editor" hidden></div>
       <div class="probe">
         <div class="probe-box">
-          <div class="judge-label">Score any text</div>
-          <textarea class="judge-note" id="safety-probe-text" placeholder="Paste a post, real or invented, and see what the classifier and the current rules make of it. Nothing is stored."></textarea>
+          <div class="judge-label">Any text</div>
+          <textarea class="judge-note" id="safety-probe-text" placeholder="Paste a post, real or invented. Nothing is stored."></textarea>
           <div class="judge-actions"><button class="act" id="safety-probe-run">Score it</button></div>
           <div id="safety-probe-result"></div>
         </div>
         <div class="probe-box">
-          <div class="judge-label">Score one post by id</div>
+          <div class="judge-label">A post on the shared plane, by id</div>
           <div class="judge-actions"><input class="judge-input" id="safety-post-id" placeholder="wp_…"><button class="act" id="safety-post-run">Score now</button></div>
-          <div class="judge-label" style="margin-top:14px">Backlog</div>
-          <div class="judge-actions"><button class="act" id="safety-sweep">Score older posts</button><span class="sub" id="safety-sweep-status"></span></div>
         </div>
       </div>
+      <div id="safety-post-result"></div>
+    </div>
+  </div>
+
+  <div class="card" data-tab="safety" data-card="wroom-safety-review">
+    <button class="card__head" aria-expanded="true"><span class="card__title">Review historical examples</span><span class="chev">&#9660;</span></button>
+    <div class="card__body">
+      <div class="highlights" id="safety-backlog"></div>
+      <div class="filters" id="safety-queries"></div>
+      <div id="safety-editor" hidden></div>
       <div id="safety-results"></div>
       <div class="queue-note">Say what you would do with a post, and for each category the machine raised, whether it is really there. Fiction counts as fiction: a villain's threat is not harassment, a battle is not graphic violence unless it is.</div>
     </div>
@@ -1067,23 +1073,39 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     });
     document.getElementById("safety-post-run").addEventListener("click", function () {
       var id = document.getElementById("safety-post-id").value.trim();
+      var out = document.getElementById("safety-post-result");
       if (!id) return;
-      showResultsMessage("Scoring " + id + "…");
+      out.textContent = ""; out.appendChild(el("div", { class: "sub", text: "Scoring " + id + "…" }));
       dashPost("/safety/post/" + encodeURIComponent(id) + "/score", {})
-        .then(function (d) { if (d.row) { activeQueryId = null; renderSafetyQueries(); renderResults([d.row], {}); } else showResultsMessage("Scored, but nothing came back for " + id + "."); })
-        .catch(function (e) { showResultsMessage(e.message); });
+        .then(function (d) { out.textContent = ""; if (d.row) out.appendChild(renderResult(d.row)); else out.appendChild(el("div", { class: "empty", text: "Scored, but nothing came back for " + id + "." })); })
+        .catch(function (e) { out.textContent = ""; out.appendChild(el("div", { class: "empty", text: e.message })); });
     });
-    var sweep = document.getElementById("safety-sweep");
-    var status = document.getElementById("safety-sweep-status");
-    sweep.addEventListener("click", function () {
-      sweep.disabled = true; status.textContent = "Scoring up to 500…";
+  }
+
+  /* The backlog: posts the classifier has never seen. Scored ad hoc from
+     here, a request's worth per press; the nightly cron (a Cloudflare
+     Cron Trigger on the Worker, 04:17 UTC) covers whatever an outage left.
+     Drawn only when there is something to do, because a button that
+     always says "nothing left" is furniture. */
+  var sweeping = false;
+  function renderBacklog(unscored) {
+    var row = document.getElementById("safety-backlog");
+    row.textContent = "";
+    if (!unscored && !sweeping) return;
+    var chip = el("span", { class: "chip hot" }, [el("strong", { text: String(unscored) }), document.createTextNode(" posts never scored")]);
+    var btn = el("button", { class: "act", text: sweeping ? "Scoring…" : "Score them now" });
+    btn.disabled = sweeping;
+    btn.addEventListener("click", function () {
+      sweeping = true; renderBacklog(unscored);
       dashPost("/safety/sweep", {})
         .then(function (r) {
-          status.textContent = "Scored " + r.scored + (r.remaining ? " · " + r.remaining + " left, press again" : " · nothing left");
-          sweep.disabled = false; loadSafetySummary(); runActiveQuery();
+          sweeping = false; renderBacklog(r.remaining);
+          if (r.remaining) alert("Scored " + r.scored + ". " + r.remaining + " left; press again."); 
+          loadSafetySummary(); runActiveQuery();
         })
-        .catch(function (e) { sweep.disabled = false; status.textContent = e.message; });
+        .catch(function (e) { sweeping = false; renderBacklog(unscored); alert(e.message); });
     });
+    row.appendChild(chip); row.appendChild(btn);
   }
 
   /* ---- Test posts: results and judging ---- */
@@ -1213,6 +1235,7 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     chip("v" + d.policyVersion, "policy");
     chip(d.counts.unscored, "posts not yet scored", d.counts.unscored > 0);
     chip(d.calibration.labeled, "judged by a person");
+    renderBacklog(d.counts.unscored);
 
     var byVerdict = {};
     d.counts.verdicts.forEach(function (r) { byVerdict[r.verdict] = byVerdict[r.verdict] || {}; byVerdict[r.verdict][r.action] = r.n; });

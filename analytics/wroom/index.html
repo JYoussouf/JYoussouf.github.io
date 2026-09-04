@@ -841,6 +841,21 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
       ]));
     });
     cov.appendChild(el("span", { class: "chip", text: "policy v" + d.policyVersion }));
+    /* The backfill, on demand. The nightly cron scores what the classifier
+       never saw; this is the same sweep for somebody who does not want to
+       wait for 04:17 UTC. Up to 500 a press; press again until it says 0. */
+    var sweep = el("button", { class: "act", text: "Score older posts" });
+    sweep.addEventListener("click", function () {
+      sweep.disabled = true; sweep.textContent = "Scoring…";
+      dashPost("/safety/sweep", {})
+        .then(function (r) {
+          sweep.textContent = "Scored " + r.scored + (r.remaining ? " · " + r.remaining + " left, press again" : " · all done");
+          if (r.remaining) sweep.disabled = false;
+          loadCalibrateNext(); loadCalibrationReport(); loadVerdicts();
+        })
+        .catch(function (e) { sweep.disabled = false; sweep.textContent = "Score older posts"; alert(e.message); });
+    });
+    cov.appendChild(sweep);
   }
 
   function scoreRow(cat, score, rule) {

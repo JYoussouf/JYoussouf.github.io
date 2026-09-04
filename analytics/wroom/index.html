@@ -883,18 +883,20 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     b.addEventListener("click", function () {
       if (inviteInFlight) return;
       var ask = force
-        ? "Replace " + who + "'s code? The one they have stops working."
+        ? "Replace " + who + "'s code? The one they have stops working. Nothing is emailed - you get the new code."
         : mailable
           ? (e.invitedAt ? "Send the same code to " + mailTo + " again?" : "Email an access code to " + mailTo + "?")
           : "Mint a code for " + who + "?";
       if (!confirm(ask)) return;
       inviteInFlight = true;
       b.disabled = true;
-      var body = mailable ? { email: e.email, force: force } : { key: e.email, force: force };
+      // Mint never mails. It hands over the code; sending is a separate,
+      // deliberate press of Resend.
+      var body = mailable ? { email: e.email, force: force, send: !force } : { key: e.email, force: force };
       dashPost(mailable ? "/signup-gate/waitlist/invite" : "/signup-gate/waitlist/mint", body)
         .then(function (d) {
           inviteInFlight = false;
-          if (!mailable && d.code) {
+          if ((!mailable || d.sent === false) && d.code) {
             window.prompt("Send this to " + who + ":", d.code);
           } else {
             /* Said out loud. This used to do nothing visible on success, so

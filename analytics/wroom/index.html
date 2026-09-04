@@ -984,10 +984,34 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     runSpec(q.spec);
   }
 
+  /* A query that returns ONLY what the machine flagged is a query for the
+     worst of the writing, and it should not land on the screen because a
+     tab happened to open. It is drawn behind a cover once, with the count,
+     until the person reveals it - for the whole list, not card by card,
+     because consenting is one decision. Remembered for this page load only. */
+  var revealedFlagged = false;
+  function onlyFlagged(spec) {
+    var v = spec.verdict || [];
+    return v.length > 0 && v.indexOf("clear") < 0;
+  }
   function runSpec(spec) {
     showResultsMessage("Running…");
     dashPost("/safety/query", spec)
-      .then(function (d) { safetyRules = d.rules; renderResults(d.rows, d); })
+      .then(function (d) {
+        safetyRules = d.rules;
+        if (onlyFlagged(spec) && !revealedFlagged && d.rows.length) {
+          var wrap = document.getElementById("safety-results");
+          wrap.textContent = "";
+          var reveal = el("button", { class: "act", text: "Reveal " + d.rows.length + " flagged post" + (d.rows.length === 1 ? "" : "s") });
+          reveal.addEventListener("click", function () { revealedFlagged = true; renderResults(d.rows, d); });
+          wrap.appendChild(el("div", { class: "empty" }, [
+            el("div", { text: d.rows.length + " post" + (d.rows.length === 1 ? "" : "s") + " the classifier flagged. Covered until you choose to look." }),
+            el("div", { style: "margin-top:10px" }, [reveal])
+          ]));
+          return;
+        }
+        renderResults(d.rows, d);
+      })
       .catch(function (e) { showResultsMessage(e.message); });
   }
 

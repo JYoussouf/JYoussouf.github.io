@@ -287,6 +287,12 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      `table-layout: fixed` obeys the container at any width and the cells
      that must not wrap - dates, codes, buttons - get shaved instead. */
   #waitlist-table { overflow-x: auto; margin: 0 -16px; }
+  /* The wrapper is pulled out by 16px so the TABLE can run to the card's
+     edges, and its first and last cells put the inset back. Everything else
+     inside it inherits that bleed and has nothing to put it back, so the
+     count line and the empty state sat 16px left of the Name column they
+     head. They get the inset explicitly. */
+  #waitlist-table > .gate-mode, #waitlist-table > .empty { padding-left: 16px; padding-right: 16px; }
   .waitlist-table { table-layout: fixed; width: 100%; min-width: 1100px; }
   #waitlist-table > .waitlist-table { width: calc(100% - 0px); }
   .waitlist-table td:first-child, .waitlist-table th:first-child { padding-left: 16px; }
@@ -966,35 +972,19 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
          untouched, or it has been used. Revoked counts as "not sent" - the
          key it names does not work any more, so the row is owed another. */
       var state = !e.invitedAt || e.codeRevoked ? "" : e.redeemed ? "here" : "sent";
-      /* THE EMAIL COLUMN IS ONLY EDITABLE ON A ROW THAT HAS NO ADDRESS OF ITS
-         OWN, and that is not a permission - it is what the column means.
-
-         `mailTo` is derived: the row's own key when that key IS an address,
-         and otherwise the contact address recorded beside it. So on a row
-         keyed by a real email, editing this cell would write contact_email,
-         the server would go on preferring the key, and the value would snap
-         back - a control that looks broken while working exactly as
-         designed. On those rows the address is identity, the server refuses
-         to change it, and the cell says so instead of pretending.
-
-         Handle-only rows (keyed `discord:someone`, from the Google form that
-         never asked for an address) are the ones this exists for. */
-      var keyIsAddress = e.email.indexOf("@") > 0 && e.email.indexOf("discord:") !== 0;
-
       return el("tr", { class: state }, [
         editCell(e, "name", e.name, { cls: "" }),
         // Shown with an @, stored without one; the server strips it either way.
         editCell(e, "discord", handle, { title: "Click to edit the handle" }),
-        keyIsAddress
-          ? el("td", {
-              class: "sub",
-              text: mailTo || "\u2014",
-              title: "This row is keyed by this address, so it is the row's identity and cannot be changed.",
-            })
-          : editCell(e, "contactEmail", mailTo, {
-              type: "email",
-              title: "No address on file. Click to add one.",
-            }),
+        /* Editable on EVERY row. What is written is `contactEmail`, never the
+           row's key - the key is identity and the server refuses to move it -
+           and the server prefers a contact address over the key when deciding
+           where mail goes, so what is typed here is what the next Resend
+           actually uses. Clearing it falls back to the key. */
+        editCell(e, "contactEmail", mailTo, {
+          type: "email",
+          title: mailTo ? "Click to change where mail goes" : "No address on file. Click to add one.",
+        }),
         el("td", { class: "sub", text: dash(e.device) }),
         el("td", { class: "sub wrap", text: dash(e.writesOften) }),
         el("td", { class: "sub wrap", text: dash(e.writesWhere) }),

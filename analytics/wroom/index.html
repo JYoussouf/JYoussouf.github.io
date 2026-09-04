@@ -314,7 +314,22 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
      once it has been typed in, which is the only one that means they are
      actually here. A left edge rather than a filled row: the answers still
      have to be readable. */
-  .waitlist-table tr.sent td { background: color-mix(in srgb, var(--warn) 9%, transparent); }
+  /* An editable cell reads as text until you go near it. A table of inputs is
+   a form, and this is a list you mostly read - the affordance has to be
+   available without being the loudest thing in the row. */
+.waitlist-table .editable {
+  cursor: text; border-radius: 3px; padding: 1px 3px; margin: -1px -3px;
+  border-bottom: 1px dashed transparent;
+}
+.waitlist-table .editable:hover { background: var(--accent-soft); border-bottom-color: var(--border-strong); }
+.waitlist-table .editable:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.waitlist-table .cell-edit {
+  width: 100%; box-sizing: border-box; font: inherit; font-size: 12px;
+  padding: 1px 3px; color: var(--text-primary);
+  background: var(--surface-2); border: 1px solid var(--accent); border-radius: 3px;
+}
+.waitlist-table .cell-edit:disabled { opacity: .5; }
+.waitlist-table tr.sent td { background: color-mix(in srgb, var(--warn) 9%, transparent); }
   .waitlist-table tr.here td { background: color-mix(in srgb, var(--ok) 10%, transparent); }
   .table-wrap .mono { word-break: break-all; }
   /* The reported words, quoted: content, not metadata, so it reads at full
@@ -664,6 +679,32 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
     });
   }
 
+  /**
+   * A correction to one row. PATCH rather than POST because it is a partial:
+   * the body carries only the field that changed, and anything absent from it
+   * is left alone server-side. Posting a whole row back would blank whatever
+   * this screen did not happen to know about.
+   *
+   * NOTE the method has to be in dashCors' Allow-Methods on the Worker. A
+   * method missing there fails at the preflight, so the real request is never
+   * sent and there is nothing in any log to find.
+   */
+  function dashPatch(path, body) {
+    return fetch(API + "/api/admin/dash" + path, {
+      method: "PATCH",
+      headers: { "x-dash-key": actingKey(), "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    }).then(function (res) {
+      if (res.status === 404) throw new Error(WRONG_KEY);
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (d) {
+          throw new Error(d.error || "The server refused that (" + res.status + ").");
+        });
+      }
+      return res.json();
+    });
+  }
+
   function loadReports() {
     var wrap = document.getElementById("reports-table");
     if (!wrap.childElementCount) wrap.appendChild(el("div", { class: "empty", text: "Loading the queue\u2026" }));
@@ -764,6 +805,106 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   }
 
 
+  /* ---- correcting a row --------------------------------------------------
+
+     A waitlist row arrives from wherever somebody was found - the app, a
+     Google form, a DM - and the answers are typed by hand at both ends. So
+     they are wrong sometimes, and until now the only fix was a migration and
+     a deploy, which is an absurd amount of ceremony for a typo.
+
+     Click a cell, type, press Enter. Escape abandons it, and so does leaving
+     the value unchanged - a blur that changed nothing must not fire a write,
+     because tabbing through a table would otherwise be a dozen of them.
+
+     ONE FIELD PER REQUEST. The endpoint is a partial and leaves absent fields
+     alone, so sending only what changed means two people editing two cells of
+     the same row cannot overwrite each other. */
+  var editInFlight = false;
+
+  /**
+   * One editable cell.
+   *
+   * `field` is the name the endpoint knows it by, which is not always the
+   * column heading: the Email column shows `mailTo`, and what is being edited
+   * behind it is `contactEmail`.
+   */
+  function editCell(e, field, value, opts) {
+    opts = opts || {};
+    var td = el("td", { class: opts.cls || "sub" });
+
+    function show(v) {
+      td.textContent = "";
+      var span = el("span", {
+        class: "editable",
+        text: v && String(v).trim() ? String(v) : "\u2014",
+        title: opts.title || "Click to edit",
+        tabindex: "0",
+        role: "button",
+      });
+      var open = function () { edit(v); };
+      span.addEventListener("click", open);
+      span.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); }
+      });
+      td.appendChild(span);
+    }
+
+    function edit(current) {
+      td.textContent = "";
+      var input = el("input", { class: "cell-edit", type: opts.type || "text", value: current || "" });
+      td.appendChild(input);
+      input.focus();
+      input.select();
+
+      var settled = false;
+      var commit = function () {
+        if (settled) return;
+        var next = input.value.trim();
+        // Unchanged is not a write. Blur fires on every tab through the table.
+        if (next === (current || "").trim()) { settled = true; show(current); return; }
+        settled = true;
+        if (editInFlight) { show(current); return; }
+        editInFlight = true;
+        input.disabled = true;
+        var body = {};
+        body[field] = next;
+        dashPatch("/signup-gate/waitlist/" + encodeURIComponent(e.email), body)
+          .then(function (d) {
+            editInFlight = false;
+            // The row comes back in the list's own shape, so the local copy
+            // is updated from the SERVER's answer rather than from what was
+            // typed - coercion (lowercasing, stripping a leading @) happens
+            // there, and a cell that disagrees with the database is worse
+            // than one that flickers.
+            if (d && d.entry) {
+              e.name = d.entry.name;
+              e.discord = d.entry.discord;
+              e.note = d.entry.note;
+              e.mailTo = d.entry.mailTo;
+            }
+            renderWaitlist();
+          })
+          .catch(function (err) {
+            editInFlight = false;
+            // Put the old value back rather than leaving what was typed on
+            // screen: the database still holds the old one, and a cell that
+            // shows the rejected value is a lie about what is stored.
+            show(current);
+            alert(err.message);
+          });
+      };
+
+      input.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); input.blur(); }
+        else if (ev.key === "Escape") { settled = true; show(current); }
+      });
+      input.addEventListener("blur", commit);
+    }
+
+    show(value);
+    return td;
+  }
+
   function renderWaitlist() {
     var wrap = document.getElementById("waitlist-table");
     wrap.textContent = "";
@@ -825,10 +966,35 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
          untouched, or it has been used. Revoked counts as "not sent" - the
          key it names does not work any more, so the row is owed another. */
       var state = !e.invitedAt || e.codeRevoked ? "" : e.redeemed ? "here" : "sent";
+      /* THE EMAIL COLUMN IS ONLY EDITABLE ON A ROW THAT HAS NO ADDRESS OF ITS
+         OWN, and that is not a permission - it is what the column means.
+
+         `mailTo` is derived: the row's own key when that key IS an address,
+         and otherwise the contact address recorded beside it. So on a row
+         keyed by a real email, editing this cell would write contact_email,
+         the server would go on preferring the key, and the value would snap
+         back - a control that looks broken while working exactly as
+         designed. On those rows the address is identity, the server refuses
+         to change it, and the cell says so instead of pretending.
+
+         Handle-only rows (keyed `discord:someone`, from the Google form that
+         never asked for an address) are the ones this exists for. */
+      var keyIsAddress = e.email.indexOf("@") > 0 && e.email.indexOf("discord:") !== 0;
+
       return el("tr", { class: state }, [
-        el("td", { text: dash(e.name) }),
-        el("td", { class: "sub", text: handle ? "@" + handle : "\u2014" }),
-        el("td", { class: "sub", text: mailTo || "\u2014", title: mailTo }),
+        editCell(e, "name", e.name, { cls: "" }),
+        // Shown with an @, stored without one; the server strips it either way.
+        editCell(e, "discord", handle, { title: "Click to edit the handle" }),
+        keyIsAddress
+          ? el("td", {
+              class: "sub",
+              text: mailTo || "\u2014",
+              title: "This row is keyed by this address, so it is the row's identity and cannot be changed.",
+            })
+          : editCell(e, "contactEmail", mailTo, {
+              type: "email",
+              title: "No address on file. Click to add one.",
+            }),
         el("td", { class: "sub", text: dash(e.device) }),
         el("td", { class: "sub wrap", text: dash(e.writesOften) }),
         el("td", { class: "sub wrap", text: dash(e.writesWhere) }),

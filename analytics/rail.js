@@ -152,5 +152,21 @@
     row("cloudflare", "Cloudflare", base + "#/cloudflare", null);
   }
 
-  global.Rail = { render: render, PROJECTS: PROJECTS };
+  global.Rail = {
+    /* THE TALLIES TRAVEL. Pulse knows every project's count for the range
+       and wroom's page knows only its own, so whichever page last drew the
+       rail leaves the numbers and colours where the other can read them.
+       Same origin, so localStorage is the whole mechanism; a few minutes
+       stale is fine for a rail, and a page with nothing stored draws what
+       it always drew. */
+    remember: function (tallies, colours) {
+      try { localStorage.setItem("rail_tallies", JSON.stringify({ tallies: tallies || {}, colours: colours || {}, at: Date.now() })); } catch (e) {}
+    },
+    recall: function () {
+      try {
+        var raw = JSON.parse(localStorage.getItem("rail_tallies") || "null");
+        if (!raw || !raw.tallies) return { tallies: {}, colours: {} };
+        return { tallies: raw.tallies, colours: raw.colours || {} };
+      } catch (e) { return { tallies: {}, colours: {} }; }
+    }, render: render, PROJECTS: PROJECTS };
 })(window);

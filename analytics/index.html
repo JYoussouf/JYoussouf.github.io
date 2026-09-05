@@ -614,6 +614,7 @@
       colours[a.app] = colorFor(a.app);
     });
     Object.keys(tallies).forEach(function (k) { if (!tallies[k]) delete tallies[k]; });
+    Rail.remember(tallies, colours);
 
     Rail.render({
       mount: document.getElementById("rail"),

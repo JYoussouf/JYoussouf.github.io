@@ -1552,13 +1552,19 @@ svg text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: 
   /* The same rail Pulse draws, so crossing between the two does not feel
      like leaving. wroom is the current row; everything else is a link home. */
   function renderRail() {
+    /* Every other project's count and colour come from the last time Pulse
+       drew the rail (Rail.remember); wroom's own row is this page's. */
+    var last = Rail.recall();
+    var tallies = Object.assign({}, last.tallies);
+    var colours = Object.assign({}, last.colours, { wroom: "var(--series-1)" });
+    if (waitlist && waitlist.waiting) tallies.wroom = waitlist.waiting; else delete tallies.wroom;
     Rail.render({
       mount: document.getElementById("rail"),
       current: "wroom",
       base: "../",
       local: [],
-      tallies: waitlist && waitlist.waiting ? { wroom: waitlist.waiting } : {},
-      colours: { wroom: "var(--series-1)" }
+      tallies: tallies,
+      colours: colours
     });
   }
 

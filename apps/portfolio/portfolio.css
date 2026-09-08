@@ -478,6 +478,11 @@ p { margin: 0; }
 .card-grid { display: grid; gap: 1rem; }
 .card-grid--apps { grid-template-columns: repeat(auto-fill, minmax(320px, 480px)); justify-content: start; }
 .card-grid--games { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+/* A lone game must not stretch the width of the block. `auto-fit` collapses the
+   empty tracks, so the last card left standing takes the whole row and its art
+   is blown up to a size no other card on the page is. Capped only when it IS
+   alone, so nothing changes the moment a second one is back. */
+.card-grid--games .card--game:only-child { max-width: 340px; }
 
 .card {
     position: relative;

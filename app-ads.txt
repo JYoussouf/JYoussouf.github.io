@@ -1,17 +1,24 @@
-# app-ads.txt - who is authorised to sell ad inventory in Joseph Youssouf's apps.
+# app-ads.txt - who is authorised to sell ad inventory in the apps whose
+# store listing names joseppy.ca as its developer website.
 #
 # IAB Tech Lab spec: https://iabtechlab.com/ads-txt/
 #
-# Buyers crawl this file to check that whoever is offering inventory for
-# "wroom" is actually allowed to. Without it, a large share of programmatic
+# Buyers crawl this file to check that whoever is offering inventory for an
+# app is actually allowed to. Without it, a large share of programmatic
 # demand simply will not bid, which shows up as low fill rather than as an
 # error - so an app with no app-ads.txt looks like an app nobody wants to
 # advertise on.
 #
-# HOW IT IS FOUND: the crawler reads the developer website from the app's
-# store listing and fetches /app-ads.txt from that domain. So the marketing
-# or support URL on the App Store and Play listings must point at
-# joseppy.ca, or this file is never looked at.
+# HOW IT IS FOUND: the crawler reads the DEVELOPER WEBSITE from the app's
+# store listing and fetches /app-ads.txt from that domain. The support email
+# is not part of that lookup.
+#
+# WHICH APPS THIS FILE COVERS. Only the ones still pointing here, which today
+# means Sushi Party. wroom moved to its own domain when it moved to its own
+# company: both store listings name https://wroom.studio, and that file (see
+# server/src/privacy.ts in the wroom repo) authorises wroom Inc.'s publisher
+# alongside the personal one for the binaries that predate the move. Adding
+# wroom Inc. here would authorise it to sell inventory it does not have.
 #
 # The trailing field on each line is the certification authority ID, which
 # for Google is the same public value for every publisher.
